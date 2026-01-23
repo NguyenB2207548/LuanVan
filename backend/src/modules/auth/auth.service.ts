@@ -1,0 +1,57 @@
+import {
+  Injectable,
+  BadRequestException,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { UsersService } from '../users/users.service';
+import { JwtService } from '@nestjs/jwt';
+import * as bcrypt from 'bcrypt';
+import { RegisterDto } from './dto/register.dto';
+import { UserRole } from '../users/entities/user.entity';
+
+@Injectable()
+export class AuthService {
+  constructor(
+    private usersService: UsersService,
+    private jwtService: JwtService,
+  ) {}
+
+  async register(dto: RegisterDto) {
+    // 1. Mã hóa mật khẩu
+    const hashedPassword = await bcrypt.hash(dto.password, 10);
+
+    // 2. Lưu vào DB thông qua UsersService
+    // Lưu ý: Bạn cần sửa lại hàm create trong UsersService để nhận passwordHash
+    return this.usersService.create({
+      email: dto.email,
+      passwordHash: hashedPassword,
+      fullName: dto.fullName,
+      role: dto.role || UserRole.USER,
+    });
+  }
+
+  async login(loginDto: any) {
+    const user = await this.usersService.findByEmail(loginDto.email);
+    console.log(user);
+    if (!user)
+      throw new UnauthorizedException('Thông tin đăng nhập không chính xác');
+
+    const isPasswordMatching = await bcrypt.compare(
+      loginDto.password,
+      user.passwordHash,
+    );
+    if (!isPasswordMatching)
+      throw new UnauthorizedException('Thông tin đăng nhập không chính xác');
+
+    const payload = { sub: user.id, email: user.email, role: user.role };
+    return {
+      access_token: await this.jwtService.signAsync(payload),
+      user: {
+        id: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        role: user.role,
+      },
+    };
+  }
+}

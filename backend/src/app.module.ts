@@ -14,6 +14,7 @@ import { OrdersModule } from './modules/orders/orders.module';
 import { ReviewsModule } from './modules/reviews/reviews.module';
 import { ImagesModule } from './modules/images/images.module';
 import { DesignsModule } from './modules/designs/designs.module';
+import { AuthModule } from './modules/auth/auth.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { DesignsModule } from './modules/designs/designs.module';
     ReviewsModule,
     ImagesModule,
     DesignsModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],
