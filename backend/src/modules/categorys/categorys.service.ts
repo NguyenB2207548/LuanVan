@@ -21,7 +21,6 @@ export class CategoriesService {
 
   async create(createCategoryDto: CreateCategoryDto): Promise<Category> {
     try {
-      // 1. Kiểm tra trùng tên (Optional: Có thể để DB tự bắt lỗi nhưng check code sẽ custom message tốt hơn)
       const existingCategory = await this.categoryRepository.findOne({
         where: { categoryName: createCategoryDto.categoryName },
       });
@@ -30,17 +29,13 @@ export class CategoriesService {
         throw new ConflictException('Tên danh mục đã tồn tại');
       }
 
-      // 2. Tạo instance mới
       const newCategory = this.categoryRepository.create(createCategoryDto);
 
-      // 3. Lưu xuống DB
       return await this.categoryRepository.save(newCategory);
     } catch (error) {
-      // Ném lại lỗi nếu đó là lỗi ConflictException mình vừa tạo
       if (error instanceof ConflictException) {
         throw error;
       }
-      // Các lỗi khác (vd: mất kết nối DB)
       throw new InternalServerErrorException('Lỗi khi tạo danh mục');
     }
   }
