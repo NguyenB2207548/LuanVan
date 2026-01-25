@@ -17,11 +17,8 @@ export class AuthService {
   ) {}
 
   async register(dto: RegisterDto) {
-    // 1. Mã hóa mật khẩu
     const hashedPassword = await bcrypt.hash(dto.password, 10);
 
-    // 2. Lưu vào DB thông qua UsersService
-    // Lưu ý: Bạn cần sửa lại hàm create trong UsersService để nhận passwordHash
     return this.usersService.create({
       email: dto.email,
       passwordHash: hashedPassword,

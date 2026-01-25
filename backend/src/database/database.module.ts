@@ -14,7 +14,7 @@ import { User } from 'src/modules/users/entities/user.entity';
       entities: [__dirname + '/../**/*.entity{.ts,.js}'],
       // entities: [User],
       synchronize: false,
-      logging: true,
+      logging: false,
     }),
   ],
   exports: [TypeOrmModule],

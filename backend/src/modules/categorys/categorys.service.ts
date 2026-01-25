@@ -1,26 +1,47 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  ConflictException,
+  InternalServerErrorException,
+} from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Category } from './entities/category.entity';
 import { CreateCategoryDto } from './dto/create-category.dto';
-import { UpdateCategoryDto } from './dto/update-category.dto';
 
 @Injectable()
-export class CategorysService {
-  create(createCategoryDto: CreateCategoryDto) {
-    return 'This action adds a new category';
+export class CategoriesService {
+  constructor(
+    @InjectRepository(Category)
+    private categoryRepository: Repository<Category>,
+  ) {}
+
+  async findAll(): Promise<Category[]> {
+    return this.categoryRepository.find();
   }
 
-  findAll() {
-    return `This action returns all categorys`;
-  }
+  async create(createCategoryDto: CreateCategoryDto): Promise<Category> {
+    try {
+      // 1. Kiểm tra trùng tên (Optional: Có thể để DB tự bắt lỗi nhưng check code sẽ custom message tốt hơn)
+      const existingCategory = await this.categoryRepository.findOne({
+        where: { categoryName: createCategoryDto.categoryName },
+      });
 
-  findOne(id: number) {
-    return `This action returns a #${id} category`;
-  }
+      if (existingCategory) {
+        throw new ConflictException('Tên danh mục đã tồn tại');
+      }
 
-  update(id: number, updateCategoryDto: UpdateCategoryDto) {
-    return `This action updates a #${id} category`;
-  }
+      // 2. Tạo instance mới
+      const newCategory = this.categoryRepository.create(createCategoryDto);
 
-  remove(id: number) {
-    return `This action removes a #${id} category`;
+      // 3. Lưu xuống DB
+      return await this.categoryRepository.save(newCategory);
+    } catch (error) {
+      // Ném lại lỗi nếu đó là lỗi ConflictException mình vừa tạo
+      if (error instanceof ConflictException) {
+        throw error;
+      }
+      // Các lỗi khác (vd: mất kết nối DB)
+      throw new InternalServerErrorException('Lỗi khi tạo danh mục');
+    }
   }
 }

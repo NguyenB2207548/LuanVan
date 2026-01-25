@@ -34,7 +34,7 @@ export class Product {
   status: string;
 
   @Column({ type: 'text', nullable: true })
-  description: string;
+  description: string | undefined;
 
   @ManyToOne(() => Category, (category) => category.products)
   @JoinColumn({ name: 'category_id' })
