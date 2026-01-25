@@ -9,22 +9,27 @@ interface User {
 
 interface AuthState {
   user: User | null;
-  isAuthenticated: boolean;
+  token: string | null;
+  isAuthenticated: boolean; // Thêm thuộc tính này
   login: (user: User, token: string) => void;
   logout: () => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
+  // Khởi tạo trạng thái ban đầu từ localStorage
   user: JSON.parse(localStorage.getItem("user") || "null"),
+  token: localStorage.getItem("access_token"),
   isAuthenticated: !!localStorage.getItem("access_token"),
+
   login: (user, token) => {
     localStorage.setItem("access_token", token);
     localStorage.setItem("user", JSON.stringify(user));
-    set({ user, isAuthenticated: true });
+    set({ user, token, isAuthenticated: true }); // Cập nhật isAuthenticated lên true
   },
+
   logout: () => {
     localStorage.removeItem("access_token");
     localStorage.removeItem("user");
-    set({ user: null, isAuthenticated: false });
+    set({ user: null, token: null, isAuthenticated: false }); // Reset về false
   },
 }));

@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { CreateProductDto } from './dto/create-product.dto';
 import { Product } from './entities/product.entity';
@@ -16,6 +20,20 @@ export class ProductsService {
     return productRepository.find({
       relations: ['category', 'variants', 'attributes'],
     });
+  }
+
+  async findOne(id: number): Promise<Product> {
+    const productRepository = this.dataSource.getRepository(Product);
+    const product = await productRepository.findOne({
+      where: { id },
+      relations: ['category', 'variants', 'attributes', 'reviews'],
+    });
+
+    if (!product) {
+      throw new NotFoundException(`Không tìm thấy sản phẩm có ID #${id}`);
+    }
+
+    return product;
   }
 
   async create(createProductDto: CreateProductDto) {
