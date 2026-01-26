@@ -4,9 +4,10 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Category } from './entities/category.entity';
 import { CreateCategoryDto } from './dto/create-category.dto';
+import { UpdateCategoryDto } from './dto/update-category.dto';
 
 @Injectable()
 export class CategoriesService {
@@ -38,5 +39,32 @@ export class CategoriesService {
       }
       throw new InternalServerErrorException('Lỗi khi tạo danh mục');
     }
+  }
+
+  async update(
+    id: number,
+    updateCategoryDto: UpdateCategoryDto,
+  ): Promise<Category> {
+    const category = await this.categoryRepository.findOne({ where: { id } });
+    if (!category) {
+      throw new InternalServerErrorException('Danh mục không tồn tại');
+    }
+    const updatedCategory = await this.categoryRepository.merge(
+      category,
+      updateCategoryDto,
+    );
+    return await this.categoryRepository.save(updatedCategory);
+  }
+
+  async delete(id: number): Promise<void> {
+    const category = await this.categoryRepository.findOne({
+      where: { id },
+    });
+
+    if (!category) {
+      throw new InternalServerErrorException('Danh mục không tồn tại');
+    }
+
+    await this.categoryRepository.delete(id);
   }
 }

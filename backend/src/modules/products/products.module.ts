@@ -8,13 +8,22 @@ import { Attribute } from './entities/attribute.entity';
 import { AttributeValue } from './entities/attribute_value.entity';
 import { AttributesService } from './attributes.service';
 import { AttributesController } from './attributes.controller';
+import { VariantsController } from './variants.controller';
+import { VariantsService } from './variants.service';
+import { Price } from './entities/price.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Product, Variant, Attribute, AttributeValue]),
+    TypeOrmModule.forFeature([
+      Product,
+      Variant,
+      Attribute,
+      AttributeValue,
+      Price,
+    ]),
   ],
-  controllers: [ProductsController, AttributesController],
-  providers: [ProductsService, AttributesService],
+  controllers: [ProductsController, AttributesController, VariantsController],
+  providers: [ProductsService, AttributesService, VariantsService],
   exports: [AttributesService],
 })
 export class ProductsModule {}

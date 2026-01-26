@@ -57,17 +57,17 @@ export class ProductsService {
 
         return {
           ...product,
-          images: productImages, // Trả về mảng ảnh cho Product
-          variants: variantsWithImages, // Trả về Variant đã có kèm ảnh
+          images: productImages,
+          variants: variantsWithImages,
         };
       }),
     );
   }
+
   async findOne(id: number): Promise<any> {
     const productRepository = this.dataSource.getRepository(Product);
     const imageRepository = this.dataSource.getRepository(Image);
 
-    // 1. Lấy thông tin cơ bản của sản phẩm và các quan hệ cứng
     const product = await productRepository.findOne({
       where: { id },
       relations: [
@@ -75,7 +75,7 @@ export class ProductsService {
         'variants',
         'attributes',
         'variants.attributeValues',
-        'variants.prices', // Đảm bảo lấy được giá của từng variant
+        'variants.prices',
       ],
     });
 
@@ -83,7 +83,6 @@ export class ProductsService {
       throw new NotFoundException(`Không tìm thấy sản phẩm có ID #${id}`);
     }
 
-    // 2. Lấy danh sách ảnh của chính Sản phẩm đó
     const productImages = await imageRepository.find({
       where: {
         ownerId: product.id,
@@ -91,7 +90,6 @@ export class ProductsService {
       },
     });
 
-    // 3. Lấy ảnh cho từng Variant thuộc Sản phẩm này
     const variantsWithImages = await Promise.all(
       product.variants.map(async (variant) => {
         const variantImages = await imageRepository.find({
@@ -104,13 +102,13 @@ export class ProductsService {
       }),
     );
 
-    // 4. Trả về object tổng hợp
     return {
       ...product,
       images: productImages,
       variants: variantsWithImages,
     };
   }
+
   async create(createProductDto: CreateProductDto) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();

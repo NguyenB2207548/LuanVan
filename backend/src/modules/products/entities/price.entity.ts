@@ -27,7 +27,7 @@ export class Price {
   priceType: string;
 
   @CreateDateColumn({ name: 'effective_date' })
-  effectiveDate: Date; // Ngày mức giá này bắt đầu có hiệu lực
+  effectiveDate: Date;
 
   @ManyToOne(() => Variant, (variant) => variant.prices, {
     onDelete: 'CASCADE',
