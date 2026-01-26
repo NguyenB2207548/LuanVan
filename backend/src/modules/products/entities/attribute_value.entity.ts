@@ -6,8 +6,8 @@ import {
   ManyToMany,
   JoinColumn,
 } from 'typeorm';
-import { Attribute } from '../../attributes/entities/attribute.entity';
-import { Variant } from '../../variants/entities/variant.entity';
+import { Attribute } from './attribute.entity';
+import { Variant } from './variant.entity';
 
 @Entity('attribute_values')
 export class AttributeValue {

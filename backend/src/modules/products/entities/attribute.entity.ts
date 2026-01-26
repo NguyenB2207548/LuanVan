@@ -7,7 +7,7 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { AttributeValue } from '../../attribute_values/entities/attribute_value.entity';
+import { AttributeValue } from './attribute_value.entity';
 import { Product } from 'src/modules/products/entities/product.entity';
 
 @Entity('attributes')

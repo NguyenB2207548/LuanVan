@@ -6,7 +6,7 @@ import {
   CreateDateColumn,
   JoinColumn,
 } from 'typeorm';
-import { Variant } from '../../variants/entities/variant.entity';
+import { Variant } from './variant.entity';
 
 @Entity('prices')
 export class Price {

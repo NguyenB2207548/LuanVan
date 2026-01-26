@@ -4,23 +4,36 @@ import {
   Column,
   ManyToOne,
   JoinColumn,
+  CreateDateColumn,
 } from 'typeorm';
 import { Design } from './design.entity';
-import { Variant } from '../../variants/entities/variant.entity';
+
+export enum DesignOwnerType {
+  PRODUCT = 'product',
+  VARIANT = 'variant',
+}
 
 @Entity('link_designs')
 export class LinkDesign {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => Design)
+  @ManyToOne(() => Design, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'design_id' })
   design: Design;
 
-  @ManyToOne(() => Variant)
-  @JoinColumn({ name: 'variant_id' })
-  variant: Variant;
+  @Column({
+    type: 'enum',
+    enum: DesignOwnerType,
+  })
+  ownerType: DesignOwnerType;
+
+  @Column()
+  ownerId: number;
 
   @Column({ default: true })
   isActive: boolean;
+
+  @CreateDateColumn({ name: 'created_at' })
+  createdAt: Date;
 }

@@ -5,12 +5,14 @@ import RegisterPage from "./pages/RegisterPage";
 import ProductDetail from "./pages/ProductDetail";
 import AdminLayout from "./layouts/AdminLayout";
 import ClientLayout from "./layouts/ClientLayout";
+import AddProductPage from "./features/admin/pages/AddProductPage";
+import ProductManagementPage from "./features/admin/pages/ProductManagementPage";
 
 function App() {
   return (
     <Router>
       <Routes>
-        {/* NHÓM 1: Chỉ nhóm này có Header/Footer nhờ ClientLayout */}
+        {/* USER */}
         <Route element={<ClientLayout />}>
           <Route path="/" element={<HomePage />} />
           <Route path="/products/:id" element={<ProductDetail />} />
@@ -18,10 +20,11 @@ function App() {
           <Route path="/register" element={<RegisterPage />} />
         </Route>
 
-        {/* NHÓM 2: Nhóm này hoàn toàn tách biệt, dùng AdminLayout */}
+        {/* ADMIN */}
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<div>Admin Dashboard</div>} />
-          <Route path="products" element={<div>Quản lý sản phẩm</div>} />
+          <Route path="products" element={<ProductManagementPage />} />
+          <Route path="products/add" element={<AddProductPage />} />
         </Route>
       </Routes>
     </Router>

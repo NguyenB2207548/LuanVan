@@ -11,8 +11,8 @@ import {
   JoinTable,
 } from 'typeorm';
 import { Category } from '../../categorys/entities/category.entity';
-import { Variant } from 'src/modules/variants/entities/variant.entity';
-import { Attribute } from 'src/modules/attributes/entities/attribute.entity';
+import { Variant } from './variant.entity';
+import { Attribute } from './attribute.entity';
 import { Review } from 'src/modules/reviews/entities/review.entity';
 
 @Entity('products')

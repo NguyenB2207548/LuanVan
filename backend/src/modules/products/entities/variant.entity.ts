@@ -10,9 +10,9 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { AttributeValue } from '../../attribute_values/entities/attribute_value.entity';
+import { AttributeValue } from './attribute_value.entity';
 import { Product } from '../../products/entities/product.entity';
-import { Price } from 'src/modules/prices/entities/price.entity';
+import { Price } from 'src/modules/products/entities/price.entity';
 
 @Entity('variants')
 export class Variant {
@@ -22,7 +22,6 @@ export class Variant {
   @Column({ type: 'int', default: 0 })
   stock: number;
 
-  // Cần kết nối với Product
   @ManyToOne(() => Product, (product) => product.variants, {
     onDelete: 'CASCADE',
   })
