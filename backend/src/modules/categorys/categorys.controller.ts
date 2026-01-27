@@ -11,7 +11,9 @@ import {
 import { CategoriesService } from './categorys.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { RolesGuard } from '../auth/guards/roles.guard';
 
 @Controller('categories')
 export class CategoriesController {
@@ -45,6 +47,8 @@ export class CategoriesController {
   }
 
   @Delete(':id')
+  @Roles('admin')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   async deleteCategory(@Param('id') id: number) {
     await this.categoriesService.delete(id);
 

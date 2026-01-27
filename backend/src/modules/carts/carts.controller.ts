@@ -1,34 +1,54 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  ParseIntPipe,
+} from '@nestjs/common';
 import { CartsService } from './carts.service';
-import { CreateCartDto } from './dto/create-cart.dto';
+import { AddToCartDto } from './dto/add-cart.dto';
 import { UpdateCartDto } from './dto/update-cart.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { GetUser } from '../auth/decorators/get-user.decorator';
+import { UpdateCartItemDto } from './dto/update-cart-item.dto';
 
 @Controller('carts')
 export class CartsController {
   constructor(private readonly cartsService: CartsService) {}
 
   @Post()
-  create(@Body() createCartDto: CreateCartDto) {
-    return this.cartsService.create(createCartDto);
+  @UseGuards(JwtAuthGuard)
+  addtoCart(
+    @GetUser('userId') id: number,
+    @Body() createCartDto: AddToCartDto,
+  ) {
+    return this.cartsService.addToCart(id, createCartDto);
   }
 
-  @Get()
-  findAll() {
-    return this.cartsService.findAll();
+  @Patch('items/:id')
+  @UseGuards(JwtAuthGuard)
+  updateQuantity(
+    @GetUser('userId') userId: number,
+    @Param('id', ParseIntPipe) cartItemId: number,
+    @Body() updateCartItemDto: UpdateCartItemDto,
+  ) {
+    return this.cartsService.updateQuantity(
+      userId,
+      cartItemId,
+      updateCartItemDto,
+    );
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.cartsService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateCartDto: UpdateCartDto) {
-    return this.cartsService.update(+id, updateCartDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.cartsService.remove(+id);
+  @Delete('items/:id')
+  @UseGuards(JwtAuthGuard)
+  removeItem(
+    @GetUser('userId') userId: number,
+    @Param('id', ParseIntPipe) cartItemId: number,
+  ) {
+    return this.cartsService.removeItem(userId, cartItemId);
   }
 }

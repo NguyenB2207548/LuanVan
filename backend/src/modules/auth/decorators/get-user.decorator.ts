@@ -1,8 +1,12 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 
 export const GetUser = createParamDecorator(
-  (data: unknown, ctx: ExecutionContext) => {
+  (data: string | undefined, ctx: ExecutionContext) => {
     const request = ctx.switchToHttp().getRequest();
-    return request.user;
+    const user = request.user;
+
+    // Nếu người dùng truyền vào tham số (ví dụ: @GetUser('userId')),
+    // trả về chỉ trường đó. Nếu không, trả về cả object.
+    return data ? user?.[data] : user;
   },
 );
