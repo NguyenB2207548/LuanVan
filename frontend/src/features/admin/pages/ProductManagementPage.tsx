@@ -149,9 +149,13 @@ const ProductManagementPage = () => {
                           )}
                         </div>
                         <div>
-                          <p className="font-bold text-gray-800 line-clamp-1">
+                          {/* Bọc tên bằng Link */}
+                          <Link
+                            to={`/admin/products/${product.id}`}
+                            className="font-bold text-gray-800 line-clamp-1 hover:text-indigo-600 transition-colors"
+                          >
                             {product.productName}
-                          </p>
+                          </Link>
                           <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">
                             ID: #{product.id}
                           </p>
@@ -188,13 +192,23 @@ const ProductManagementPage = () => {
                       </span>
                     </td>
                     <td className="px-6 py-5 text-right">
-                      <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                        {/* NÚT XEM CHI TIẾT MỚI THÊM */}
+                        <Link
+                          to={`/admin/products/${product.id}`} // Đường dẫn đến trang Detail
+                          className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                          title="Xem chi tiết"
+                        >
+                          <Eye size={18} />
+                        </Link>
+
                         <Link
                           to={`/admin/products/edit/${product.id}`}
                           className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
                         >
                           <Edit3 size={18} />
                         </Link>
+
                         <button
                           onClick={() => handleDelete(product.id)}
                           className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"

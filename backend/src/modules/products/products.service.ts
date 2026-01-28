@@ -246,4 +246,14 @@ export class ProductsService {
       await queryRunner.release();
     }
   }
+
+  async remove(id: number) {
+    const productRepository = this.dataSource.getRepository(Product);
+    const product = await productRepository.findOne({ where: { id } });
+    if (!product) {
+      throw new NotFoundException(`Không tìm thấy sản phẩm có ID #${id}`);
+    }
+
+    await productRepository.remove(product);
+  }
 }

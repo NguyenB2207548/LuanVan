@@ -7,6 +7,8 @@ import AdminLayout from "./layouts/AdminLayout";
 import ClientLayout from "./layouts/ClientLayout";
 import AddProductPage from "./features/admin/pages/AddProductPage";
 import ProductManagementPage from "./features/admin/pages/ProductManagementPage";
+import ProductDetailAdminPage from "./features/admin/pages/ProductDetailAdminPage";
+import DesignManagementPage from "./features/admin/pages/DesignManagementPage";
 
 function App() {
   return (
@@ -25,6 +27,8 @@ function App() {
           <Route index element={<div>Admin Dashboard</div>} />
           <Route path="products" element={<ProductManagementPage />} />
           <Route path="products/add" element={<AddProductPage />} />
+          <Route path="products/:id" element={<ProductDetailAdminPage />} />
+          <Route path="designs" element={<DesignManagementPage />} />
         </Route>
       </Routes>
     </Router>
