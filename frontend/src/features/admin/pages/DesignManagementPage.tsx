@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import {
   Plus,
   Search,
@@ -9,6 +10,8 @@ import {
   Settings2,
   Copy,
   Layout,
+  ListPlus, // Icon mới cho Option
+  ExternalLink, // Icon mới cho Link Design
 } from "lucide-react";
 import axiosClient from "../../../api/axiosClient";
 
@@ -22,8 +25,7 @@ const DesignManagementPage = () => {
   const fetchTemplates = async () => {
     try {
       setLoading(true);
-      // Endpoint lấy danh sách template gốc từ backend
-      const res = await axiosClient.get("/admin/design-templates");
+      const res = await axiosClient.get("/designs"); // Đổi endpoint cho khớp với backend của bạn
       setTemplates(res.data);
     } catch (err) {
       console.error("Lỗi tải template", err);
@@ -49,14 +51,22 @@ const DesignManagementPage = () => {
           </p>
         </div>
 
-        <button
-          className="bg-black text-white px-8 py-4 rounded-2xl font-black flex items-center gap-2 hover:bg-indigo-600 transition-all shadow-xl"
-          onClick={() => {
-            /* Điều hướng tới trang tạo template */
-          }}
-        >
-          <Plus size={20} /> TẠO TEMPLATE MỚI
-        </button>
+        <div className="flex gap-3">
+          {/* NÚT LINK ĐẾN TRANG LIÊN KẾT SẢN PHẨM */}
+          <Link
+            to="/admin/designs/link"
+            className="bg-white text-indigo-600 border-2 border-indigo-600 px-6 py-4 rounded-2xl font-black flex items-center gap-2 hover:bg-indigo-50 transition-all shadow-sm"
+          >
+            <ExternalLink size={20} /> LIÊN KẾT SẢN PHẨM
+          </Link>
+
+          <Link
+            to="/admin/designs/editor"
+            className="bg-black text-white px-8 py-4 rounded-2xl font-black flex items-center gap-2 hover:bg-indigo-600 transition-all shadow-xl"
+          >
+            <Plus size={20} /> TẠO TEMPLATE MỚI
+          </Link>
+        </div>
       </div>
 
       {/* SEARCH & TOOLBAR */}
@@ -68,7 +78,7 @@ const DesignManagementPage = () => {
           />
           <input
             type="text"
-            placeholder="Tìm kiếm template theo tên hoặc sản phẩm liên kết..."
+            placeholder="Tìm kiếm template theo tên..."
             className="w-full pl-12 pr-4 py-4 bg-white border-none rounded-2xl shadow-sm focus:ring-2 focus:ring-indigo-500 font-medium"
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -87,22 +97,17 @@ const DesignManagementPage = () => {
               key={template.id}
               className="bg-white rounded-[40px] overflow-hidden border border-gray-100 shadow-sm hover:shadow-2xl transition-all group"
             >
-              {/* Thumbnail / Mockup */}
+              {/* Thumbnail */}
               <div className="aspect-square bg-slate-100 relative overflow-hidden">
                 <img
                   src={
-                    template.thumbnail
-                      ? `${BASE_URL}${template.thumbnail}`
-                      : "https://placehold.co/600x600?text=Template+Preview"
+                    template.templateJson?.mockup
+                      ? `${BASE_URL}${template.templateJson.mockup}`
+                      : "https://placehold.co/600x400?text=No+Mockup"
                   }
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                   alt="template preview"
                 />
-                <div className="absolute top-4 right-4 flex gap-2">
-                  <span className="bg-white/90 backdrop-blur px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest text-indigo-600 shadow-sm">
-                    {template.type || "Customily"}
-                  </span>
-                </div>
               </div>
 
               {/* Info Area */}
@@ -110,47 +115,37 @@ const DesignManagementPage = () => {
                 <div className="flex justify-between items-start">
                   <div>
                     <h3 className="font-black text-gray-800 text-xl leading-tight mb-1">
-                      {template.name}
+                      {template.designName}
                     </h3>
                     <p className="text-xs text-gray-400 font-bold uppercase tracking-widest flex items-center gap-1">
-                      ID: #{template.id} • Layers: {template.layersCount || 0}
+                      ID: #{template.id} • Layers:{" "}
+                      {template.templateJson?.detail?.length || 0}
                     </p>
                   </div>
-                  <button className="text-gray-300 hover:text-indigo-600 transition-colors">
-                    <Copy size={18} />
-                  </button>
-                </div>
-
-                {/* Liên kết tới sản phẩm */}
-                <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1">
-                    <LinkIcon size={12} /> Sản phẩm liên kết
-                  </p>
-                  {template.products?.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                      {template.products.map((p: any) => (
-                        <span
-                          key={p.id}
-                          className="text-[11px] font-bold bg-white px-2 py-1 rounded-lg border border-gray-200 text-gray-600"
-                        >
-                          {p.productName}
-                        </span>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-[11px] font-bold text-amber-500 italic">
-                      Chưa liên kết sản phẩm
-                    </p>
-                  )}
                 </div>
 
                 {/* Actions */}
-                <div className="flex gap-3 pt-2">
-                  <button className="flex-1 bg-gray-900 text-white py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 hover:bg-indigo-600 transition-all">
-                    <Settings2 size={16} /> CẤU HÌNH
-                  </button>
-                  <button className="p-3 bg-gray-50 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all">
-                    <Trash2 size={18} />
+                <div className="flex flex-col gap-2">
+                  <div className="flex gap-2">
+                    {/* NÚT LINK ĐẾN TRANG CẤU HÌNH OPTION CHO TỪNG DESIGN */}
+                    <Link
+                      to={`/admin/designs/option/${template.id}`}
+                      className="flex-1 bg-indigo-50 text-indigo-600 py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 hover:bg-indigo-600 hover:text-white transition-all"
+                    >
+                      <ListPlus size={16} /> CẤU HÌNH INPUT
+                    </Link>
+
+                    {/* NÚT QUAY LẠI TRANG EDITOR ĐỂ CHỈNH SỬA CANVAS */}
+                    <Link
+                      to={`/admin/designs/editor/${template.id}`}
+                      className="p-3 bg-gray-50 text-gray-400 hover:text-indigo-600 rounded-xl transition-all"
+                    >
+                      <Edit3 size={18} />
+                    </Link>
+                  </div>
+
+                  <button className="w-full p-3 bg-gray-50 text-gray-300 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all flex items-center justify-center gap-2 text-xs font-bold">
+                    <Trash2 size={16} /> XÓA MẪU
                   </button>
                 </div>
               </div>
