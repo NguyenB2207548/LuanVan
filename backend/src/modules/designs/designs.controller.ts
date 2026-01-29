@@ -6,11 +6,15 @@ import {
   Param,
   ParseIntPipe,
   Patch,
+  Query,
+  BadRequestException,
 } from '@nestjs/common';
 import { DesignsService } from './designs.service';
 import { CreateDesignDto } from './dto/create-design.dto';
 import { CreateLinkDesignDto } from './dto/create-link-design.dto';
 import { UpdateDesignDto } from './dto/update-design.dto';
+import { UpdateDesignOptionsDto } from './dto/create-design-option.dto';
+import { GetActiveDesignDto } from './dto/get-active-design.dto';
 
 @Controller('designs')
 export class DesignsController {
@@ -28,6 +32,17 @@ export class DesignsController {
   @Get()
   async findAll() {
     return await this.designsService.findAll();
+  }
+
+  @Get('active')
+  async getActiveDesign(@Query() query: GetActiveDesignDto) {
+    console.log('Query received:', query);
+    console.log('productId type:', typeof query.productId);
+    console.log('variantId type:', typeof query.variantId);
+    return this.designsService.getActiveDesign(
+      query.productId,
+      query.variantId,
+    );
   }
 
   @Get(':id')
@@ -50,5 +65,19 @@ export class DesignsController {
       message: 'Cập nhật mẫu thiết kế thành công',
       data: updatedData,
     };
+  }
+
+  @Get(':id')
+  async getDesignDetail(@Param('id', ParseIntPipe) id: number) {
+    return this.designsService.findOne(id);
+  }
+
+  // Cập nhật/Tạo mới danh sách Options cho Design
+  @Post(':id/options')
+  async updateOptions(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateOptionsDto: UpdateDesignOptionsDto,
+  ) {
+    return this.designsService.updateDesignOptions(id, updateOptionsDto);
   }
 }

@@ -12,6 +12,7 @@ import DesignManagementPage from "./features/admin/pages/DesignManagementPage";
 import DesignEditorPage from "./features/admin/pages/DesginEditorPage";
 import LinkDesignPage from "./features/admin/pages/LinkDesignPage";
 import DesignOptionManager from "./features/admin/pages/DesignOptionManager";
+import DesignerPage from "./pages/DesignerPage";
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
           <Route path="/products/:id" element={<ProductDetail />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/designer/:productId" element={<DesignerPage />} />
         </Route>
 
         {/* ADMIN */}

@@ -1,11 +1,5 @@
-import React, { useState, useEffect } from "react";
-import {
-  Link as LinkIcon,
-  Box,
-  Layers,
-  Save,
-  CheckCircle2,
-} from "lucide-react";
+import { useState, useEffect } from "react";
+import { Link as LinkIcon, Box, Layers, CheckCircle2 } from "lucide-react";
 import axiosClient from "../../../api/axiosClient";
 
 const LinkDesignPage = () => {
@@ -30,7 +24,7 @@ const LinkDesignPage = () => {
   const handleLink = async () => {
     if (!selectedDesign || !ownerId) return alert("Vui lòng chọn đủ thông tin");
     try {
-      await axiosClient.post("/link-designs", {
+      await axiosClient.post("designs/link", {
         designId: Number(selectedDesign),
         ownerType,
         ownerId: Number(ownerId),
@@ -125,7 +119,7 @@ const LinkDesignPage = () => {
 
           <button
             onClick={handleLink}
-            className="w-full bg-black text-white py-5 rounded-[2rem] font-black flex items-center justify-center gap-3 hover:bg-indigo-600 transition-all shadow-lg shadow-indigo-100"
+            className="w-full bg-black text-white py-5 rounded-[2rem]font-black flex items-center justify-center gap-3 hover:bg-indigo-600 transition-all shadow-lg shadow-indigo-100"
           >
             <CheckCircle2 size={20} /> XÁC NHẬN LIÊN KẾT
           </button>
