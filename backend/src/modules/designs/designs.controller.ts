@@ -72,12 +72,16 @@ export class DesignsController {
     return this.designsService.findOne(id);
   }
 
-  // Cập nhật/Tạo mới danh sách Options cho Design
   @Post(':id/options')
   async updateOptions(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateOptionsDto: UpdateDesignOptionsDto,
   ) {
     return this.designsService.updateDesignOptions(id, updateOptionsDto);
+  }
+
+  @Post('extract-layers')
+  async extractLayers(@Body('fileName') fileName: string) {
+    return await this.designsService.extractPsdLayersOnly(fileName);
   }
 }

@@ -169,11 +169,9 @@ const DesignOptionManager = () => {
                       updateOption(idx, "optionType", e.target.value)
                     }
                   >
-                    <option value="text">Văn bản (Text)</option>
-                    <option value="upload">Ảnh cá nhân (Upload)</option>
-                    <option value="image_group">
-                      Bộ sưu tập có sẵn (Gallery)
-                    </option>
+                    <option value="text">Text</option>
+                    <option value="upload">Upload</option>
+                    <option value="image_group">Image Group</option>
                   </select>
                 </div>
               </div>

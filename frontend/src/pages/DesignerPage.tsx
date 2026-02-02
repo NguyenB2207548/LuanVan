@@ -13,7 +13,6 @@ import axiosClient from "../api/axiosClient";
 
 const BASE_URL = "http://localhost:3000";
 
-// Component hiển thị layer ảnh (nhân vật, ảnh upload)
 const CanvasImage = ({ layerData, userSelection }: any) => {
   const imageUrl = userSelection || layerData.image_url;
   const fullUrl = imageUrl?.startsWith("http")
@@ -21,7 +20,6 @@ const CanvasImage = ({ layerData, userSelection }: any) => {
     : `${BASE_URL}${imageUrl}`;
   const [img] = useImage(fullUrl, "anonymous");
 
-  // Nếu ảnh chưa load xong, trả về null để tránh lỗi render
   if (!img) return null;
 
   return (
@@ -47,7 +45,6 @@ const DesignerPage = () => {
   const [userInput, setUserInput] = useState<Record<string, any>>({});
   const stageRef = useRef<any>(null);
 
-  // Load ảnh mockup nền
   const [mockupImg] = useImage(
     design?.templateJson?.mockup
       ? `${BASE_URL}${design.templateJson.mockup}`
@@ -59,7 +56,6 @@ const DesignerPage = () => {
       try {
         setLoading(true);
 
-        // CHUẨN HÓA DỮ LIỆU: Đảm bảo variantId là số hoặc undefined thực sự
         const cleanVariantId =
           variantId && variantId !== "undefined" && variantId !== "null"
             ? Number(variantId)
@@ -68,7 +64,7 @@ const DesignerPage = () => {
         const res = await axiosClient.get(`/designs/active`, {
           params: {
             productId: Number(productId),
-            variantId: cleanVariantId, // Không gửi nếu là null/undefined
+            variantId: cleanVariantId,
           },
         });
 
@@ -92,10 +88,8 @@ const DesignerPage = () => {
   }, [productId, variantId]);
 
   const handleAddToCart = async () => {
-    // 1. Chụp ảnh preview từ Canvas
     const previewImage = stageRef.current.toDataURL();
 
-    // 2. Gửi dữ liệu vào giỏ hàng
     const cartData = {
       productId: Number(productId),
       variantId: Number(variantId),
@@ -177,7 +171,7 @@ const DesignerPage = () => {
           </div>
         </div>
 
-        {/* RIGHT: CONTROL PANEL */}
+        {/* CONTROL PANEL */}
         <div className="w-full lg:w-[450px] bg-white border-l p-8 overflow-y-auto h-full lg:h-[calc(100vh-64px)]">
           <div className="mb-10">
             <h1 className="text-2xl font-black text-gray-900 uppercase leading-none mb-2">
@@ -198,7 +192,6 @@ const DesignerPage = () => {
                   </label>
                 </div>
 
-                {/* Render theo loại Option */}
                 {opt.optionType === "text" && (
                   <input
                     type="text"

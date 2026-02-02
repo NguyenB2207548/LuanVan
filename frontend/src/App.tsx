@@ -9,10 +9,11 @@ import AddProductPage from "./features/admin/pages/AddProductPage";
 import ProductManagementPage from "./features/admin/pages/ProductManagementPage";
 import ProductDetailAdminPage from "./features/admin/pages/ProductDetailAdminPage";
 import DesignManagementPage from "./features/admin/pages/DesignManagementPage";
-import DesignEditorPage from "./features/admin/pages/DesginEditorPage";
 import LinkDesignPage from "./features/admin/pages/LinkDesignPage";
 import DesignOptionManager from "./features/admin/pages/DesignOptionManager";
 import DesignerPage from "./pages/DesignerPage";
+import DesignEditorPage from "./features/admin/pages/DesignEditorPage";
+import DesignerAdminPage from "./features/admin/pages/DesginerAdminPage";
 
 function App() {
   return (
@@ -34,9 +35,10 @@ function App() {
           <Route path="products/add" element={<AddProductPage />} />
           <Route path="products/:id" element={<ProductDetailAdminPage />} />
           <Route path="designs" element={<DesignManagementPage />} />
-          <Route path="designs/editor" element={<DesignEditorPage />} />
+          <Route path="designs/editor" element={<DesignerAdminPage />} />
           <Route path="designs/link" element={<LinkDesignPage />} />
           <Route path="designs/option/:id" element={<DesignOptionManager />} />
+          <Route path="designs/editor/:id" element={<DesignEditorPage />} />
         </Route>
       </Routes>
     </Router>

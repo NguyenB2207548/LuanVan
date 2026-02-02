@@ -93,7 +93,7 @@ const URLImage = ({
   );
 };
 
-const DesignEditorPage = () => {
+const DesignerAdminPage = () => {
   const [mockupUrl, setMockupUrl] = useState<string>("");
   const [layers, setLayers] = useState<any[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -471,4 +471,4 @@ const DesignEditorPage = () => {
   );
 };
 
-export default DesignEditorPage;
+export default DesignerAdminPage;

@@ -7,6 +7,8 @@ import { DesignOption } from './entities/design-option.entity';
 import { LinkDesign } from './entities/design-link.entity';
 import { Product } from '../products/entities/product.entity';
 import { Variant } from '../products/entities/variant.entity';
+import { GimpController } from './gimp.controller';
+import { GimpService } from './gimp.service';
 
 @Module({
   imports: [
@@ -18,7 +20,7 @@ import { Variant } from '../products/entities/variant.entity';
       Variant,
     ]),
   ],
-  controllers: [DesignsController],
-  providers: [DesignsService],
+  controllers: [DesignsController, GimpController],
+  providers: [DesignsService, GimpService],
 })
 export class DesignsModule {}
