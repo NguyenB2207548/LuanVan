@@ -1,19 +1,20 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import HomePage from "./pages/HomePage";
-import LoginPage from "./pages/LoginPage";
-import RegisterPage from "./pages/RegisterPage";
-import ProductDetail from "./pages/ProductDetail";
+import HomePage from "./pages/user/HomePage";
+import LoginPage from "./pages/user/LoginPage";
+import RegisterPage from "./pages/user/RegisterPage";
+import ProductDetail from "./pages/user/ProductDetail";
 import AdminLayout from "./layouts/AdminLayout";
 import ClientLayout from "./layouts/ClientLayout";
-import AddProductPage from "./features/admin/pages/AddProductPage";
-import ProductManagementPage from "./features/admin/pages/ProductManagementPage";
-import ProductDetailAdminPage from "./features/admin/pages/ProductDetailAdminPage";
-import DesignManagementPage from "./features/admin/pages/DesignManagementPage";
-import LinkDesignPage from "./features/admin/pages/LinkDesignPage";
-import DesignOptionManager from "./features/admin/pages/DesignOptionManager";
-import DesignerPage from "./pages/DesignerPage";
-import DesignEditorPage from "./features/admin/pages/DesignEditorPage";
-import DesignerAdminPage from "./features/admin/pages/DesginerAdminPage";
+import AddProductPage from "./pages/admin/AddProductPage";
+import ProductManagementPage from "./pages/admin/ProductManagementPage";
+import ProductDetailAdminPage from "./pages/admin/ProductDetailAdminPage";
+import DesignManagementPage from "./pages/admin/DesignManagementPage";
+import LinkDesignPage from "./pages/admin/LinkDesignPage";
+import DesignOptionManager from "./pages/admin/DesignOptionManager";
+import DesignerPage from "./pages/user/DesignerPage";
+import DesignEditorPage from "./pages/admin/DesignEditorPage";
+import DesignerAdminPage from "./pages/admin/DesginerAdminPage";
+import Dashboard from "./pages/admin/Dashboard";
 
 function App() {
   return (
@@ -30,7 +31,7 @@ function App() {
 
         {/* ADMIN */}
         <Route path="/admin" element={<AdminLayout />}>
-          <Route index element={<div>Admin Dashboard</div>} />
+          <Route index element={<Dashboard />} />
           <Route path="products" element={<ProductManagementPage />} />
           <Route path="products/add" element={<AddProductPage />} />
           <Route path="products/:id" element={<ProductDetailAdminPage />} />

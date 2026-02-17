@@ -8,7 +8,6 @@ const ClientLayout = () => {
       <Header />
       <main className="flex-grow">
         <Outlet />{" "}
-        {/* Các trang con như HomePage, ProductDetail sẽ hiện ở đây */}
       </main>
       <Footer />
     </div>

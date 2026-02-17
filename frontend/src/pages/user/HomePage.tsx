@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import axiosClient from "../api/axiosClient";
-import type { Product } from "../types/product";
+import axiosClient from "../../api/axiosClient";
+import type { Product } from "../../types/product";
 import { ShoppingBag, Palette, Truck, ImageIcon } from "lucide-react";
 import { Link } from "react-router-dom";
 

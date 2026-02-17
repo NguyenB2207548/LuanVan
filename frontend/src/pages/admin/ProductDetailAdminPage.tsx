@@ -11,8 +11,8 @@ import {
   Box,
   ImageIcon,
 } from "lucide-react";
-import axiosClient from "../../../api/axiosClient";
-import type { Product } from "../../../types/product";
+import axiosClient from "../../api/axiosClient";
+import type { Product } from "../../types/product";
 
 const BASE_URL = "http://localhost:3000";
 

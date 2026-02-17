@@ -11,7 +11,7 @@ import {
   Hash,
   Type as TypeIcon,
 } from "lucide-react";
-import axiosClient from "../../../api/axiosClient";
+import axiosClient from "../../api/axiosClient";
 
 const DesignOptionManager = () => {
   const { id } = useParams();

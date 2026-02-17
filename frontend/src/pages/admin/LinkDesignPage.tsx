@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link as LinkIcon, Box, Layers, CheckCircle2 } from "lucide-react";
-import axiosClient from "../../../api/axiosClient";
+import axiosClient from "../../api/axiosClient";
 
 const LinkDesignPage = () => {
   const [designs, setDesigns] = useState([]);

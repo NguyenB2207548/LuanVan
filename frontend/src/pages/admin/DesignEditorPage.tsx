@@ -18,7 +18,7 @@ import {
   Layers,
   List,
 } from "lucide-react";
-import axiosClient from "../../../api/axiosClient";
+import axiosClient from "../../api/axiosClient";
 
 const BASE_URL = "http://localhost:3000";
 

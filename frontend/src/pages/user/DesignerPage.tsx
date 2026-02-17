@@ -9,7 +9,7 @@ import {
   Check,
 } from "lucide-react";
 import useImage from "use-image";
-import axiosClient from "../api/axiosClient";
+import axiosClient from "../../api/axiosClient";
 
 const BASE_URL = "http://localhost:3000";
 

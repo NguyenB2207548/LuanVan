@@ -18,7 +18,7 @@ import {
   List,
   X,
 } from "lucide-react";
-import axiosClient from "../../../api/axiosClient";
+import axiosClient from "../../api/axiosClient";
 import useImage from "use-image";
 import Konva from "konva";
 
