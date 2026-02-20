@@ -140,6 +140,23 @@ export class DesignsService {
     return await this.optionRepo.save(newOptions);
   }
 
+  // LẤY DESIGN THEO VARIANT
+  async getDesignByVariant(variantId: number) {
+    const link = await this.linkRepo.findOne({
+      where: {
+        ownerType: DesignOwnerType.VARIANT,
+        ownerId: variantId,
+      },
+      relations: ['design'],
+    });
+
+    if (!link || !link.design) {
+      throw new NotFoundException('Không tìm thấy thiết kế cho biến thể này');
+    }
+
+    return link.design;
+  }
+
   async getActiveDesign(productId: number, variantId?: number) {
     let linkedDesign: LinkDesign | null = null;
 
@@ -177,6 +194,7 @@ export class DesignsService {
 
     return linkedDesign.design;
   }
+
   async extractPsdLayersOnly(fileName: string) {
     if (!fileName) {
       throw new BadRequestException('Tên file không được để trống');

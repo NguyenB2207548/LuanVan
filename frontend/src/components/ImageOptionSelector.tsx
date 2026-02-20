@@ -10,7 +10,7 @@ interface OptionItem {
 interface ImageOptionSelectorProps {
   label: string;
   options: OptionItem[];
-  selectedId?: string | number;
+  selectedId?: string | number; // NHẬN TỪ CHA
   onSelect: (id: string | number) => void;
   itemClassName?: string;
 }
@@ -24,18 +24,20 @@ const ImageOptionSelector: React.FC<ImageOptionSelectorProps> = ({
 }) => {
   return (
     <div className="mt-8">
-      {/* 1. TIÊU ĐỀ */}
-      <div className="font-semibold mb-4 text-lg text-gray-800">{label}</div>
+      <div className="font-semibold mb-4 text-[11px] uppercase italic text-gray-600">
+        {label}
+      </div>
 
-      {/* 2. DANH SÁCH ẢNH */}
       <div className="flex flex-wrap -mx-1">
         {options.map((option) => {
+          // KIỂM TRA ACTIVE DỰA VÀO PROPS TỪ CHA
           const isActive = selectedId === option.id;
 
           return (
             <div
               key={option.id}
               className={`px-1 mb-2 ${itemClassName}`}
+              // CHỈ GỌI onSelect CỦA CHA, KHÔNG SET STATE GÌ Ở ĐÂY
               onClick={() => onSelect(option.id)}
             >
               <div

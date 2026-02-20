@@ -34,6 +34,19 @@ export class DesignsController {
     return await this.designsService.findAll();
   }
 
+  @Get(':id')
+  async getDesignByVariant(@Param('id', ParseIntPipe) variantId: number) {
+    if (!variantId) {
+      throw new BadRequestException('variantId query parameter is required');
+    }
+
+    const design = await this.designsService.getDesignByVariant(variantId);
+    return {
+      message: 'Lấy thiết kế theo biến thể thành công',
+      data: design,
+    };
+  }
+
   @Get('active')
   async getActiveDesign(@Query() query: GetActiveDesignDto) {
     console.log('Query received:', query);
