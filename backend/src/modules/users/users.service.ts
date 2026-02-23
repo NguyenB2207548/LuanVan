@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { User } from './entities/user.entity'; // Đảm bảo import đúng Entity User
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersService {
@@ -21,7 +22,13 @@ export class UsersService {
       throw new BadRequestException('Email đã tồn tại trong hệ thống!');
     }
 
-    const newUser = this.userRepository.create(createUserDto);
+    const hashedPassword = await bcrypt.hash(createUserDto.passwordHash, 10);
+
+    const newUser = this.userRepository.create({
+      ...createUserDto,
+      passwordHash: hashedPassword,
+    });
+
     return await this.userRepository.save(newUser);
   }
 

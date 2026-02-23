@@ -24,12 +24,12 @@ export const useAuthStore = create<AuthState>((set) => ({
   login: (user, token) => {
     localStorage.setItem("access_token", token);
     localStorage.setItem("user", JSON.stringify(user));
-    set({ user, token, isAuthenticated: true }); // Cập nhật isAuthenticated lên true
+    set({ user, token, isAuthenticated: true });
   },
 
   logout: () => {
     localStorage.removeItem("access_token");
     localStorage.removeItem("user");
-    set({ user: null, token: null, isAuthenticated: false }); // Reset về false
+    set({ user: null, token: null, isAuthenticated: false });
   },
 }));

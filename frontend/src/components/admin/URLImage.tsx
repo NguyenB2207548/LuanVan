@@ -44,13 +44,29 @@ const URLImage: React.FC<URLImageProps> = ({
         height={l.height}
         draggable
         ref={shapeRef}
-        onClick={() => {
-          onSelect();
-          if (l.type === "dynamic_image" && l.options.length === 0) {
+        // 1. CLICK CHỈ ĐỂ CHỌN LAYER (Không mở Modal)
+        onClick={onSelect}
+        onTap={onSelect}
+        // 2. NHÁY ĐÚP CHUỘT (DOUBLE CLICK) ĐỂ MỞ MODAL THAY ẢNH
+        onDblClick={() => {
+          if (
+            l.type === "dynamic_image" ||
+            l.type === "upload" ||
+            l.type === "static_image"
+          ) {
             onUploadClick();
           }
         }}
-        onTap={onSelect}
+        onDblTap={() => {
+          // Hỗ trợ nháy đúp trên màn hình cảm ứng
+          if (
+            l.type === "dynamic_image" ||
+            l.type === "upload" ||
+            l.type === "static_image"
+          ) {
+            onUploadClick();
+          }
+        }}
         onDragEnd={(e) =>
           onChange({ x: Math.round(e.target.x()), y: Math.round(e.target.y()) })
         }

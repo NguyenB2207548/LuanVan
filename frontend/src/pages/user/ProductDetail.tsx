@@ -32,12 +32,34 @@ const ProductDetail = () => {
 
       try {
         const response = await axiosClient.get(
-          `/designs/${selectedVariant.id}`,
+          `/designs/variant/${selectedVariant.id}`,
         );
         if (response.data && response.data.data) {
-          setDesignData(response.data.data);
+          const design = response.data.data;
+          setDesignData(design);
 
-          setDesignChoices({});
+          const initialChoices: Record<string, any> = {};
+
+          if (design.templateJson?.details) {
+            design.templateJson.details.forEach((layer: any) => {
+              if (layer.type === "text" && layer.defaultValue) {
+                initialChoices[layer.id] = layer.defaultValue;
+              }
+
+              if (
+                (layer.type === "dynamic_image" || layer.type === "group") &&
+                layer.options?.length > 0
+              ) {
+                initialChoices[layer.id] = layer.options[0].id;
+              }
+
+              if (layer.type === "dynamic_text" && layer.options?.length > 0) {
+                initialChoices[layer.id] = layer.options[0].name;
+              }
+            });
+          }
+
+          setDesignChoices(initialChoices);
         } else {
           setDesignData(null);
         }

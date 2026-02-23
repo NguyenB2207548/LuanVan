@@ -1,5 +1,5 @@
 import React from "react";
-import ImageOptionSelector from "./ImageOptionSelector"; // Adjust path if needed
+import ImageOptionSelector from "./ImageOptionSelector";
 
 interface DesignControlsProps {
   designData: any;
@@ -9,7 +9,6 @@ interface DesignControlsProps {
   baseUrl: string;
 }
 
-// THÊM MỚI: Hàm kiểm tra điều kiện hiển thị
 const checkLayerCondition = (
   layer: any,
   currentChoices: Record<string, any>,
@@ -102,6 +101,50 @@ const DesignControls: React.FC<DesignControlsProps> = ({
                     setShowPreview(true);
                   }}
                 />
+              </div>
+            );
+          }
+          // --- DYNAMIC TEXT
+          if (layer.type === "dynamic_text") {
+            const currentValue =
+              designChoices[layer.id] !== undefined
+                ? designChoices[layer.id]
+                : layer.options?.[0]?.name || ""; // Lấy option đầu tiên làm mặc định
+
+            return (
+              <div key={layer.id} className="w-full">
+                <label className="block text-[11px] font-extrabold mb-2 uppercase italic text-gray-600">
+                  {layer.label} <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <select
+                    className="w-full bg-white border border-gray-300 p-3 rounded appearance-none focus:ring-2 focus:ring-[#ff4d6d] outline-none text-sm shadow-sm transition-all cursor-pointer"
+                    value={currentValue}
+                    onChange={(e) => {
+                      setDesignChoices((prev) => ({
+                        ...prev,
+                        [layer.id]: e.target.value,
+                      }));
+                      setShowPreview(true);
+                    }}
+                  >
+                    {layer.options?.map((opt: any) => (
+                      <option key={opt.id} value={opt.name}>
+                        {opt.name}
+                      </option>
+                    ))}
+                  </select>
+                  {/* Icon mũi tên cho đẹp */}
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
+                    <svg
+                      className="fill-current h-4 w-4"
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 20 20"
+                    >
+                      <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
+                    </svg>
+                  </div>
+                </div>
               </div>
             );
           }

@@ -1,5 +1,12 @@
 import React from "react";
-import { Type, Upload, List, FolderTree } from "lucide-react";
+import {
+  Type,
+  Upload,
+  List,
+  FolderTree,
+  ImageIcon,
+  TextCursorInput,
+} from "lucide-react";
 import type { DesignLayer } from "../../types/designer";
 
 interface AddLayerButtonsProps {
@@ -13,8 +20,8 @@ const AddLayerButtons: React.FC<AddLayerButtonsProps> = ({ onAddLayer }) => {
     onAddLayer({
       id: generateLayerId(),
       type: "text",
-      label: "Text Field",
-      text: "Enter text...",
+      label: "Text",
+      text: "Text",
       x: 50,
       y: 50,
       fontSize: 24,
@@ -63,6 +70,37 @@ const AddLayerButtons: React.FC<AddLayerButtonsProps> = ({ onAddLayer }) => {
     });
   };
 
+  const handleAddStaticImage = () => {
+    onAddLayer({
+      id: generateLayerId(),
+      type: "static_image",
+      label: "Static Image",
+      image_url: "http://localhost:3000/public/uploads/assets/upload.png",
+      x: 150,
+      y: 150,
+      width: 60,
+      height: 60,
+      zIndex: 0,
+      show_condition: "",
+    });
+  };
+
+  const handleAddDynamicText = () => {
+    onAddLayer({
+      id: generateLayerId(),
+      type: "dynamic_text",
+      label: "Dynamic Text",
+      text: "Text",
+      x: 50,
+      y: 100,
+      fontSize: 24,
+      fontFamily: "Roboto",
+      color: "#000000",
+      zIndex: 0,
+      show_condition: "",
+    });
+  };
+
   return (
     <section className="space-y-3">
       <label className="text-xs font-semibold text-gray-600 block">
@@ -75,23 +113,40 @@ const AddLayerButtons: React.FC<AddLayerButtonsProps> = ({ onAddLayer }) => {
         >
           <Type size={16} className="text-gray-500" /> Text
         </button>
+
+        <button
+          onClick={handleAddDynamicText}
+          className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 text-sm bg-white"
+        >
+          <TextCursorInput size={16} /> Dynamic Text
+        </button>
+
         <button
           onClick={handleAddUpload}
           className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 text-sm bg-white"
         >
-          <Upload size={16} className="text-gray-500" /> Upload Area
+          <Upload size={16} className="text-gray-500" /> Upload
         </button>
+
+        <button
+          onClick={handleAddStaticImage}
+          className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 text-sm bg-white"
+        >
+          <ImageIcon size={16} /> Static Image
+        </button>
+
         <button
           onClick={handleAddDynamicImage}
           className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 text-sm bg-white"
         >
           <List size={16} className="text-gray-500" /> Dynamic Image
         </button>
+
         <button
           onClick={handleAddGroup}
           className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 text-sm bg-white"
         >
-          <FolderTree size={16} /> Group (Layout)
+          <FolderTree size={16} /> Group
         </button>
       </div>
     </section>

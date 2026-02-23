@@ -1,4 +1,10 @@
-export type LayerType = "text" | "upload" | "dynamic_image" | "group";
+export type LayerType =
+  | "text"
+  | "upload"
+  | "dynamic_image"
+  | "group"
+  | "static_image"
+  | "dynamic_text";
 
 export interface LayerOption {
   id: string;
@@ -31,6 +37,6 @@ export interface DesignLayer {
 }
 
 export interface ModalTarget {
-  type: "background" | "dynamic_image" | "group_option";
+  type: "background" | "dynamic_image" | "group_option" | "static_image";
   index?: number;
 }

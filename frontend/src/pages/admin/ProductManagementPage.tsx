@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Plus,
@@ -9,7 +9,7 @@ import {
   Package,
   ImageIcon,
   Filter,
-  MoreHorizontal,
+  // MoreHorizontal,
   ArrowUpDown,
 } from "lucide-react";
 import axiosClient from "../../api/axiosClient";
@@ -239,21 +239,14 @@ const ProductManagementPage = () => {
                           <div className="flex justify-end gap-2">
                             <Link
                               to={`/admin/products/${product.id}`}
-                              className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
-                              title="Xem chi tiết"
-                            >
-                              <Eye size={18} />
-                            </Link>
-                            <Link
-                              to={`/admin/products/edit/${product.id}`}
-                              className="p-1.5 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"
+                              className="p-1.5 text-blue-600 hover:text-blue-900"
                               title="Chỉnh sửa"
                             >
                               <Edit size={18} />
                             </Link>
                             <button
                               onClick={() => handleDelete(product.id)}
-                              className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                              className="p-1.5 text-red-500 hover:text-red-700"
                               title="Xóa"
                             >
                               <Trash2 size={18} />

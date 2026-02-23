@@ -64,6 +64,16 @@ const DesignerAdminPage = () => {
     );
   };
 
+  const handleCreateDesign = async (data: any) => {
+    try {
+      await axiosClient.post("/designs", data);
+      alert("Design created successfully!");
+      // Có thể thêm navigate("/admin/designs") để quay về danh sách
+    } catch (err: any) {
+      alert("Error creating design: " + err.message);
+    }
+  };
+
   return (
     <div className="flex h-screen bg-gray-100 font-sans text-gray-800 flex-row">
       {/* Input ẩn dùng chung để upload ảnh vào các layer */}
@@ -82,7 +92,7 @@ const DesignerAdminPage = () => {
         setLayers={setLayers}
         selectedId={selectedId}
         setSelectedId={setSelectedId}
-        fileInputRef={fileInputRef}
+        // fileInputRef={fileInputRef}
         isUploading={isUploading}
         updateSelectedLayer={updateSelectedLayer}
         activeFilter={activeFilter}
@@ -101,6 +111,7 @@ const DesignerAdminPage = () => {
         updateSelectedLayer={updateSelectedLayer}
         activeFilter={activeFilter}
         setActiveFilter={setActiveFilter}
+        onSave={handleCreateDesign}
         // fileInputRef={fileInputRef}
       />
     </div>

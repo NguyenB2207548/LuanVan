@@ -162,17 +162,15 @@ const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
 
           {/* Các Lớp Thành Phần */}
           {layers.map((layer: any) => {
-            // THÊM MỚI: KIỂM TRA ĐIỀU KIỆN (Chặn vẽ layer sai condition)
             if (!checkLayerCondition(layer, designChoices)) {
               return null;
             }
 
-            // THÊM MỚI: LAYER GROUP CHỈ LÀ UI, KHÔNG VẼ LÊN CANVAS
             if (layer.type === "group") {
               return null;
             }
 
-            if (layer.type === "text") {
+            if (layer.type === "text" || layer.type === "dynamic_text") {
               const text =
                 designChoices[layer.id] !== undefined
                   ? designChoices[layer.id]
@@ -182,12 +180,32 @@ const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
                   key={layer.id}
                   x={layer.x}
                   y={layer.y}
+                  width={layer.width}
+                  scaleX={layer.scaleX || 1}
+                  scaleY={layer.scaleY || 1}
+                  rotation={layer.rotation || 0}
                   text={text}
                   fontSize={layer.fontSize || 24}
                   fontFamily={layer.fontFamily || "Arial"}
                   fill={layer.color || "#000000"}
                 />
               );
+            }
+
+            if (layer.type === "static_image") {
+              if (layer.image_url) {
+                return (
+                  <KonvaImageLayer
+                    key={layer.id}
+                    source={
+                      layer.image_url.startsWith("http")
+                        ? layer.image_url
+                        : `${baseUrl}${layer.image_url}`
+                    }
+                    layerProps={layer}
+                  />
+                );
+              }
             }
 
             if (layer.type === "dynamic_image") {

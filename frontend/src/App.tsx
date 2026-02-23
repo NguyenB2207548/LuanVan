@@ -7,7 +7,7 @@ import AdminLayout from "./layouts/AdminLayout";
 import ClientLayout from "./layouts/ClientLayout";
 import AddProductPage from "./pages/admin/AddProductPage";
 import ProductManagementPage from "./pages/admin/ProductManagementPage";
-import ProductDetailAdminPage from "./pages/admin/ProductDetailAdminPage";
+import ProductEditorAdminPage from "./pages/admin/ProductEditorAdminPage";
 import DesignManagementPage from "./pages/admin/DesignManagementPage";
 import LinkDesignPage from "./pages/admin/LinkDesignPage";
 import DesignOptionManager from "./pages/admin/DesignOptionManager";
@@ -15,6 +15,9 @@ import DesignerPage from "./pages/user/DesignerPage";
 import DesignEditorPage from "./pages/admin/DesignEditorPage";
 import DesignerAdminPage from "./pages/admin/DesginerAdminPage";
 import Dashboard from "./pages/admin/Dashboard";
+import UserManagementPage from "./pages/admin/UserManagementPage";
+import AddUserPage from "./pages/admin/AddUserPage";
+import EditUserPage from "./pages/admin/EditUserPage";
 
 function App() {
   return (
@@ -32,9 +35,12 @@ function App() {
         {/* ADMIN */}
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<Dashboard />} />
+          <Route path="users" element={<UserManagementPage />} />
+          <Route path="users/add" element={<AddUserPage />} />
+          <Route path="users/edit/:id" element={<EditUserPage />} />
           <Route path="products" element={<ProductManagementPage />} />
           <Route path="products/add" element={<AddProductPage />} />
-          <Route path="products/:id" element={<ProductDetailAdminPage />} />
+          <Route path="products/:id" element={<ProductEditorAdminPage />} />
           <Route path="designs" element={<DesignManagementPage />} />
           <Route path="designs/editor" element={<DesignerAdminPage />} />
           <Route path="designs/link" element={<LinkDesignPage />} />

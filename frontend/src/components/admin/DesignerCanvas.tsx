@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Stage, Layer, Image as KonvaImage, Text } from "react-konva";
 import useImage from "use-image";
 import URLImage from "./URLImage";
-import AssetManagerModal from "./AssetManagerModal"; // <-- THÊM IMPORT NÀY
+import AssetManagerModal from "./AssetManagerModal";
 
 const BASE_URL = "http://localhost:3000";
 
@@ -12,7 +12,7 @@ interface DesignerCanvasProps {
   setLayers: React.Dispatch<React.SetStateAction<any[]>>;
   selectedId: string | null;
   setSelectedId: (id: string | null) => void;
-  fileInputRef: React.RefObject<HTMLInputElement | null>;
+  // fileInputRef: React.RefObject<HTMLInputElement | null>;
   isUploading: boolean;
   updateSelectedLayer: (field: string, value: string | number) => void;
   activeFilter: string;
@@ -24,7 +24,6 @@ const DesignerCanvas: React.FC<DesignerCanvasProps> = ({
   setLayers,
   selectedId,
   setSelectedId,
-  fileInputRef,
   isUploading,
   updateSelectedLayer,
   activeFilter,
@@ -51,16 +50,13 @@ const DesignerCanvas: React.FC<DesignerCanvasProps> = ({
 
     const newLayers = layers.map((l) => {
       if (l.id === modalConfig.targetLayerId) {
-        // BẢN SỬA LỖI: Đồng bộ ảnh vào options cho dynamic_image
         if (l.type === "dynamic_image") {
           const currentOptions = l.options || [];
-          // Kiểm tra xem ảnh này đã tồn tại trong mảng options chưa
           const isExist = currentOptions.find(
             (o: any) => o.image_url === selectedUrl,
           );
 
           let newOptions = [...currentOptions];
-          // Nếu chưa có, tự động tạo mới một option và nhét vào mảng
           if (!isExist) {
             newOptions.push({
               id: `opt_${Date.now()}`,
@@ -72,7 +68,6 @@ const DesignerCanvas: React.FC<DesignerCanvasProps> = ({
           return { ...l, image_url: selectedUrl, options: newOptions };
         }
 
-        // Dành cho các layer khác (như "upload")
         return { ...l, image_url: selectedUrl };
       }
       return l;
@@ -110,7 +105,6 @@ const DesignerCanvas: React.FC<DesignerCanvasProps> = ({
           <Layer>
             {bgImg && <KonvaImage image={bgImg} width={550} height={550} />}
             {layers.map((l, i) => {
-              // Bỏ qua không vẽ layer type "group" lên Canvas
               if (l.type === "group") return null;
 
               if (
@@ -118,10 +112,10 @@ const DesignerCanvas: React.FC<DesignerCanvasProps> = ({
                 l.show_condition &&
                 l.show_condition !== activeFilter
               ) {
-                return null; // Không render ra Konva
+                return null;
               }
 
-              return l.type === "text" ? (
+              return l.type === "text" || l.type === "dynamic_text" ? (
                 <Text
                   key={l.id}
                   {...l}
@@ -140,7 +134,6 @@ const DesignerCanvas: React.FC<DesignerCanvasProps> = ({
                   l={l}
                   isSelected={l.id === selectedId}
                   onSelect={() => setSelectedId(l.id)}
-                  // SỬA Ở ĐÂY: Thay vì mở fileInputRef, ta bật Modal thư viện ảnh lên
                   onUploadClick={() =>
                     setModalConfig({ isOpen: true, targetLayerId: l.id })
                   }
@@ -156,10 +149,10 @@ const DesignerCanvas: React.FC<DesignerCanvasProps> = ({
         </Stage>
       </div>
 
-      {/* --- RENDER MODAL QUẢN LÝ ẢNH --- */}
+      {/* ---  MODAL QUẢN LÝ ẢNH --- */}
       <AssetManagerModal
         isOpen={modalConfig.isOpen}
-        multiple={false} // Canvas chỉ nhận 1 ảnh để hiển thị tại 1 thời điểm
+        multiple={false}
         onClose={() => setModalConfig({ isOpen: false, targetLayerId: null })}
         onSelect={handleAssetsSelected}
       />

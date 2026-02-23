@@ -34,8 +34,6 @@ const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
   const fetchAssets = async () => {
     setLoading(true);
     try {
-      // YÊU CẦU BACKEND: Cần có API này để trả về mảng URL các file trong thư mục assets
-      // Ví dụ response: { data: ["/public/uploads/assets/1.png", "/public/uploads/assets/2.png"] }
       const res = await axiosClient.get("upload/assets");
       setImages(res.data.data || []);
     } catch (error) {
@@ -61,11 +59,8 @@ const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
         headers: { "Content-Type": "multipart/form-data" },
       });
       const newUrls = res.data.urls;
-
-      // Cập nhật thư viện ảnh cục bộ ngay lập tức
       setImages((prev) => [...newUrls, ...prev]);
 
-      // Tự động chọn những ảnh vừa tải lên
       if (multiple) {
         setSelectedUrls((prev) => [...prev, ...newUrls]);
       } else {

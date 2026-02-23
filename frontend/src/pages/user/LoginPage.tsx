@@ -17,9 +17,18 @@ const LoginPage = () => {
         email,
         password,
       });
-      // Lưu vào store và quay về trang chủ
-      loginStore(response.data.user, response.data.access_token);
-      navigate("/");
+
+      const { user, access_token } = response.data;
+
+      // Lưu vào store
+      loginStore(user, access_token);
+
+      // Kiểm tra role để chuyển hướng
+      if (user.role === "admin") {
+        navigate("/admin");
+      } else {
+        navigate("/");
+      }
     } catch (err: any) {
       setError(err.response?.data?.message || "Đăng nhập thất bại");
     }

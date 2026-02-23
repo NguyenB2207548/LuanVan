@@ -34,7 +34,7 @@ export class DesignsController {
     return await this.designsService.findAll();
   }
 
-  @Get(':id')
+  @Get('variant/:id')
   async getDesignByVariant(@Param('id', ParseIntPipe) variantId: number) {
     if (!variantId) {
       throw new BadRequestException('variantId query parameter is required');

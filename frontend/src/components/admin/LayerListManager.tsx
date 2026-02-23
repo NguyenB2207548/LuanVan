@@ -5,6 +5,8 @@ import {
   Layers,
   FolderTree,
   Image as ImageIcon,
+  TextCursorInput,
+  FileImage,
 } from "lucide-react";
 import type { DesignLayer, LayerType } from "../../types/designer";
 
@@ -12,10 +14,14 @@ const getLayerIcon = (type: LayerType) => {
   switch (type) {
     case "text":
       return <Type size={14} className="text-blue-500" />;
+    case "dynamic_text":
+      return <TextCursorInput size={14} className="text-pink-500" />;
     case "upload":
       return <Upload size={14} className="text-orange-500" />;
     case "dynamic_image":
       return <ImageIcon size={14} className="text-green-500" />;
+    case "static_image":
+      return <FileImage size={14} className="text-teal-500" />;
     case "group":
       return <FolderTree size={14} className="text-purple-500" />;
     default:

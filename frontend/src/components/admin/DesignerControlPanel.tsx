@@ -21,6 +21,7 @@ interface DesignerControlPanelProps {
   updateSelectedLayer: (field: string, value: any) => void;
   activeFilter: string;
   setActiveFilter: (filter: string) => void;
+  onSave: (templateData: any) => Promise<void>;
 }
 
 const DesignerControlPanel: React.FC<DesignerControlPanelProps> = ({
@@ -35,6 +36,7 @@ const DesignerControlPanel: React.FC<DesignerControlPanelProps> = ({
   updateSelectedLayer,
   activeFilter,
   setActiveFilter,
+  onSave,
 }) => {
   const selectedLayer = layers.find((l) => l.id === selectedId);
 
@@ -72,26 +74,22 @@ const DesignerControlPanel: React.FC<DesignerControlPanelProps> = ({
       ]);
       if (!selectedLayer.image_url && urls.length > 0)
         updateSelectedLayer("image_url", urls[0]);
+    } else if (type === "static_image" && selectedLayer) {
+      updateSelectedLayer("image_url", urls[0]);
     }
   };
 
   const handleSaveDesign = async () => {
     if (!designName || !backgroundUrl)
       return alert("Please enter design name and background.");
-    try {
-      const templateData = {
-        type: "F",
-        background: backgroundUrl,
-        details: layers,
-      };
-      await axiosClient.post("/designs", {
-        designName,
-        templateJson: templateData,
-      });
-      alert("Design saved successfully!");
-    } catch (err: any) {
-      alert("Error saving design");
-    }
+
+    const templateData = {
+      type: "F",
+      background: backgroundUrl,
+      details: layers,
+    };
+
+    await onSave({ designName, templateJson: templateData });
   };
 
   // Tự động tính toán các option để làm Condition
