@@ -36,6 +36,19 @@ const DesignManagementPage = () => {
     template.designName.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
+  const handleDelete = async (id: number) => {
+    if (!window.confirm("Are you sure you want to delete this template?")) {
+      return;
+    }
+    try {
+      await axiosClient.delete(`/designs/${id}`);
+      // alert("Template deleted successfully!");
+      fetchTemplates();
+    } catch (err) {
+      alert("Error deleting template: " + err);
+    }
+  };
+
   return (
     <div className="w-full">
       {/* PAGE HEADER */}
@@ -189,6 +202,7 @@ const DesignManagementPage = () => {
                           <Edit size={16} />
                         </Link>
                         <button
+                          onClick={() => handleDelete(template.id)}
                           className="text-red-500 hover:text-red-700"
                           title="Delete Template"
                         >

@@ -54,8 +54,8 @@ const AddLayerButtons: React.FC<AddLayerButtonsProps> = ({ onAddLayer }) => {
       options: [],
       x: 150,
       y: 150,
-      width: 60,
-      height: 60,
+      width: 100,
+      height: 100,
       zIndex: 0,
     });
   };

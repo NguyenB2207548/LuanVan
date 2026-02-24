@@ -15,7 +15,7 @@ export class AttributeValue {
   id: number;
 
   @Column({ name: 'value_name' })
-  valueName: string; // Ví dụ: "Đỏ", "L"
+  valueName: string;
 
   @ManyToOne(() => Attribute, (attribute) => attribute.attributeValues, {
     onDelete: 'CASCADE',

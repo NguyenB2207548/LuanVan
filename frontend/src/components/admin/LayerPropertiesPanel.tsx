@@ -234,19 +234,18 @@ const LayerPropertiesPanel: React.FC<LayerPropertiesPanelProps> = ({
       )}
 
       {/* SPECIFIC PROPS: TEXT */}
-      {layer.type === "text" ||
-        (layer.type === "dynamic_text" && (
-          <div className="space-y-3 pt-2 border-t border-blue-200">
-            <label className="text-[10px] uppercase text-gray-500 font-semibold mb-1 block">
-              Default Text
-            </label>
-            <input
-              className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none"
-              value={layer.text || ""}
-              onChange={(e) => onUpdate("text", e.target.value)}
-            />
-          </div>
-        ))}
+      {(layer.type === "text" || layer.type === "dynamic_text") && (
+        <div className="space-y-3 pt-2 border-t border-blue-200">
+          <label className="text-[10px] uppercase text-gray-500 font-semibold mb-1 block">
+            Default Text
+          </label>
+          <input
+            className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none"
+            value={layer.text || ""}
+            onChange={(e) => onUpdate("text", e.target.value)}
+          />
+        </div>
+      )}
 
       {/* SPECIFIC PROPS: DYNAMIC TEXT */}
       {layer.type === "dynamic_text" && (

@@ -18,6 +18,9 @@ import Dashboard from "./pages/admin/Dashboard";
 import UserManagementPage from "./pages/admin/UserManagementPage";
 import AddUserPage from "./pages/admin/AddUserPage";
 import EditUserPage from "./pages/admin/EditUserPage";
+import CategoryManagementPage from "./pages/admin/CategoryManagementPage";
+import CategoryEditorPage from "./pages/admin/CategoryEditorPage";
+import AttributeManagementPage from "./pages/admin/AttributeManagementPage";
 
 function App() {
   return (
@@ -46,6 +49,10 @@ function App() {
           <Route path="designs/link" element={<LinkDesignPage />} />
           <Route path="designs/option/:id" element={<DesignOptionManager />} />
           <Route path="designs/editor/:id" element={<DesignEditorPage />} />
+          <Route path="categories" element={<CategoryManagementPage />} />
+          <Route path="categories/add" element={<CategoryEditorPage />} />
+          <Route path="categories/edit/:id" element={<CategoryEditorPage />} />
+          <Route path="attributes" element={<AttributeManagementPage />} />
         </Route>
       </Routes>
     </Router>

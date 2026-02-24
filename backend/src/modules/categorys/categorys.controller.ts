@@ -24,6 +24,11 @@ export class CategoriesController {
     return this.categoriesService.findAll();
   }
 
+  @Get(':id')
+  async findOne(@Param('id') id: number) {
+    return this.categoriesService.findOne(id);
+  }
+
   @Post()
   @UseGuards(JwtAuthGuard)
   async create(@Body() createCategoryDto: CreateCategoryDto) {

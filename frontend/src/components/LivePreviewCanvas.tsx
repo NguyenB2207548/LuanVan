@@ -2,19 +2,36 @@
 import React, { useEffect, useState, useRef } from "react";
 import { Stage, Layer, Image as KonvaImage, Text } from "react-konva";
 
-// THÊM MỚI: Hàm kiểm tra điều kiện hiển thị
+// SỬA LẠI HÀM NÀY: Truyền thêm toàn bộ cấu trúc layers vào
 const checkLayerCondition = (
   layer: any,
   currentChoices: Record<string, any>,
-) => {
+  allLayers: any[],
+): boolean => {
   if (!layer.show_condition) {
     return true;
   }
-  const currentSelectedValues = Object.values(currentChoices);
-  return currentSelectedValues.includes(layer.show_condition);
+
+  const parentGroup = allLayers.find(
+    (l) =>
+      l.type === "group" &&
+      l.options?.some((opt: any) => opt.id === layer.show_condition),
+  );
+
+  if (!parentGroup) return false;
+
+  if (!checkLayerCondition(parentGroup, currentChoices, allLayers)) {
+    return false;
+  }
+
+  const activeOptionIdForGroup =
+    currentChoices[parentGroup.id] !== undefined
+      ? currentChoices[parentGroup.id]
+      : parentGroup.options?.[0]?.id;
+
+  return activeOptionIdForGroup === layer.show_condition;
 };
 
-// 1. Hook to load images with CORS handling (Giữ nguyên)
 const useImageLoader = (url: string | null) => {
   const [image, setImage] = useState<HTMLImageElement | null>(null);
   useEffect(() => {
@@ -36,7 +53,6 @@ const useImageLoader = (url: string | null) => {
   return image;
 };
 
-// 2. Component for Dynamic Images and Uploads (Giữ nguyên)
 const KonvaImageLayer = ({
   source,
   layerProps,
@@ -70,7 +86,6 @@ const KonvaImageLayer = ({
   );
 };
 
-// 3. Main Live Preview Component
 interface LivePreviewCanvasProps {
   designData: any;
   designChoices: Record<number, any>;
@@ -90,6 +105,9 @@ const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
     : null;
   const bgImage = useImageLoader(backgroundUrl);
 
+  // Lưu lại danh sách gốc chưa sort để check condition
+  const rawLayers = designData?.templateJson?.details || [];
+
   const layers = designData?.templateJson?.details
     ? [...designData.templateJson.details].sort(
         (a, b) => (a.zIndex || 0) - (b.zIndex || 0),
@@ -98,7 +116,6 @@ const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
 
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // State lưu kích thước thực tế render ra màn hình và tỷ lệ scale (Giữ nguyên)
   const [stageConfig, setStageConfig] = useState({
     width: ADMIN_STAGE_WIDTH,
     height: ADMIN_STAGE_HEIGHT,
@@ -123,14 +140,12 @@ const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
       });
     };
 
-    // Tính toán ngay khi render và tính lại khi resize trình duyệt
     calculateFitSize();
     window.addEventListener("resize", calculateFitSize);
     return () => window.removeEventListener("resize", calculateFitSize);
-  }, []); // Không phụ thuộc bgImage nữa vì ta dựa vào ADMIN_STAGE cố định
+  }, []);
 
   return (
-    // Div này chiếm 100% không gian mà Component cha (ở ProductDetail) cấp cho nó
     <div
       ref={containerRef}
       className="w-full h-full flex items-center justify-center p-4 relative"
@@ -140,7 +155,6 @@ const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
         height={stageConfig.height}
         scaleX={stageConfig.scale}
         scaleY={stageConfig.scale}
-        // Thêm chút shadow để nhìn giống ảnh đang nổi lên
         style={{
           boxShadow:
             "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
@@ -149,7 +163,6 @@ const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
         }}
       >
         <Layer>
-          {/* Lớp nền */}
           {bgImage && (
             <KonvaImage
               image={bgImage}
@@ -160,9 +173,9 @@ const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
             />
           )}
 
-          {/* Các Lớp Thành Phần */}
           {layers.map((layer: any) => {
-            if (!checkLayerCondition(layer, designChoices)) {
+            // SỬ DỤNG HÀM CHECK MỚI Ở ĐÂY, TRUYỀN THÊM rawLayers
+            if (!checkLayerCondition(layer, designChoices, rawLayers)) {
               return null;
             }
 
@@ -174,7 +187,7 @@ const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
               const text =
                 designChoices[layer.id] !== undefined
                   ? designChoices[layer.id]
-                  : layer.defaultValue || "";
+                  : layer.options?.[0]?.name || layer.text || ""; // Sửa lại cho dynamic_text có chữ mặc định
               return (
                 <Text
                   key={layer.id}

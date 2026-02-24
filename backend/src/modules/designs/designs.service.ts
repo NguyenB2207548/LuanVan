@@ -45,8 +45,8 @@ export class DesignsService {
     private productRepo: Repository<Product>,
     @InjectRepository(Variant)
     private variantRepo: Repository<Variant>,
-    @InjectRepository(DesignOption)
-    private optionRepo: Repository<DesignOption>,
+    // @InjectRepository(DesignOption)
+    // private optionRepo: Repository<DesignOption>,
   ) {}
 
   async create(createDesignDto: CreateDesignDto): Promise<Design> {
@@ -119,26 +119,26 @@ export class DesignsService {
     return await this.designRepository.save(updatedDesign);
   }
 
-  async updateDesignOptions(designId: number, dto: UpdateDesignOptionsDto) {
-    const design = await this.designRepo.findOne({ where: { id: designId } });
-    if (!design) {
-      throw new NotFoundException(`Design với ID ${designId} không tồn tại`);
-    }
+  // async updateDesignOptions(designId: number, dto: UpdateDesignOptionsDto) {
+  //   const design = await this.designRepo.findOne({ where: { id: designId } });
+  //   if (!design) {
+  //     throw new NotFoundException(`Design với ID ${designId} không tồn tại`);
+  //   }
 
-    await this.optionRepo.delete({ design: { id: designId } });
+  //   await this.optionRepo.delete({ design: { id: designId } });
 
-    const newOptions = dto.options.map((optDto) => {
-      const option = new DesignOption();
-      option.label = optDto.label;
-      option.optionType = optDto.optionType;
-      option.targetLayerId = optDto.targetLayerId;
-      option.config = optDto.config;
-      option.design = design;
-      return option;
-    });
+  //   const newOptions = dto.options.map((optDto) => {
+  //     const option = new DesignOption();
+  //     option.label = optDto.label;
+  //     option.optionType = optDto.optionType;
+  //     option.targetLayerId = optDto.targetLayerId;
+  //     option.config = optDto.config;
+  //     option.design = design;
+  //     return option;
+  //   });
 
-    return await this.optionRepo.save(newOptions);
-  }
+  //   return await this.optionRepo.save(newOptions);
+  // }
 
   // LẤY DESIGN THEO VARIANT
   async getDesignByVariant(variantId: number) {
@@ -157,43 +157,43 @@ export class DesignsService {
     return link.design;
   }
 
-  async getActiveDesign(productId: number, variantId?: number) {
-    let linkedDesign: LinkDesign | null = null;
+  // async getActiveDesign(productId: number, variantId?: number) {
+  //   let linkedDesign: LinkDesign | null = null;
 
-    // 1. Bước 1: Luôn ưu tiên tìm theo Variant nếu có variantId hợp lệ
-    if (variantId && !isNaN(variantId)) {
-      linkedDesign = await this.linkRepo.findOne({
-        where: {
-          ownerType: DesignOwnerType.VARIANT,
-          ownerId: variantId,
-          isActive: true,
-        },
-        relations: ['design', 'design.options'],
-      });
-    }
+  //   // 1. Bước 1: Luôn ưu tiên tìm theo Variant nếu có variantId hợp lệ
+  //   if (variantId && !isNaN(variantId)) {
+  //     linkedDesign = await this.linkRepo.findOne({
+  //       where: {
+  //         ownerType: DesignOwnerType.VARIANT,
+  //         ownerId: variantId,
+  //         isActive: true,
+  //       },
+  //       relations: ['design', 'design.options'],
+  //     });
+  //   }
 
-    // 2. Bước 2: Nếu KHÔNG tìm thấy ở Variant, tìm chính xác ở Product
-    // Quan trọng: Phải tìm theo productId gốc mà không quan tâm variantId nữa
-    if (!linkedDesign) {
-      linkedDesign = await this.linkRepo.findOne({
-        where: {
-          ownerType: DesignOwnerType.PRODUCT,
-          ownerId: productId,
-          isActive: true,
-        },
-        relations: ['design', 'design.options'],
-      });
-    }
+  //   // 2. Bước 2: Nếu KHÔNG tìm thấy ở Variant, tìm chính xác ở Product
+  //   // Quan trọng: Phải tìm theo productId gốc mà không quan tâm variantId nữa
+  //   if (!linkedDesign) {
+  //     linkedDesign = await this.linkRepo.findOne({
+  //       where: {
+  //         ownerType: DesignOwnerType.PRODUCT,
+  //         ownerId: productId,
+  //         isActive: true,
+  //       },
+  //       relations: ['design', 'design.options'],
+  //     });
+  //   }
 
-    // 3. Kiểm tra cuối cùng
-    if (!linkedDesign || !linkedDesign.design) {
-      throw new NotFoundException(
-        'Sản phẩm hoặc phiên bản này chưa được cấu hình thiết kế.',
-      );
-    }
+  //   // 3. Kiểm tra cuối cùng
+  //   if (!linkedDesign || !linkedDesign.design) {
+  //     throw new NotFoundException(
+  //       'Sản phẩm hoặc phiên bản này chưa được cấu hình thiết kế.',
+  //     );
+  //   }
 
-    return linkedDesign.design;
-  }
+  //   return linkedDesign.design;
+  // }
 
   async extractPsdLayersOnly(fileName: string) {
     if (!fileName) {
@@ -209,7 +209,6 @@ export class DesignsService {
       outputFolderName,
     );
 
-    // 1. Kiểm tra file nguồn tồn tại và có dữ liệu
     if (!fs.existsSync(psdPath)) {
       throw new NotFoundException(`Không tìm thấy file PSD tại: ${psdPath}`);
     }
@@ -220,11 +219,9 @@ export class DesignsService {
     }
 
     try {
-      // 2. Chuẩn bị thư mục đầu ra
       await fs.ensureDir(outputDirPath);
       await fs.emptyDir(outputDirPath);
 
-      // 3. Sử dụng fromFile và parse() thay cho open() để tránh lỗi 'No data provided'
       const psd = PSD.fromFile(psdPath);
       const parsed = psd.parse();
 
@@ -240,7 +237,6 @@ export class DesignsService {
       for (let i = 0; i < descendants.length; i++) {
         const node = descendants[i];
 
-        // 4. Chỉ xử lý các layer đang hiển thị và có kích thước thực tế
         if (
           node.isLayer() &&
           node.visible() &&
@@ -251,7 +247,6 @@ export class DesignsService {
           const layerFileName = `layer-${i}-${safeName}.png`;
           const savePath = path.join(outputDirPath, layerFileName);
 
-          // Lưu layer thành file vật lý
           await node.saveAsPng(savePath);
 
           result.push({
@@ -276,4 +271,42 @@ export class DesignsService {
       throw new Error(`Không thể xử lý file PSD: ${error.message}`);
     }
   }
+
+  // DELETE DESIGN BY ID
+  async delete(id: number) {
+    const design = await this.designRepository.findOne({ where: { id } });
+    if (!design) {
+      throw new NotFoundException('Không tìm thấy thiết kế để xóa');
+    }
+    await this.designRepository.remove(design);
+    return { message: 'Xóa thiết kế thành công' };
+  }
+
+  // DELETE LINK DESIGN BY ID
+  async deleteLink(variantId: number) {
+    const link = await this.linkRepo.findOne({
+      where: {
+        ownerType: DesignOwnerType.VARIANT,
+        ownerId: variantId,
+      },
+    });
+    if (!link) {
+      throw new NotFoundException('Không tìm thấy liên kết thiết kế để xóa');
+    }
+    await this.linkRepo.remove(link);
+    return { message: 'Xóa liên kết thiết kế thành công' };
+  }
+
+  // CHANGE LINK DESIGN
+  // async changeLinkDesign(id: number, newDesignId: number) {
+  //   const link = await this.linkRepo.findOne({ where: { id } });
+  //   if (!link) {
+  //     throw new NotFoundException(
+  //       'Không tìm thấy liên kết thiết kế để thay đổi',
+  //     );
+  //   }
+  //   link.designId = newDesignId;
+  //   await this.linkRepo.save(link);
+  //   return { message: 'Thay đổi liên kết thiết kế thành công' };
+  // }
 }

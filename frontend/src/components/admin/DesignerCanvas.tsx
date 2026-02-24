@@ -118,14 +118,26 @@ const DesignerCanvas: React.FC<DesignerCanvasProps> = ({
               return l.type === "text" || l.type === "dynamic_text" ? (
                 <Text
                   key={l.id}
-                  {...l}
+                  x={l.x}
+                  y={l.y}
                   text={l.text || ""}
+                  fontSize={l.fontSize || 24}
+                  fontFamily={l.fontFamily || "Arial"}
+                  fill={l.color || "#000000"}
                   draggable
-                  fill={l.color}
+                  // 1. Khi vừa click vào là chọn luôn
                   onClick={() => setSelectedId(l.id)}
+                  // 2. THÊM DÒNG NÀY: Vừa chạm chuột kéo là chọn luôn layer này để tránh cập nhật nhầm
+                  onDragStart={() => setSelectedId(l.id)}
+                  // 3. SỬA LẠI DÒNG NÀY: Cập nhật đích danh layer vị trí thứ [i] thay vì dùng updateSelectedLayer
                   onDragEnd={(e) => {
-                    updateSelectedLayer("x", Math.round(e.target.x()));
-                    updateSelectedLayer("y", Math.round(e.target.y()));
+                    const newLayers = [...layers];
+                    newLayers[i] = {
+                      ...l,
+                      x: Math.round(e.target.x()),
+                      y: Math.round(e.target.y()),
+                    };
+                    setLayers(newLayers);
                   }}
                 />
               ) : (

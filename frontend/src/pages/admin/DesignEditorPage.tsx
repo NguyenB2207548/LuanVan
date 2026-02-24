@@ -6,7 +6,7 @@ import DesignerControlPanel from "../../components/admin/DesignerControlPanel";
 import { Loader2 } from "lucide-react";
 
 const DesignEditorPage = () => {
-  const { id } = useParams(); // Lấy ID từ URL (/admin/designs/editor/:id)
+  const { id } = useParams();
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
@@ -41,17 +41,14 @@ const DesignEditorPage = () => {
     if (id) fetchDesign();
   }, [id, navigate]);
 
-  // Hàm update 1 layer (Giống hệt trang create)
   const updateSelectedLayer = (field: string, value: any) => {
     setLayers(
       layers.map((l) => (l.id === selectedId ? { ...l, [field]: value } : l)),
     );
   };
 
-  // VIẾT HÀM XỬ LÝ LƯU (UPDATE) Ở ĐÂY
   const handleUpdateDesign = async (payload: any) => {
     try {
-      // Gọi API PUT/PATCH để cập nhật
       await axiosClient.patch(`/designs/${id}`, payload);
       alert("Design updated successfully!");
     } catch (err: any) {
@@ -59,7 +56,6 @@ const DesignEditorPage = () => {
     }
   };
 
-  // Màn hình chờ tải dữ liệu (Tránh việc Canvas render khi chưa có hình)
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen bg-gray-100">

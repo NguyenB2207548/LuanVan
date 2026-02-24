@@ -20,6 +20,14 @@ export class CategoriesService {
     return this.categoryRepository.find();
   }
 
+  async findOne(id: number): Promise<Category> {
+    const category = await this.categoryRepository.findOne({ where: { id } });
+    if (!category) {
+      throw new InternalServerErrorException('Danh mục không tồn tại');
+    }
+    return category;
+  }
+
   async create(createCategoryDto: CreateCategoryDto): Promise<Category> {
     try {
       const existingCategory = await this.categoryRepository.findOne({

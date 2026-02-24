@@ -10,6 +10,7 @@ import {
   LayoutTemplate,
   Link as LinkIcon,
   CheckCircle2,
+  Trash2, // <-- Thêm icon Trash2
 } from "lucide-react";
 import axiosClient from "../../api/axiosClient";
 import type { Product } from "../../types/product";
@@ -20,32 +21,24 @@ const ProductEditorAdminPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  // States
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [productOriginal, setProductOriginal] = useState<Product | null>(null);
 
-  // Form States
   const [formData, setFormData] = useState({
     productName: "",
     description: "",
     status: "active",
   });
 
-  // Dùng state này để render và lưu tạm giá trị thay đổi của variant
   const [variants, setVariants] = useState<any[]>([]);
-
-  // Templates List for Dropdown
   const [templates, setTemplates] = useState<any[]>([]);
-
-  // Trạng thái loading riêng cho từng nút Link Template
   const [linkingVariantId, setLinkingVariantId] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        // 1. Chạy song song 2 API: Lấy chi tiết sản phẩm và danh sách tất cả template
         const [productRes, templatesRes] = await Promise.all([
           axiosClient.get(`/products/${id}`),
           axiosClient.get("/designs"),
@@ -60,24 +53,21 @@ const ProductEditorAdminPage = () => {
           status: prod.status || "active",
         });
 
-        // 2. Lặp qua từng variant và gọi API để lấy template tương ứng
         const variantsWithUIState = await Promise.all(
           (prod.variants || []).map(async (v: any) => {
-            let linkedTemplateId = null;
-
+            let linkedTemplateId = "";
             try {
-              // Gọi API lấy design theo variant ID
               const designRes = await axiosClient.get(
                 `/designs/variant/${v.id}`,
               );
-
-              // Dựa theo cấu trúc cũ của bạn, data trả về nằm trong response.data.data
               if (designRes.data && designRes.data.data) {
                 linkedTemplateId = String(designRes.data.data.id);
               } else if (designRes.data && designRes.data.id) {
                 linkedTemplateId = String(designRes.data.id);
               }
-            } catch (error) {}
+            } catch (error) {
+              // Bỏ qua nếu variant chưa có design link
+            }
 
             return {
               ...v,
@@ -107,7 +97,6 @@ const ProductEditorAdminPage = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Chỉ thay đổi giá trị Dropdown trên UI (Chưa lưu)
   const handleTemplateSelection = (variantId: number, templateId: string) => {
     setVariants((prev) =>
       prev.map((v) =>
@@ -116,13 +105,43 @@ const ProductEditorAdminPage = () => {
     );
   };
 
-  // === HÀM GỌI API ĐỘC LẬP ĐỂ LINK TEMPLATE ===
-  const handleLinkTemplate = async (variantId: number, templateId: string) => {
-    if (!templateId) return alert("Please select a template first.");
+  // === HÀM HỦY LINK (XÓA TEMPLATE KHỎI VARIANT) ===
+  const handleUnlinkTemplate = async (variantId: number) => {
+    const confirmDelete = window.confirm(
+      "Are you sure you want to remove the template from this variant?",
+    );
+    if (!confirmDelete) return;
 
     try {
       setLinkingVariantId(variantId);
 
+      // GỌI API DELETE. (Lưu ý: Bạn cần cấu hình Controller Backend nhận đúng đường dẫn này)
+      await axiosClient.delete(`/designs/link/${variantId}`);
+
+      setVariants((prev) =>
+        prev.map((v) =>
+          v.id === variantId
+            ? { ...v, originalTemplateId: null, selectedTemplateId: "" }
+            : v,
+        ),
+      );
+    } catch (err: any) {
+      console.error("Error unlinking template", err);
+      alert(err.response?.data?.message || "Failed to remove link.");
+    } finally {
+      setLinkingVariantId(null);
+    }
+  };
+
+  // === HÀM GỌI API TẠO/CẬP NHẬT LINK ===
+  const handleLinkTemplate = async (variantId: number, templateId: string) => {
+    // Tự động gọi hàm Xóa nếu người dùng chọn lại mục "-- No Template Attached --"
+    if (!templateId) {
+      return handleUnlinkTemplate(variantId);
+    }
+
+    try {
+      setLinkingVariantId(variantId);
       await axiosClient.post("/designs/link", {
         designId: Number(templateId),
         ownerType: "variant",
@@ -142,7 +161,6 @@ const ProductEditorAdminPage = () => {
     }
   };
 
-  // API LƯU THÔNG TIN CHUNG SẢN PHẨM (Bỏ variants ra khỏi payload)
   const handleSaveProductInfo = async () => {
     try {
       setSaving(true);
@@ -187,7 +205,6 @@ const ProductEditorAdminPage = () => {
           <button
             onClick={() => navigate(-1)}
             className="p-2 text-gray-400 hover:text-gray-800 bg-white border border-gray-200 rounded-md shadow-sm transition-colors"
-            title="Go back"
           >
             <ArrowLeft size={18} />
           </button>
@@ -214,14 +231,12 @@ const ProductEditorAdminPage = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* LEFT COLUMN */}
         <div className="lg:col-span-2 space-y-6">
-          {/* 1. BASIC INFORMATION */}
           <section className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
             <h2 className="text-base font-semibold text-gray-800 mb-4 flex items-center gap-2">
               <Package size={18} className="text-gray-500" /> General
               Information
             </h2>
             <div className="space-y-4">
-              {/* ... (Các ô Input Title, Mota, Status giữ nguyên) ... */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Product Name
@@ -266,7 +281,6 @@ const ProductEditorAdminPage = () => {
             </div>
           </section>
 
-          {/* 2. VARIANTS & TEMPLATES LẬP TRÌNH API MỚI */}
           <section className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
             <div className="p-6 border-b border-gray-200">
               <h2 className="text-base font-semibold text-gray-800 flex items-center gap-2">
@@ -277,7 +291,6 @@ const ProductEditorAdminPage = () => {
 
             <div className="divide-y divide-gray-200">
               {variants.map((variant) => {
-                // Kiểm tra xem template hiện tại trên Dropdown có bị đổi khác với DB không
                 const isChanged =
                   String(variant.selectedTemplateId) !==
                   String(variant.originalTemplateId);
@@ -288,7 +301,6 @@ const ProductEditorAdminPage = () => {
                     key={variant.id}
                     className="p-6 hover:bg-gray-50 transition-colors flex flex-col md:flex-row gap-6"
                   >
-                    {/* Variant Image */}
                     <div className="w-full md:w-24 shrink-0">
                       <div className="aspect-square rounded-md overflow-hidden border border-gray-200 bg-white">
                         {variant.images && variant.images.length > 0 ? (
@@ -305,7 +317,6 @@ const ProductEditorAdminPage = () => {
                       </div>
                     </div>
 
-                    {/* Variant Details */}
                     <div className="flex-1 space-y-4">
                       <div className="flex justify-between items-start">
                         <div>
@@ -333,12 +344,21 @@ const ProductEditorAdminPage = () => {
                           </label>
                           <select
                             value={variant.selectedTemplateId}
-                            onChange={(e) =>
+                            onChange={(e) => {
+                              const newTemplateId = e.target.value;
                               handleTemplateSelection(
                                 variant.id,
-                                e.target.value,
-                              )
-                            }
+                                newTemplateId,
+                              );
+
+                              // NẾU CHỌN VỀ RỖNG (NO TEMPLATE) -> TỰ ĐỘNG XÓA LINK NGAY LẬP TỨC
+                              if (
+                                newTemplateId === "" &&
+                                variant.originalTemplateId !== ""
+                              ) {
+                                handleUnlinkTemplate(variant.id);
+                              }
+                            }}
                             className="w-full px-3 py-2 border border-blue-200 rounded text-sm focus:outline-none focus:border-blue-500 bg-white"
                           >
                             <option value="">-- No Template Attached --</option>
@@ -350,9 +370,10 @@ const ProductEditorAdminPage = () => {
                           </select>
                         </div>
 
-                        {/* NÚT LƯU RIÊNG CHO TỪNG VARIANT */}
+                        {/* BUTTONS CONTROL TỐI GIẢN */}
                         <div className="w-full sm:w-auto shrink-0 h-9">
-                          {isChanged ? (
+                          {/* NẾU ĐANG CHỌN 1 TEMPLATE MỚI -> HIỆN NÚT SAVE MÀU XANH */}
+                          {isChanged && variant.selectedTemplateId !== "" ? (
                             <button
                               onClick={() =>
                                 handleLinkTemplate(
@@ -360,10 +381,8 @@ const ProductEditorAdminPage = () => {
                                   variant.selectedTemplateId,
                                 )
                               }
-                              disabled={
-                                isLinking || !variant.selectedTemplateId
-                              }
-                              className="w-full h-full flex items-center justify-center gap-1.5 px-4 bg-indigo-600 text-white text-xs font-medium rounded hover:bg-indigo-700 transition-colors disabled:opacity-50"
+                              disabled={isLinking}
+                              className="w-full h-full flex items-center justify-center gap-1.5 px-4 text-white text-xs font-medium rounded transition-colors disabled:opacity-50 bg-indigo-600 hover:bg-indigo-700"
                             >
                               {isLinking ? (
                                 <div className="animate-spin w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full"></div>
@@ -373,10 +392,26 @@ const ProductEditorAdminPage = () => {
                               Save Link
                             </button>
                           ) : (
-                            // Trạng thái đã lưu đồng bộ
-                            variant.originalTemplateId && (
-                              <div className="h-full flex items-center justify-center gap-1.5 px-4 bg-green-50 text-green-700 border border-green-200 text-xs font-medium rounded cursor-default">
-                                <CheckCircle2 size={14} /> Linked
+                            // NẾU KHÔNG CÓ THAY ĐỔI VÀ ĐANG CÓ LINK -> HIỆN NHÃN LINKED KÈM NÚT TRASH
+                            variant.originalTemplateId !== "" && (
+                              <div className="flex items-center gap-2 h-full">
+                                <div className="h-full flex items-center justify-center gap-1.5 px-3 bg-green-50 text-green-700 border border-green-200 text-xs font-medium rounded cursor-default">
+                                  <CheckCircle2 size={14} /> Linked
+                                </div>
+                                <button
+                                  onClick={() =>
+                                    handleUnlinkTemplate(variant.id)
+                                  }
+                                  disabled={isLinking}
+                                  className="h-full px-3 flex items-center justify-center text-red-500 bg-red-50 border border-red-200 hover:bg-red-100 hover:text-red-700 rounded transition-colors disabled:opacity-50"
+                                  title="Delete Link"
+                                >
+                                  {isLinking ? (
+                                    <div className="animate-spin w-3.5 h-3.5 border-2 border-red-500 border-t-transparent rounded-full"></div>
+                                  ) : (
+                                    <Trash2 size={14} />
+                                  )}
+                                </button>
                               </div>
                             )
                           )}
@@ -392,7 +427,6 @@ const ProductEditorAdminPage = () => {
 
         {/* RIGHT COLUMN */}
         <div className="space-y-6">
-          {/* Category */}
           <section className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
             <h3 className="text-base font-semibold text-gray-800 mb-4 flex items-center gap-2">
               <Tag className="text-gray-500" size={18} /> Organization
@@ -420,7 +454,6 @@ const ProductEditorAdminPage = () => {
             </div>
           </section>
 
-          {/* Gallery */}
           <section className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
             <h3 className="text-base font-semibold text-gray-800 mb-4 flex items-center gap-2">
               <ImageIcon className="text-gray-500" size={18} /> Image Gallery

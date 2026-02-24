@@ -72,6 +72,14 @@ const AdminLayout = () => {
             <Package size={20} /> Quản lý sản phẩm
           </NavLink>
 
+          <NavLink to="/admin/categories" className={getLinkClass}>
+            <Package size={20} /> Quản lý danh mục
+          </NavLink>
+
+          <NavLink to="/admin/attributes" className={getLinkClass}>
+            <Package size={20} /> Quản lý thuộc tính
+          </NavLink>
+
           <NavLink to="/admin/designs" className={getLinkClass}>
             <Package size={20} /> Quản lý thiết kế
           </NavLink>

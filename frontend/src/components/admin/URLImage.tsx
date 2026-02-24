@@ -21,11 +21,14 @@ const URLImage: React.FC<URLImageProps> = ({
   onUploadClick,
 }) => {
   const [img] = useImage(
-    l.image_url.startsWith("http") ? l.image_url : `${BASE_URL}${l.image_url}`,
+    l.image_url?.startsWith("http") ? l.image_url : `${BASE_URL}${l.image_url}`,
     "anonymous",
   );
+
   const trRef = useRef<Konva.Transformer>(null);
   const shapeRef = useRef<Konva.Image>(null);
+
+  const prevImageSrc = useRef<string | null>(null);
 
   useEffect(() => {
     if (isSelected && trRef.current && shapeRef.current) {
@@ -33,6 +36,36 @@ const URLImage: React.FC<URLImageProps> = ({
       trRef.current.getLayer()?.batchDraw();
     }
   }, [isSelected]);
+
+  // === THUẬT TOÁN GIỮ ĐÚNG KÍCH THƯỚC VÀ TỶ LỆ ===
+  useEffect(() => {
+    if (img && img.src !== prevImageSrc.current) {
+      prevImageSrc.current = img.src;
+
+      // 1. KHI TẢI ẢNH LÊN LẦN ĐẦU (Layer mới thêm có mặc định là 60x60)
+      // -> Bê nguyên 100% kích thước thật của ảnh gốc
+      if (l.width === 60 && l.height === 60) {
+        onChange({
+          width: img.width,
+          height: img.height,
+        });
+      }
+      // 2. KHI ĐỔI OPTION TRONG DYNAMIC IMAGE
+      // -> Giữ nguyên Chiều Rộng (Width) hiện tại trên canvas
+      // -> Tự động tính lại Chiều Cao (Height) theo tỷ lệ gốc của ảnh mới
+      else {
+        const currentW = l.width;
+        // Tính chiều cao mới: Rộng hiện tại * (Cao thật / Rộng thật)
+        const newH = currentW * (img.height / img.width);
+
+        onChange({
+          width: Math.round(currentW),
+          height: Math.round(newH),
+        });
+      }
+    }
+  }, [img]);
+  // ====================================================
 
   return (
     <>
@@ -44,10 +77,10 @@ const URLImage: React.FC<URLImageProps> = ({
         height={l.height}
         draggable
         ref={shapeRef}
-        // 1. CLICK CHỈ ĐỂ CHỌN LAYER (Không mở Modal)
+        // 1. CLICK CHỈ ĐỂ CHỌN LAYER
         onClick={onSelect}
         onTap={onSelect}
-        // 2. NHÁY ĐÚP CHUỘT (DOUBLE CLICK) ĐỂ MỞ MODAL THAY ẢNH
+        // 2. NHÁY ĐÚP CHUỘT THAY ẢNH
         onDblClick={() => {
           if (
             l.type === "dynamic_image" ||
@@ -58,7 +91,6 @@ const URLImage: React.FC<URLImageProps> = ({
           }
         }}
         onDblTap={() => {
-          // Hỗ trợ nháy đúp trên màn hình cảm ứng
           if (
             l.type === "dynamic_image" ||
             l.type === "upload" ||
@@ -87,6 +119,7 @@ const URLImage: React.FC<URLImageProps> = ({
       {isSelected && (
         <Transformer
           ref={trRef}
+          keepRatio={true} // Bắt buộc giữ tỷ lệ khi user cầm góc kéo dãn
           boundBoxFunc={(oldBox, newBox) => {
             if (newBox.width < 5 || newBox.height < 5) return oldBox;
             return newBox;

@@ -8,6 +8,7 @@ import {
   Patch,
   Query,
   BadRequestException,
+  Delete,
 } from '@nestjs/common';
 import { DesignsService } from './designs.service';
 import { CreateDesignDto } from './dto/create-design.dto';
@@ -47,16 +48,16 @@ export class DesignsController {
     };
   }
 
-  @Get('active')
-  async getActiveDesign(@Query() query: GetActiveDesignDto) {
-    console.log('Query received:', query);
-    console.log('productId type:', typeof query.productId);
-    console.log('variantId type:', typeof query.variantId);
-    return this.designsService.getActiveDesign(
-      query.productId,
-      query.variantId,
-    );
-  }
+  // @Get('active')
+  // async getActiveDesign(@Query() query: GetActiveDesignDto) {
+  //   console.log('Query received:', query);
+  //   console.log('productId type:', typeof query.productId);
+  //   console.log('variantId type:', typeof query.variantId);
+  //   return this.designsService.getActiveDesign(
+  //     query.productId,
+  //     query.variantId,
+  //   );
+  // }
 
   @Get(':id')
   async findOne(@Param('id', ParseIntPipe) id: number) {
@@ -85,12 +86,22 @@ export class DesignsController {
     return this.designsService.findOne(id);
   }
 
-  @Post(':id/options')
-  async updateOptions(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() updateOptionsDto: UpdateDesignOptionsDto,
-  ) {
-    return this.designsService.updateDesignOptions(id, updateOptionsDto);
+  // @Post(':id/options')
+  // async updateOptions(
+  //   @Param('id', ParseIntPipe) id: number,
+  //   @Body() updateOptionsDto: UpdateDesignOptionsDto,
+  // ) {
+  //   return this.designsService.updateDesignOptions(id, updateOptionsDto);
+  // }
+
+  @Delete(':id')
+  async delete(@Param('id', ParseIntPipe) id: number) {
+    return await this.designsService.delete(id);
+  }
+
+  @Delete('link/:id')
+  async deleteLink(@Param('id', ParseIntPipe) variantId: number) {
+    return await this.designsService.deleteLink(variantId);
   }
 
   @Post('extract-layers')

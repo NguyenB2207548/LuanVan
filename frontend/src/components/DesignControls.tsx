@@ -12,12 +12,30 @@ interface DesignControlsProps {
 const checkLayerCondition = (
   layer: any,
   currentChoices: Record<string, any>,
-) => {
+  allLayers: any[],
+): boolean => {
   if (!layer.show_condition) {
     return true;
   }
-  const currentSelectedValues = Object.values(currentChoices);
-  return currentSelectedValues.includes(layer.show_condition);
+
+  const parentGroup = allLayers.find(
+    (l) =>
+      l.type === "group" &&
+      l.options?.some((opt: any) => opt.id === layer.show_condition),
+  );
+
+  if (!parentGroup) return false;
+
+  if (!checkLayerCondition(parentGroup, currentChoices, allLayers)) {
+    return false;
+  }
+
+  const activeOptionIdForGroup =
+    currentChoices[parentGroup.id] !== undefined
+      ? currentChoices[parentGroup.id]
+      : parentGroup.options?.[0]?.id;
+
+  return activeOptionIdForGroup === layer.show_condition;
 };
 
 const DesignControls: React.FC<DesignControlsProps> = ({
@@ -29,12 +47,16 @@ const DesignControls: React.FC<DesignControlsProps> = ({
 }) => {
   if (!designData?.templateJson?.details) return null;
 
+  // Lấy danh sách toàn bộ layers để truyền vào hàm check
+  const allLayers = designData.templateJson.details;
+
   return (
     <div className="mt-8">
       <div className="font-semibold mb-4 text-lg">Personalized</div>
       <div className="space-y-6">
-        {designData.templateJson.details.map((layer: any) => {
-          if (!checkLayerCondition(layer, designChoices)) {
+        {allLayers.map((layer: any) => {
+          // SỬA Ở ĐÂY: Truyền thêm allLayers vào hàm checkLayerCondition
+          if (!checkLayerCondition(layer, designChoices, allLayers)) {
             return null;
           }
 
@@ -56,7 +78,7 @@ const DesignControls: React.FC<DesignControlsProps> = ({
             return (
               <div
                 key={layer.id}
-                className="w-full bg-blue-50/50 p-3 rounded border border-blue-100 mb-2"
+                // className="w-full bg-blue-50/50 p-3 rounded border border-blue-100 mb-2"
               >
                 <ImageOptionSelector
                   label={layer.label}
@@ -71,7 +93,7 @@ const DesignControls: React.FC<DesignControlsProps> = ({
                     });
                     setShowPreview(true);
                   }}
-                  itemClassName="md:w-1/3 w-1/2" // Ô chọn layout to hơn một chút
+                  // itemClassName="md:w-1/3 w-1/2"
                 />
               </div>
             );
@@ -104,6 +126,7 @@ const DesignControls: React.FC<DesignControlsProps> = ({
               </div>
             );
           }
+
           // --- DYNAMIC TEXT
           if (layer.type === "dynamic_text") {
             const currentValue =
@@ -157,7 +180,11 @@ const DesignControls: React.FC<DesignControlsProps> = ({
                 image: `${baseUrl}${opt.image_url}`,
                 title: opt.name,
               })) || [];
-            const currentSelectedId = designChoices[layer.id];
+
+            const currentSelectedId =
+              designChoices[layer.id] !== undefined
+                ? designChoices[layer.id]
+                : layer.options?.[0]?.id; // Lấy tuỳ chọn đầu tiên làm mặc định
 
             return (
               <div key={layer.id}>
@@ -173,7 +200,7 @@ const DesignControls: React.FC<DesignControlsProps> = ({
                     }));
                     setShowPreview(true);
                   }}
-                  itemClassName="md:w-1/4 w-1/3"
+                  // itemClassName="md:w-1/4 w-1/3"
                 />
               </div>
             );
