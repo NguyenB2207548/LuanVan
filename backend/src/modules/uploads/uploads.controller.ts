@@ -5,10 +5,12 @@ import {
   UploadedFiles,
   Get,
   Query,
+  BadRequestException,
+  UploadedFile,
 } from '@nestjs/common';
-import { FilesInterceptor } from '@nestjs/platform-express';
+import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
-import { extname } from 'path';
+import path, { extname } from 'path';
 import * as fs from 'fs';
 import { UploadsService } from './uploads.service';
 
@@ -60,5 +62,42 @@ export class UploadsController {
   @Get('assets')
   getAssets() {
     return this.uploadsService.getAssetImages();
+  }
+
+  @Post('psd')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        // 1. Chỉ định thư mục lưu file PSD
+        destination: (req, file, cb) => {
+          const psdDir = path.join(process.cwd(), 'public', 'uploads', 'psd');
+          // Tự động tạo thư mục nếu chưa có
+          if (!fs.existsSync(psdDir)) {
+            fs.mkdirSync(psdDir, { recursive: true });
+          }
+          cb(null, psdDir);
+        },
+        // 2. Đổi tên file để không bị trùng lặp
+        filename: (req, file, cb) => {
+          const uniqueSuffix =
+            Date.now() + '-' + Math.round(Math.random() * 1e9);
+          const ext = path.extname(file.originalname);
+          cb(null, `template_${uniqueSuffix}${ext}`);
+        },
+      }),
+      // 3. Chặn các file không phải PSD ngay từ cửa
+      fileFilter: (req, file, cb) => {
+        if (!file.originalname.toLowerCase().match(/\.(psd)$/)) {
+          return cb(
+            new BadRequestException('Chỉ cho phép tải lên file .psd!'),
+            false,
+          );
+        }
+        cb(null, true);
+      },
+    }),
+  )
+  uploadPsd(@UploadedFile() file: Express.Multer.File) {
+    return this.uploadsService.processPsdUpload(file);
   }
 }

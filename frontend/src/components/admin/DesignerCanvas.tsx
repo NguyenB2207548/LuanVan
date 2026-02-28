@@ -12,7 +12,6 @@ interface DesignerCanvasProps {
   setLayers: React.Dispatch<React.SetStateAction<any[]>>;
   selectedId: string | null;
   setSelectedId: (id: string | null) => void;
-  // fileInputRef: React.RefObject<HTMLInputElement | null>;
   isUploading: boolean;
   updateSelectedLayer: (field: string, value: string | number) => void;
   activeFilter: string;
@@ -33,7 +32,6 @@ const DesignerCanvas: React.FC<DesignerCanvasProps> = ({
     "anonymous",
   );
 
-  // --- THÊM STATE QUẢN LÝ MODAL TRÊN CANVAS ---
   const [modalConfig, setModalConfig] = useState<{
     isOpen: boolean;
     targetLayerId: string | null;
@@ -42,10 +40,8 @@ const DesignerCanvas: React.FC<DesignerCanvasProps> = ({
     targetLayerId: null,
   });
 
-  // --- HÀM XỬ LÝ KHI CHỌN ẢNH XONG ---
   const handleAssetsSelected = (urls: string[]) => {
     if (!modalConfig.targetLayerId || urls.length === 0) return;
-
     const selectedUrl = urls[0];
 
     const newLayers = layers.map((l) => {
@@ -64,21 +60,27 @@ const DesignerCanvas: React.FC<DesignerCanvasProps> = ({
               image_url: selectedUrl,
             });
           }
-
           return { ...l, image_url: selectedUrl, options: newOptions };
         }
-
         return { ...l, image_url: selectedUrl };
       }
       return l;
     });
-
     setLayers(newLayers);
   };
 
+  // === THUẬT TOÁN TÍNH SCALE ===
+  // Cố định chiều rộng hiển thị trên màn hình là 550px
+  const CONTAINER_WIDTH = 550;
+
+  // Tính tỷ lệ thu nhỏ: Nếu ảnh gốc 1100px thì tỷ lệ là 0.5
+  const scaleRatio = bgImg ? CONTAINER_WIDTH / bgImg.width : 1;
+
+  // Chiều cao tự động co giãn theo tỷ lệ
+  const stageHeight = bgImg ? bgImg.height * scaleRatio : 550;
+
   return (
     <div className="flex-1 relative flex items-center justify-center bg-[#e5e7eb] overflow-hidden border-r border-gray-200">
-      {/* Loading Overlay */}
       {isUploading && (
         <div className="absolute inset-0 bg-white/60 z-50 flex items-center justify-center">
           <div className="bg-white px-5 py-3 rounded-md shadow-lg border border-gray-100 flex items-center gap-3">
@@ -90,20 +92,30 @@ const DesignerCanvas: React.FC<DesignerCanvasProps> = ({
         </div>
       )}
 
-      {/* Canvas Area */}
+      {/* Cập nhật lại khung chứa bao bọc Stage */}
       <div
         className="bg-white shadow-sm border border-gray-300 relative"
-        style={{ width: 550, height: 550 }}
+        style={{ width: CONTAINER_WIDTH, height: stageHeight }}
       >
         <Stage
-          width={550}
-          height={550}
-          onMouseDown={(e) =>
-            e.target === e.target.getStage() && setSelectedId(null)
-          }
+          width={CONTAINER_WIDTH}
+          height={stageHeight}
+          scale={{ x: scaleRatio, y: scaleRatio }} // <-- ÁP DỤNG SCALE VÀO ĐÂY
+          onMouseDown={(e) => {
+            // Click vào chỗ trống hoặc click vào background thì unselect
+            if (
+              e.target === e.target.getStage() ||
+              e.target.name() === "background"
+            ) {
+              setSelectedId(null);
+            }
+          }}
         >
           <Layer>
-            {bgImg && <KonvaImage image={bgImg} width={550} height={550} />}
+            {/* LƯU Ý QUAN TRỌNG: Gỡ bỏ width={550} height={550} ở đây.
+                Để cho Background vẽ đúng kích thước gốc, Stage sẽ tự bóp nó lại */}
+            {bgImg && <KonvaImage image={bgImg} name="background" />}
+
             {layers.map((l, i) => {
               if (l.type === "group") return null;
 
@@ -125,15 +137,13 @@ const DesignerCanvas: React.FC<DesignerCanvasProps> = ({
                   fontFamily={l.fontFamily || "Arial"}
                   fill={l.color || "#000000"}
                   draggable
-                  // 1. Khi vừa click vào là chọn luôn
                   onClick={() => setSelectedId(l.id)}
-                  // 2. THÊM DÒNG NÀY: Vừa chạm chuột kéo là chọn luôn layer này để tránh cập nhật nhầm
                   onDragStart={() => setSelectedId(l.id)}
-                  // 3. SỬA LẠI DÒNG NÀY: Cập nhật đích danh layer vị trí thứ [i] thay vì dùng updateSelectedLayer
                   onDragEnd={(e) => {
                     const newLayers = [...layers];
                     newLayers[i] = {
                       ...l,
+                      // Mặc dù kéo trên màn hình nhỏ, e.target.x() vẫn trả về đúng tọa độ của file gốc!
                       x: Math.round(e.target.x()),
                       y: Math.round(e.target.y()),
                     };
@@ -161,7 +171,6 @@ const DesignerCanvas: React.FC<DesignerCanvasProps> = ({
         </Stage>
       </div>
 
-      {/* ---  MODAL QUẢN LÝ ẢNH --- */}
       <AssetManagerModal
         isOpen={modalConfig.isOpen}
         multiple={false}

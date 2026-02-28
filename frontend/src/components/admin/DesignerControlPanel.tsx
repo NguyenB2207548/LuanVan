@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { Upload, Save, Layers, UploadCloud } from "lucide-react";
+import { Upload, Save, Layers, UploadCloud, Loader2 } from "lucide-react";
 import axiosClient from "../../api/axiosClient";
 import AssetManagerModal from "./AssetManagerModal";
 import AddLayerButtons from "./AddLayerButtons";
@@ -22,6 +22,7 @@ interface DesignerControlPanelProps {
   activeFilter: string;
   setActiveFilter: (filter: string) => void;
   onSave: (templateData: any) => Promise<void>;
+  isExtractingPsd: boolean;
 }
 
 const DesignerControlPanel: React.FC<DesignerControlPanelProps> = ({
@@ -37,6 +38,7 @@ const DesignerControlPanel: React.FC<DesignerControlPanelProps> = ({
   activeFilter,
   setActiveFilter,
   onSave,
+  isExtractingPsd,
 }) => {
   const selectedLayer = layers.find((l) => l.id === selectedId);
 
@@ -125,6 +127,23 @@ const DesignerControlPanel: React.FC<DesignerControlPanelProps> = ({
             value={designName}
             onChange={(e) => setDesignName(e.target.value)}
           />
+
+          {/* === NÚT IMPORT PSD ĐƯỢC THÊM VÀO ĐÂY === */}
+          <button
+            onClick={() => document.getElementById("hidden-psd-input")?.click()}
+            disabled={isExtractingPsd}
+            className="mt-3 w-full flex justify-center items-center gap-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 py-2 rounded border border-indigo-200 font-medium text-sm transition-colors"
+          >
+            {isExtractingPsd ? (
+              <>
+                <Loader2 className="animate-spin" size={16} /> Extracting PSD...
+              </>
+            ) : (
+              <>
+                <UploadCloud size={16} /> Import PSD File
+              </>
+            )}
+          </button>
 
           <label className="text-xs font-semibold text-gray-600 block mt-4">
             Background Image <span className="text-red-500">*</span>

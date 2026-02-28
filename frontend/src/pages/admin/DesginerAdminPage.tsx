@@ -20,6 +20,8 @@ const DesignerAdminPage = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [activeFilter, setActiveFilter] = useState<string>("ALL");
 
+  const [isExtractingPsd, setIsExtractingPsd] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // === XỬ LÝ UPLOAD VÀO CANVAS BẰNG INPUT ẨN ===
@@ -68,9 +70,55 @@ const DesignerAdminPage = () => {
     try {
       await axiosClient.post("/designs", data);
       alert("Design created successfully!");
-      // Có thể thêm navigate("/admin/designs") để quay về danh sách
     } catch (err: any) {
       alert("Error creating design: " + err.message);
+    }
+  };
+
+  const handlePsdUpload = async (file: File) => {
+    if (!file) return;
+
+    // Cảnh báo nếu đang vẽ dở
+    if (layers.length > 0 || backgroundUrl) {
+      const confirm = window.confirm(
+        "Importing a PSD will clear your current canvas. Do you want to proceed?",
+      );
+      if (!confirm) return;
+    }
+
+    setIsExtractingPsd(true);
+    try {
+      // Bước 1: Upload file PSD lên thư mục public/uploads/psd
+      const formData = new FormData();
+      formData.append("file", file); // Chú ý: Backend cần 1 API upload riêng cho PSD lưu vào thư mục psd, hoặc dùng API upload chung nhưng xử lý để nó trả về tên file. Giả sử ta dùng 1 API upload psd riêng:
+
+      const uploadRes = await axiosClient.post("/upload/psd", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      const psdFileName = uploadRes.data.fileName; // Backend phải trả về tên file
+
+      // Bước 2: Gọi công cụ trích xuất
+      const extractRes = await axiosClient.post("/psd/extract-psd", {
+        fileName: psdFileName,
+      });
+
+      const extractedData = extractRes.data.data;
+
+      // Bước 3: Đổ dữ liệu lên giao diện
+      setBackgroundUrl(extractedData.background || "");
+      setLayers(extractedData.details || []);
+
+      // Lấy tên file làm tên design mặc định
+      if (!designName) {
+        setDesignName(file.name.replace(".psd", ""));
+      }
+
+      alert("PSD Extracted Successfully! You can now edit the layers.");
+    } catch (err: any) {
+      console.error("PSD Extract Error:", err);
+      alert(err.response?.data?.message || "Failed to extract PSD.");
+    } finally {
+      setIsExtractingPsd(false);
     }
   };
 
@@ -84,7 +132,18 @@ const DesignerAdminPage = () => {
         ref={fileInputRef}
         onChange={handleStageUpload}
       />
-
+      <input
+        type="file"
+        hidden
+        accept=".psd"
+        id="hidden-psd-input"
+        onChange={(e) => {
+          if (e.target.files && e.target.files[0]) {
+            handlePsdUpload(e.target.files[0]);
+            e.target.value = ""; // Reset input
+          }
+        }}
+      />
       {/* CANVAS*/}
       <DesignerCanvas
         backgroundUrl={backgroundUrl}
@@ -112,6 +171,7 @@ const DesignerAdminPage = () => {
         activeFilter={activeFilter}
         setActiveFilter={setActiveFilter}
         onSave={handleCreateDesign}
+        isExtractingPsd={isExtractingPsd}
         // fileInputRef={fileInputRef}
       />
     </div>

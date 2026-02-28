@@ -52,4 +52,21 @@ export class UploadsService {
       throw new BadRequestException('Lỗi khi đọc thư mục chứa ảnh');
     }
   }
+
+  processPsdUpload(file: any) {
+    if (!file) {
+      throw new BadRequestException('Không có file PSD nào được tải lên');
+    }
+
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (ext !== '.psd') {
+      throw new BadRequestException('Chỉ chấp nhận định dạng file .psd');
+    }
+
+    return {
+      message: 'Upload file PSD thành công',
+      fileName: file.filename,
+      url: `/public/uploads/psd/${file.filename}`,
+    };
+  }
 }

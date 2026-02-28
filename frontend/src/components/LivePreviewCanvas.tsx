@@ -114,36 +114,88 @@ const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
       )
     : [];
 
+  // const containerRef = useRef<HTMLDivElement>(null);
+
+  // const [stageConfig, setStageConfig] = useState({
+  //   width: ADMIN_STAGE_WIDTH,
+  //   height: ADMIN_STAGE_HEIGHT,
+  //   scale: 1,
+  // });
+
+  // useEffect(() => {
+  //   const calculateFitSize = () => {
+  //     if (!containerRef.current) return;
+
+  //     const containerWidth = containerRef.current.clientWidth;
+  //     const containerHeight = containerRef.current.clientHeight;
+
+  //     const scaleX = containerWidth / ADMIN_STAGE_WIDTH;
+  //     const scaleY = containerHeight / ADMIN_STAGE_HEIGHT;
+  //     const fitScale = Math.min(scaleX, scaleY);
+
+  //     setStageConfig({
+  //       width: ADMIN_STAGE_WIDTH * fitScale,
+  //       height: ADMIN_STAGE_HEIGHT * fitScale,
+  //       scale: fitScale,
+  //     });
+  //   };
+
+  //   calculateFitSize();
+  //   window.addEventListener("resize", calculateFitSize);
+  //   return () => window.removeEventListener("resize", calculateFitSize);
+  // }, []);
+
   const containerRef = useRef<HTMLDivElement>(null);
 
   const [stageConfig, setStageConfig] = useState({
-    width: ADMIN_STAGE_WIDTH,
-    height: ADMIN_STAGE_HEIGHT,
+    width: 0,
+    height: 0,
     scale: 1,
   });
 
+  // === THUẬT TOÁN TÍNH SCALE RESPONSIVE CHO CLIENT ===
   useEffect(() => {
     const calculateFitSize = () => {
-      if (!containerRef.current) return;
+      // 1. Phải chờ cả container và ảnh nền load xong
+      if (!containerRef.current || !bgImage) return;
 
-      const containerWidth = containerRef.current.clientWidth;
-      const containerHeight = containerRef.current.clientHeight;
+      const container = containerRef.current;
+      const bgWidth = bgImage.width;
+      const bgHeight = bgImage.height;
 
-      const scaleX = containerWidth / ADMIN_STAGE_WIDTH;
-      const scaleY = containerHeight / ADMIN_STAGE_HEIGHT;
-      const fitScale = Math.min(scaleX, scaleY);
+      // 2. Lấy không gian tối đa mà trình duyệt cấp cho cái div chứa canvas
+      const availableWidth = container.clientWidth;
+      const availableHeight = container.clientHeight;
 
+      // 3. Tính tỷ lệ Scale sao cho hình Nền (bgImage) NHÉT VỪA vặn vào div
+      // mà KHÔNG bị bóp méo tỷ lệ (giống thuộc tính object-fit: contain của CSS)
+      const scaleX = availableWidth / bgWidth;
+      const scaleY = availableHeight / bgHeight;
+      const fitScale = Math.min(scaleX, scaleY); // Chọn tỷ lệ nhỏ hơn để không bị tràn màn hình
+
+      // 4. Cập nhật cấu hình Stage
       setStageConfig({
-        width: ADMIN_STAGE_WIDTH * fitScale,
-        height: ADMIN_STAGE_HEIGHT * fitScale,
-        scale: fitScale,
+        width: bgWidth * fitScale, // Bề rộng hiển thị trên màn hình
+        height: bgHeight * fitScale, // Chiều cao hiển thị trên màn hình
+        scale: fitScale, // Tỷ lệ bóp nhỏ nội bộ Konva
       });
     };
 
     calculateFitSize();
     window.addEventListener("resize", calculateFitSize);
     return () => window.removeEventListener("resize", calculateFitSize);
-  }, []);
+
+    // Khi ảnh nền thay đổi hoặc load xong, phải chạy lại hàm tính toán này
+  }, [bgImage]);
+
+  // Nếu chưa có ảnh nền thì không cần render Stage để tránh lỗi 0x0
+  if (!bgImage) {
+    return (
+      <div className="w-full h-full flex items-center justify-center p-4">
+        <span className="text-gray-400 animate-pulse">Loading preview...</span>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -168,8 +220,8 @@ const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
               image={bgImage}
               x={0}
               y={0}
-              width={ADMIN_STAGE_WIDTH}
-              height={ADMIN_STAGE_HEIGHT}
+              // width={ADMIN_STAGE_WIDTH}
+              // height={ADMIN_STAGE_HEIGHT}
             />
           )}
 
