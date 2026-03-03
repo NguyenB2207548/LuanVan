@@ -23,6 +23,48 @@ const ProductDetail = () => {
 
   const [showPreview, setShowPreview] = useState(false);
 
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
+
+  const handleAddToCart = async () => {
+    if (!selectedVariant) {
+      alert("Vui lòng chọn phân loại sản phẩm trước khi thêm vào giỏ hàng.");
+      return;
+    }
+
+    setIsAddingToCart(true);
+    try {
+      // Chuẩn bị payload khớp chuẩn với AddToCartDto ở Backend
+      const payload = {
+        variantId: selectedVariant.id,
+        quantity: quantity,
+        // Chỉ gửi designChoices nếu người dùng có tương tác thiết kế cá nhân hóa
+        customizedDesignJson:
+          Object.keys(designChoices).length > 0 ? designChoices : null,
+      };
+
+      await axiosClient.post("/carts", payload);
+
+      alert("Thêm vào giỏ hàng thành công!");
+
+      // TODO: Nếu bạn có dùng Zustand/Redux để quản lý số lượng giỏ hàng trên Header thì gọi action cập nhật ở đây.
+    } catch (error: any) {
+      console.error("Lỗi thêm vào giỏ hàng:", error);
+
+      // Bắt lỗi trực tiếp từ NestJS (Ví dụ: Lỗi không đủ tồn kho, Lỗi chưa đăng nhập)
+      const errorMessage =
+        error.response?.data?.message || "Có lỗi xảy ra. Vui lòng thử lại!";
+
+      // Nếu Backend trả về mảng lỗi (từ class-validator), lấy lỗi đầu tiên
+      if (Array.isArray(errorMessage)) {
+        alert(errorMessage[0]);
+      } else {
+        alert(errorMessage);
+      }
+    } finally {
+      setIsAddingToCart(false);
+    }
+  };
+
   useEffect(() => {
     const fetchDesign = async () => {
       if (!selectedVariant?.id) {
@@ -270,21 +312,29 @@ const ProductDetail = () => {
               </div>
             </div>
             <div className="mt-6">
-              <button className="w-full bg-[#ff4d6d] text-white font-bold py-4 rounded-full hover:bg-[#e63958] hover:shadow-xl transition-all duration-300 uppercase tracking-widest text-sm flex items-center justify-center gap-2 group">
-                <svg
-                  className="w-5 h-5 transition-transform group-hover:-translate-y-1"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
-                  />
-                </svg>
-                Add to cart
+              <button
+                onClick={handleAddToCart}
+                disabled={isAddingToCart}
+                className="w-full bg-[#ff4d6d] text-white font-bold py-4 rounded-full hover:bg-[#e63958] hover:shadow-xl transition-all duration-300 uppercase tracking-widest text-sm flex items-center justify-center gap-2 group disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                {isAddingToCart ? (
+                  <Loader2 className="animate-spin w-5 h-5" />
+                ) : (
+                  <svg
+                    className="w-5 h-5 transition-transform group-hover:-translate-y-1"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
+                    />
+                  </svg>
+                )}
+                {isAddingToCart ? "Đang thêm..." : "Add to cart"}
               </button>
 
               <p className="text-center text-xs text-gray-500 mt-3 italic">

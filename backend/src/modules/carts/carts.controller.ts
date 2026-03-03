@@ -20,6 +20,12 @@ import { UpdateCartItemDto } from './dto/update-cart-item.dto';
 export class CartsController {
   constructor(private readonly cartsService: CartsService) {}
 
+  @Get()
+  @UseGuards(JwtAuthGuard)
+  getCart(@GetUser('userId') userId: number) {
+    return this.cartsService.getCart(userId);
+  }
+
   @Post()
   @UseGuards(JwtAuthGuard)
   addtoCart(

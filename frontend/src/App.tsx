@@ -21,6 +21,8 @@ import EditUserPage from "./pages/admin/EditUserPage";
 import CategoryManagementPage from "./pages/admin/CategoryManagementPage";
 import CategoryEditorPage from "./pages/admin/CategoryEditorPage";
 import AttributeManagementPage from "./pages/admin/AttributeManagementPage";
+import CartPage from "./pages/user/CartPage";
+import ProductPage from "./pages/user/ProductPage";
 
 function App() {
   return (
@@ -33,6 +35,8 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/designer/:productId" element={<DesignerPage />} />
+          <Route path="/cart" element={<CartPage />} />
+          <Route path="/products" element={<ProductPage />} />
         </Route>
 
         {/* ADMIN */}
