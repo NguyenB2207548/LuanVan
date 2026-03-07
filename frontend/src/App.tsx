@@ -23,6 +23,10 @@ import CategoryEditorPage from "./pages/admin/CategoryEditorPage";
 import AttributeManagementPage from "./pages/admin/AttributeManagementPage";
 import CartPage from "./pages/user/CartPage";
 import ProductPage from "./pages/user/ProductPage";
+import CheckoutPage from "./pages/user/CheckoutPage";
+import OrderSuccessPage from "./pages/user/OrderSuccessPage";
+import ProfilePage from "./pages/user/ProfilePage";
+import OrderAdminPage from "./pages/admin/OrderAdminPage";
 
 function App() {
   return (
@@ -37,6 +41,9 @@ function App() {
           <Route path="/designer/:productId" element={<DesignerPage />} />
           <Route path="/cart" element={<CartPage />} />
           <Route path="/products" element={<ProductPage />} />
+          <Route path="/checkout" element={<CheckoutPage />} />
+          <Route path="/order-success" element={<OrderSuccessPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
         </Route>
 
         {/* ADMIN */}
@@ -57,6 +64,7 @@ function App() {
           <Route path="categories/add" element={<CategoryEditorPage />} />
           <Route path="categories/edit/:id" element={<CategoryEditorPage />} />
           <Route path="attributes" element={<AttributeManagementPage />} />
+          <Route path="orders" element={<OrderAdminPage />} />
         </Route>
       </Routes>
     </Router>

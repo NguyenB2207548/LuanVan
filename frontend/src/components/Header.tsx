@@ -71,14 +71,20 @@ const Header = () => {
           <div className="flex items-center border-l border-gray-200 pl-4 sm:pl-6">
             {isAuthenticated && user ? (
               <div className="flex items-center gap-3">
-                <div className="hidden sm:flex items-center gap-2">
-                  <div className="w-8 h-8 bg-gray-100 text-gray-600 rounded-full flex items-center justify-center border border-gray-200">
+                {/* ✅ ĐÃ SỬA THÀNH LINK ĐỂ CHUYỂN TỚI TRANG PROFILE */}
+                <Link
+                  to="/profile"
+                  className="hidden sm:flex items-center gap-2 group cursor-pointer p-1 rounded-md"
+                  title="Quản lý tài khoản"
+                >
+                  <div className="w-8 h-8 bg-gray-100 text-gray-600 group-hover:bg-blue-50 group-hover:text-blue-600 rounded-full flex items-center justify-center border border-gray-200 transition-colors">
                     <User size={16} />
                   </div>
-                  <span className="text-sm font-medium text-gray-700">
+                  <span className="text-sm font-medium text-gray-700 group-hover:text-blue-600 transition-colors">
                     {user.fullName}
                   </span>
-                </div>
+                </Link>
+
                 <button
                   onClick={handleLogout}
                   className="text-gray-400 hover:text-red-500 p-2 rounded-md hover:bg-red-50 transition-colors"

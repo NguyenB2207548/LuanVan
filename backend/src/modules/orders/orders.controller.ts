@@ -1,34 +1,63 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  UseGuards,
+  Get,
+  Param,
+  Patch,
+  ParseIntPipe,
+} from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
-import { UpdateOrderDto } from './dto/update-order.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { GetUser } from '../auth/decorators/get-user.decorator';
+import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 
 @Controller('orders')
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
-  @Post()
-  create(@Body() createOrderDto: CreateOrderDto) {
-    return this.ordersService.create(createOrderDto);
+  @Get()
+  @UseGuards(JwtAuthGuard) // Bắt buộc đăng nhập
+  // @UseGuards(RolesGuard) // (Khuyên dùng) Guard kiểm tra quyền Admin
+  // @Roles('ADMIN')        // (Khuyên dùng) Chỉ Admin mới được gọi
+  getAllOrders() {
+    return this.ordersService.getAllOrders();
   }
 
-  @Get()
-  findAll() {
-    return this.ordersService.findAll();
+  @Get('me')
+  getMyOrders(@GetUser('userId') userId: number) {
+    return this.ordersService.getUserOrders(userId);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.ordersService.findOne(+id);
+  @UseGuards(JwtAuthGuard) // Bắt buộc đăng nhập
+  getOrderById(@Param('id', ParseIntPipe) orderId: number) {
+    return this.ordersService.getOrderById(orderId);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateOrderDto: UpdateOrderDto) {
-    return this.ordersService.update(+id, updateOrderDto);
+  @Post('checkout')
+  @UseGuards(JwtAuthGuard) // Bắt buộc đăng nhập
+  checkout(
+    @GetUser('userId') userId: number,
+    @Body() createOrderDto: CreateOrderDto,
+  ) {
+    return this.ordersService.createOrderFromCart(userId, createOrderDto);
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.ordersService.remove(+id);
+  @Get('items/:itemId/design')
+  @UseGuards(JwtAuthGuard)
+  getOrderItemDesign(@Param('itemId', ParseIntPipe) itemId: number) {
+    return this.ordersService.getOrderItemDesign(itemId);
+  }
+
+  @Patch(':id/status')
+  @UseGuards(JwtAuthGuard)
+  updateOrderStatus(
+    @Param('id', ParseIntPipe) orderId: number,
+    @Body() updateOrderStatusDto: UpdateOrderStatusDto,
+  ) {
+    return this.ordersService.updateOrderStatus(orderId, updateOrderStatusDto);
   }
 }

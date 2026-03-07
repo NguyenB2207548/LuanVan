@@ -292,9 +292,12 @@ const CartPage = () => {
               </p>
             </div>
 
-            <button className="w-full bg-[#ff4d6d] text-white py-3.5 px-4 rounded-md font-bold text-base hover:bg-[#e63958] transition-colors shadow-sm flex justify-center items-center gap-2">
+            <Link
+              to="/checkout"
+              className="w-full bg-[#ff4d6d] text-white py-3.5 px-4 rounded-md font-bold text-base hover:bg-[#e63958] transition-colors shadow-sm flex justify-center items-center gap-2"
+            >
               Tiến hành thanh toán
-            </button>
+            </Link>
 
             <div className="mt-6 flex flex-col items-center gap-3">
               <p className="text-xs text-gray-500 flex items-center gap-1">
