@@ -62,25 +62,30 @@ const CheckoutPage = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Hàm Đặt hàng
+  // Đặt hàng
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     try {
       const response = await axiosClient.post("/orders/checkout", formData);
-      const order = response.data;
 
-      // Xử lý luồng thanh toán
-      if (formData.paymentMethod === "COD") {
-        // Đặt thành công COD -> Chuyển sang trang Cảm ơn
-        navigate(`/order-success?orderId=${order.id}`);
+      const { order, payUrl } = response.data;
+
+      if (
+        formData.paymentMethod === "MOMO" ||
+        formData.paymentMethod === "VNPAY"
+      ) {
+        if (payUrl && payUrl.startsWith("http")) {
+          window.location.href = payUrl;
+        } else {
+          alert(
+            "Lỗi: Không lấy được link thanh toán từ MoMo. Vui lòng thử lại!",
+          );
+          setIsSubmitting(false);
+        }
       } else {
-        // TODO: Nếu là VNPAY, gọi API tạo link thanh toán rồi redirect
-        // const paymentRes = await axiosClient.post('/payments/vnpay-url', { orderId: order.id });
-        // window.location.href = paymentRes.data.paymentUrl;
-        alert("Chức năng thanh toán Online đang được tích hợp!");
-        setIsSubmitting(false);
+        navigate(`/order-success?orderId=${order.id}`);
       }
     } catch (error: any) {
       alert(

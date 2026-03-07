@@ -287,9 +287,6 @@ const CartPage = () => {
                   {subtotal.toLocaleString()}đ
                 </span>
               </div>
-              <p className="text-xs text-gray-500 mt-1 text-right">
-                Đã bao gồm VAT (nếu có)
-              </p>
             </div>
 
             <Link

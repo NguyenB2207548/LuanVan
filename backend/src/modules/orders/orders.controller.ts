@@ -7,7 +7,10 @@ import {
   Param,
   Patch,
   ParseIntPipe,
+  HttpStatus,
+  Res,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -59,5 +62,21 @@ export class OrdersController {
     @Body() updateOrderStatusDto: UpdateOrderStatusDto,
   ) {
     return this.ordersService.updateOrderStatus(orderId, updateOrderStatusDto);
+  }
+
+  @Post('momo-ipn')
+  async handleMoMoIPN(@Body() body: any, @Res() res: Response) {
+    console.log('--- NHẬN WEBHOOK TỪ MOMO ---', body);
+    if (body.resultCode === 0) {
+      const orderNumber = body.orderId;
+      const order = await this.ordersService.findByOrderNumber(orderNumber);
+      if (order && order.paymentStatus === 'pending') {
+        order.paymentStatus = 'paid';
+        order.status = 'processing';
+        await this.ordersService.saveOrder(order);
+      }
+    }
+
+    return res.status(HttpStatus.NO_CONTENT).send();
   }
 }

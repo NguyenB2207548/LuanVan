@@ -15,10 +15,14 @@ import {
   ImageOwnerType,
 } from '../images/entities/image.entity';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
+import { MomoService } from './momo.service';
 
 @Injectable()
 export class OrdersService {
-  constructor(private readonly dataSource: DataSource) {}
+  constructor(
+    private readonly dataSource: DataSource,
+    private readonly momoService: MomoService,
+  ) {}
 
   async getAllOrders() {
     // 1. Lấy toàn bộ đơn hàng kèm thông tin User và Sản phẩm
@@ -167,7 +171,7 @@ export class OrdersService {
   async getOrderItemDesign(itemId: number) {
     const orderItem = await this.dataSource.manager.findOne(OrderItem, {
       where: { id: itemId },
-      select: ['id', 'customizedDesignJson'], // Chỉ select đúng cột cần thiết để tối ưu tốc độ
+      select: ['id', 'customizedDesignJson'],
     });
 
     if (!orderItem) {
@@ -182,11 +186,20 @@ export class OrdersService {
       );
     }
 
-    // Trả về thẳng cục JSON để Frontend Admin dùng thư viện (như Konva) render ra ảnh
     return {
       itemId: orderItem.id,
       design: orderItem.customizedDesignJson,
     };
+  }
+
+  async findByOrderNumber(orderNumber: string) {
+    return await this.dataSource.manager.findOne(Order, {
+      where: { orderNumber },
+    });
+  }
+
+  async saveOrder(order: Order) {
+    return await this.dataSource.manager.save(Order, order);
   }
 
   async createOrderFromCart(userId: number, dto: CreateOrderDto) {
@@ -275,7 +288,16 @@ export class OrdersService {
       // 6. Xóa sạch các sản phẩm trong Giỏ hàng sau khi đặt thành công
       await manager.remove(CartItem, cart.items);
 
-      return savedOrder;
+      let payUrl = null;
+      if (dto.paymentMethod === 'VNPAY' || dto.paymentMethod === 'MOMO') {
+        // Gọi hàm của MomoService (đảm bảo bạn đã inject MomoService vào constructor)
+        payUrl = await this.momoService.createPaymentUrl(savedOrder);
+      }
+
+      return {
+        order: savedOrder,
+        payUrl: payUrl, // Sẽ là link MoMo (nếu có) hoặc null (nếu là COD)
+      };
     });
   }
 
