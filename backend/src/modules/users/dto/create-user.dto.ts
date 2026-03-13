@@ -19,6 +19,10 @@ export class CreateUserDto {
   @IsOptional()
   fullName: string;
 
+  @IsString()
+  @IsOptional()
+  phoneNumber: string;
+
   @IsEnum(['user', 'admin'])
   role: UserRole;
 }

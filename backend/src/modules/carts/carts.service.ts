@@ -4,21 +4,17 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { AddToCartDto } from './dto/add-cart.dto';
-import { UpdateCartDto } from './dto/update-cart.dto';
-import { DataSource, Not } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { Variant } from '../products/entities/variant.entity';
 import { CartItem } from './entities/cart-item.entity';
 import { Cart } from './entities/cart.entity';
 import { UpdateCartItemDto } from './dto/update-cart-item.dto';
-import {
-  Image as ImageEntity,
-  ImageOwnerType,
-} from '../images/entities/image.entity';
 
 @Injectable()
 export class CartsService {
   constructor(private readonly dataSource: DataSource) {}
 
+  // 1. Lấy giỏ hàng: Tận dụng quan hệ mới để lấy ảnh và giá cực nhanh
   async getCart(userId: number) {
     const cart = await this.dataSource.manager.findOne(Cart, {
       where: { user: { id: userId } },
@@ -26,7 +22,10 @@ export class CartsService {
         'items',
         'items.variant',
         'items.variant.product',
-        'items.variant.prices',
+        'items.variant.images', // Lấy ảnh Variant trực tiếp từ FK
+        'items.variant.product.images', // Lấy ảnh Product trực tiếp từ FK
+        'items.variant.attributeValues',
+        'items.variant.attributeValues.attribute',
       ],
       order: { items: { id: 'DESC' } },
     });
@@ -35,35 +34,10 @@ export class CartsService {
       return { items: [] };
     }
 
-    for (const item of cart.items) {
-      if (item.variant) {
-        item.variant['images'] = await this.dataSource.manager.find(
-          ImageEntity,
-          {
-            where: {
-              ownerId: item.variant.id,
-              ownerType: ImageOwnerType.VARIANT,
-            },
-          },
-        );
-
-        if (item.variant.product) {
-          item.variant.product['images'] = await this.dataSource.manager.find(
-            ImageEntity,
-            {
-              where: {
-                ownerId: item.variant.product.id,
-                ownerType: ImageOwnerType.PRODUCT,
-              },
-            },
-          );
-        }
-      }
-    }
-
     return cart;
   }
 
+  // 2. Thêm vào giỏ hàng: Xử lý logic cá nhân hóa thiết kế AI
   async addToCart(userId: number, dto: AddToCartDto) {
     const { variantId, quantity, customizedDesignJson } = dto;
 
@@ -82,39 +56,48 @@ export class CartsService {
         );
       }
 
+      // Tìm hoặc tạo giỏ hàng cho User
       let cart = await manager.findOne(Cart, {
         where: { user: { id: userId } },
       });
 
       if (!cart) {
-        const newCart = manager.create(Cart, { user: { id: userId } });
-        cart = await manager.save(Cart, newCart);
+        cart = await manager.save(
+          Cart,
+          manager.create(Cart, { user: { id: userId } }),
+        );
       }
 
-      if (!cart) throw new Error('Giỏ hàng không tồn tại');
-
-      const newItem = manager.create(CartItem, {
-        cart: { id: cart.id },
-        variant: { id: variantId },
-        quantity,
-        customizedDesignJson,
+      // KIỂM TRA: Nếu cùng variant và CÙNG thiết kế thiết kế cũ thì tăng số lượng
+      // (Trong quà tặng cá nhân hóa, nếu thiết kế khác nhau thì nên là 2 item khác nhau)
+      let cartItem = await manager.findOne(CartItem, {
+        where: {
+          cart: { id: cart.id },
+          variant: { id: variantId },
+          // Chỉ gộp nếu thiết kế giống hệt (hoặc không có thiết kế)
+          customizedDesignJson: customizedDesignJson || null,
+        },
       });
 
-      await manager.save(CartItem, newItem);
+      if (cartItem) {
+        cartItem.quantity += quantity;
+      } else {
+        cartItem = manager.create(CartItem, {
+          cart: { id: cart.id },
+          variant: { id: variantId },
+          quantity,
+          customizedDesignJson,
+        });
+      }
 
-      return await manager.findOne(Cart, {
-        where: { id: cart.id },
-        relations: [
-          'items',
-          'items.variant',
-          'items.variant.product',
-          'items.variant.prices',
-        ],
-        order: { items: { id: 'DESC' } },
-      });
+      await manager.save(CartItem, cartItem);
+
+      // Trả về giỏ hàng mới nhất
+      return this.getCart(userId);
     });
   }
 
+  // 3. Cập nhật số lượng
   async updateQuantity(
     userId: number,
     cartItemId: number,
@@ -142,39 +125,24 @@ export class CartsService {
       cartItem.quantity = dto.quantity;
       await manager.save(CartItem, cartItem);
 
-      return await manager.findOne(Cart, {
-        where: { id: cartItem.cart.id },
-        relations: [
-          'items',
-          'items.variant',
-          'items.variant.product',
-          'items.variant.prices',
-        ],
-        order: { items: { id: 'DESC' } },
-      });
+      return this.getCart(userId);
     });
   }
 
+  // 4. Xóa item
   async removeItem(userId: number, cartItemId: number) {
     return await this.dataSource.transaction(async (manager) => {
       const cartItem = await manager.findOne(CartItem, {
         where: { id: cartItemId, cart: { user: { id: userId } } },
       });
+
       if (!cartItem) {
         throw new NotFoundException('Không tồn tại sản phẩm trong giỏ hàng');
       }
+
       await manager.remove(CartItem, cartItem);
 
-      return await manager.findOne(Cart, {
-        where: { user: { id: userId } },
-        relations: [
-          'items',
-          'items.variant',
-          'items.variant.product',
-          'items.variant.prices',
-        ],
-        order: { items: { id: 'DESC' } },
-      });
+      return this.getCart(userId);
     });
   }
 }

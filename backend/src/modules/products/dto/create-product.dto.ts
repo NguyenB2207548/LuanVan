@@ -5,26 +5,29 @@ import {
   IsArray,
   ValidateNested,
   IsNotEmpty,
+  IsPositive,
+  Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
 class AttributeValueDto {
   @IsString()
-  @IsNotEmpty()
-  name: string; // VD: "Màu sắc"
+  @IsNotEmpty({ message: 'Tên thuộc tính không được để trống' })
+  name: string;
 
   @IsString()
-  @IsNotEmpty()
-  value: string; // VD: "Đỏ"
+  @IsNotEmpty({ message: 'Giá trị thuộc tính không được để trống' })
+  value: string;
 }
 
-// 2. DTO cho từng biến thể (Variant)
 class CreateVariantDto {
   @IsNumber()
+  @IsPositive({ message: 'Giá sản phẩm phải là số dương' })
   @IsNotEmpty()
-  price: number; // Thêm trường này để truyền vào bảng Price
+  price: number;
 
   @IsNumber()
+  @Min(0, { message: 'Số lượng tồn kho không được âm' })
   @IsNotEmpty()
   stock: number;
 
@@ -36,12 +39,13 @@ class CreateVariantDto {
 
   @IsArray()
   @IsOptional()
+  @IsString({ each: true })
   images?: string[];
 }
-// 3. DTO chính để tạo Sản phẩm
+
 export class CreateProductDto {
   @IsString()
-  @IsNotEmpty()
+  @IsNotEmpty({ message: 'Tên sản phẩm không được để trống' })
   productName: string;
 
   @IsString()
@@ -60,5 +64,6 @@ export class CreateProductDto {
 
   @IsArray()
   @IsOptional()
+  @IsString({ each: true })
   productImages?: string[];
 }

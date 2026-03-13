@@ -3,14 +3,11 @@ import {
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
-
-export enum ImageOwnerType {
-  PRODUCT = 'product',
-  REVIEW = 'review',
-  CATEGORY = 'category',
-  VARIANT = 'variant',
-}
+import { Product } from '../../products/entities/product.entity';
+import { Variant } from '../../products/entities/variant.entity';
 
 @Entity('images')
 export class Image {
@@ -20,14 +17,23 @@ export class Image {
   @Column()
   url: string;
 
-  @Column({
-    type: 'enum',
-    enum: ImageOwnerType,
+  @ManyToOne(() => Product, (product) => product.images, {
+    onDelete: 'CASCADE',
   })
-  ownerType: ImageOwnerType;
+  @JoinColumn({ name: 'product_id' })
+  product: Product;
 
-  @Column()
-  ownerId: number;
+  @Column({ name: 'product_id', nullable: true })
+  productId: number;
+
+  @ManyToOne(() => Variant, (variant) => variant.images, {
+    onDelete: 'CASCADE',
+  })
+  @JoinColumn({ name: 'variant_id' })
+  variant: Variant;
+
+  @Column({ name: 'variant_id', nullable: true })
+  variantId: number;
 
   @Column({ default: false })
   isPrimary: boolean;

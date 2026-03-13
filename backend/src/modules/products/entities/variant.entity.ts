@@ -12,7 +12,7 @@ import {
 } from 'typeorm';
 import { AttributeValue } from './attribute_value.entity';
 import { Product } from '../../products/entities/product.entity';
-import { Price } from 'src/modules/products/entities/price.entity';
+import { Image } from '../../images/entities/image.entity';
 
 @Entity('variants')
 export class Variant {
@@ -21,6 +21,9 @@ export class Variant {
 
   @Column({ type: 'int', default: 0 })
   stock: number;
+
+  @Column({ type: 'decimal', precision: 12, scale: 2, default: 0 })
+  price: number;
 
   @ManyToOne(() => Product, (product) => product.variants, {
     onDelete: 'CASCADE',
@@ -36,10 +39,8 @@ export class Variant {
   })
   attributeValues: AttributeValue[];
 
-  @OneToMany(() => Price, (price) => price.variant)
-  prices: Price[];
-
-  // @Column({ type: 'decimal' }) price: number;
+  @OneToMany(() => Image, (image) => image.variant)
+  images: Image[];
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

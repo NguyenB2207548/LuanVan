@@ -17,23 +17,37 @@ export class Order {
   id: number;
 
   @Column({ name: 'order_number', unique: true })
-  orderNumber: string; // Mã đơn hàng (VD: ORD-123456)
+  orderNumber: string;
 
   @Column({ type: 'decimal', precision: 12, scale: 2 })
   totalAmount: number;
 
-  // --- TRẠNG THÁI ĐƠN HÀNG VÀ VẬN CHUYỂN ---
   @Column({
     type: 'enum',
-    enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled'],
+    enum: [
+      'pending', // Khách hàng vừa đặt đơn (Chờ Seller xác nhận)
+      'confirmed', // Seller đã xác nhận & đang chuẩn bị hàng (Chờ Shipper nhận đơn)
+      'shipping', // Shipper đang đi giao
+      'delivered', // Đã giao xong (Hoàn thành)
+      'cancelled', // Đã hủy (Bởi khách hoặc Seller)
+    ],
     default: 'pending',
   })
   status: string;
 
-  @Column({ name: 'tracking_code', nullable: true })
-  trackingCode: string;
+  @ManyToOne(() => User, (user) => user.orders)
+  @JoinColumn({ name: 'user_id' })
+  user: User;
 
-  // --- THÔNG TIN GIAO HÀNG ---
+  @ManyToOne(() => User)
+  @JoinColumn({ name: 'seller_id' })
+  seller: User;
+
+  @ManyToOne(() => User)
+  @JoinColumn({ name: 'shipper_id' })
+  shipper: User;
+
+  // --- THÔNG TIN BỔ SUNG ---
   @Column({ name: 'recipient_name' })
   recipientName: string;
 
@@ -43,9 +57,8 @@ export class Order {
   @Column({ type: 'text' })
   shippingAddress: string;
 
-  // --- THÔNG TIN THANH TOÁN (---
   @Column({ name: 'payment_method', default: 'COD' })
-  paymentMethod: string; // VD: 'COD', 'VNPAY'
+  paymentMethod: string;
 
   @Column({
     name: 'payment_status',
@@ -55,15 +68,9 @@ export class Order {
   })
   paymentStatus: string;
 
-  // --- QUAN HỆ CƠ SỞ DỮ LIỆU ---
-  @ManyToOne(() => User, (user) => user.orders)
-  @JoinColumn({ name: 'user_id' })
-  user: User;
-
   @OneToMany(() => OrderItem, (orderItem) => orderItem.order, { cascade: true })
   items: OrderItem[];
 
-  // --- THỜI GIAN ---
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

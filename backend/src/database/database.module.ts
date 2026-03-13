@@ -10,7 +10,7 @@ import { User } from 'src/modules/users/entities/user.entity';
       port: 3306,
       username: 'root',
       password: 'Admin@123',
-      database: 'gift_db',
+      database: 'luanvan',
       entities: [__dirname + '/../**/*.entity{.ts,.js}'],
       // entities: [User],
       synchronize: false,

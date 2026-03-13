@@ -17,12 +17,11 @@ export class AuthService {
   ) {}
 
   async register(dto: RegisterDto) {
-    // const hashedPassword = await bcrypt.hash(dto.password, 10);
-
     return this.usersService.create({
       email: dto.email,
       passwordHash: dto.password,
       fullName: dto.fullName,
+      phoneNumber: dto.phoneNumber,
       role: dto.role || UserRole.USER,
     });
   }
@@ -47,6 +46,7 @@ export class AuthService {
         id: user.id,
         email: user.email,
         fullName: user.fullName,
+        phoneNumber: user.phoneNumber,
         role: user.role,
       },
     };

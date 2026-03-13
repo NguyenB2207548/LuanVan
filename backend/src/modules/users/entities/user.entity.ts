@@ -1,5 +1,6 @@
 import { Cart } from 'src/modules/carts/entities/cart.entity';
 import { Order } from 'src/modules/orders/entities/order.entity';
+import { Product } from 'src/modules/products/entities/product.entity';
 import { Review } from 'src/modules/reviews/entities/review.entity';
 import {
   Column,
@@ -14,6 +15,8 @@ import {
 export enum UserRole {
   USER = 'user',
   ADMIN = 'admin',
+  SELLER = 'seller',
+  SHIPPER = 'shipper',
 }
 
 @Entity('users')
@@ -30,12 +33,27 @@ export class User {
   @Column({ name: 'full_name', nullable: true })
   fullName: string;
 
+  @Column({ name: 'phone_number', nullable: true })
+  phoneNumber: string;
+
   @Column({
     type: 'enum',
     enum: UserRole,
     default: UserRole.USER,
   })
   role: UserRole;
+
+  @Column({ name: 'shop_name', nullable: true })
+  shopName: string;
+
+  @Column({ name: 'vehicle_plate', nullable: true })
+  vehiclePlate: string;
+
+  @Column({ default: true })
+  isActive: boolean;
+
+  @OneToMany(() => Product, (product) => product.seller)
+  products: Product[];
 
   @OneToOne(() => Cart, (cart) => cart.user)
   cart: Cart;

@@ -6,9 +6,15 @@ import {
   ParseIntPipe,
   Param,
   Delete,
+  UseGuards,
+  Request,
 } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { UserRole } from '../users/entities/user.entity';
 
 @Controller('products')
 export class ProductsController {
@@ -23,17 +29,21 @@ export class ProductsController {
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return await this.productsService.findOne(id);
   }
-
   @Post()
-  create(@Body() createProductDto: CreateProductDto) {
-    return this.productsService.create(createProductDto);
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.SELLER, UserRole.ADMIN)
+  create(@Body() createProductDto: CreateProductDto, @Request() req) {
+    const sellerId = req.user.id;
+    return this.productsService.create(createProductDto, sellerId);
   }
 
   @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number) {
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.SELLER, UserRole.ADMIN)
+  async remove(@Param('id', ParseIntPipe) id: number) {
+    await this.productsService.remove(id);
     return {
       message: 'Xóa sản phẩm thành công',
-      data: this.productsService.remove(id),
     };
   }
 }

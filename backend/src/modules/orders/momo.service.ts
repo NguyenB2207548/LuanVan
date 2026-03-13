@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import * as crypto from 'crypto';
 import axios from 'axios';
 import { Order } from './entities/order.entity';
@@ -6,27 +6,32 @@ import { Order } from './entities/order.entity';
 @Injectable()
 export class MomoService {
   async createPaymentUrl(order: Order) {
-    // Ép kiểu "as string" để báo cho TypeScript biết đây chắc chắn là chuỗi
-    const partnerCode = process.env.MOMO_PARTNER_CODE as string;
-    const accessKey = process.env.MOMO_ACCESS_KEY as string;
-    const secretKey = process.env.MOMO_SECRET_KEY as string;
-    const endpoint = process.env.MOMO_ENDPOINT as string;
-    const redirectUrl = process.env.MOMO_REDIRECT_URL as string;
-    const ipnUrl = process.env.MOMO_IPN_URL as string;
+    const partnerCode = process.env.MOMO_PARTNER_CODE;
+    const accessKey = process.env.MOMO_ACCESS_KEY;
+    const secretKey = process.env.MOMO_SECRET_KEY;
+    const endpoint = process.env.MOMO_ENDPOINT;
+    const redirectUrl = process.env.MOMO_REDIRECT_URL;
+    const ipnUrl = process.env.MOMO_IPN_URL;
 
-    // Thông tin giao dịch
+    // Kiểm tra biến môi trường để tránh lỗi khi deploy
+    if (!partnerCode || !accessKey || !secretKey || !endpoint) {
+      throw new InternalServerErrorException(
+        'Cấu hình MoMo chưa đầy đủ trong file .env',
+      );
+    }
+
     const requestId = partnerCode + new Date().getTime();
     const orderId = order.orderNumber;
-    const orderInfo = `Thanh toan don hang ${order.orderNumber} tai GiftShop`;
+    const orderInfo = `Thanh toán đơn hàng ${order.orderNumber}`;
+    // Đảm bảo amount là số nguyên và chuyển thành string
     const amount = Math.round(Number(order.totalAmount)).toString();
     const requestType = 'captureWallet';
     const extraData = '';
 
-    // Tạo chữ ký (Signature)
     const rawSignature = `accessKey=${accessKey}&amount=${amount}&extraData=${extraData}&ipnUrl=${ipnUrl}&orderId=${orderId}&orderInfo=${orderInfo}&partnerCode=${partnerCode}&redirectUrl=${redirectUrl}&requestId=${requestId}&requestType=${requestType}`;
 
     const signature = crypto
-      .createHmac('sha256', secretKey) // Hết báo lỗi nhờ đã có "as string" ở trên
+      .createHmac('sha256', secretKey as string)
       .update(rawSignature)
       .digest('hex');
 
@@ -46,19 +51,17 @@ export class MomoService {
     };
 
     try {
-      const response = await axios.post(endpoint, requestBody);
-
-      console.log('--- PHẢN HỒI TỪ MOMO ---');
-      console.log(response.data);
+      const response = await axios.post(endpoint as string, requestBody);
 
       if (response.data.resultCode !== 0) {
-        throw new Error(`MoMo từ chối giao dịch: ${response.data.message}`);
+        console.error('MoMo Error:', response.data);
+        return null; // Hoặc quăng lỗi để Controller xử lý
       }
 
       return response.data.payUrl;
     } catch (error: any) {
-      console.error('Lỗi khi gọi API MoMo:', error.message);
-      throw new Error('Không thể tạo cổng thanh toán MoMo lúc này.');
+      console.error('Lỗi khi kết nối MoMo:', error.message);
+      return null;
     }
   }
 }

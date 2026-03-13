@@ -10,17 +10,10 @@ import { AttributesService } from './attributes.service';
 import { AttributesController } from './attributes.controller';
 import { VariantsController } from './variants.controller';
 import { VariantsService } from './variants.service';
-import { Price } from './entities/price.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([
-      Product,
-      Variant,
-      Attribute,
-      AttributeValue,
-      Price,
-    ]),
+    TypeOrmModule.forFeature([Product, Variant, Attribute, AttributeValue]),
   ],
   controllers: [ProductsController, AttributesController, VariantsController],
   providers: [ProductsService, AttributesService, VariantsService],
