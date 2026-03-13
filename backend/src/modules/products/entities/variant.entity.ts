@@ -39,6 +39,8 @@ export class Variant {
   @OneToMany(() => Price, (price) => price.variant)
   prices: Price[];
 
+  // @Column({ type: 'decimal' }) price: number;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

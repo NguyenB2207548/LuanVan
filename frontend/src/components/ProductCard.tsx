@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { ShoppingBag, ImageIcon } from "lucide-react";
+import { ImageIcon } from "lucide-react";
 import type { Product } from "../types/product";
 
 const BASE_URL = "http://localhost:3000";
@@ -40,65 +40,44 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   return (
     <Link
       to={`/products/${product.id}`}
-      className="group bg-white rounded-lg overflow-hidden border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all duration-300 flex flex-col"
+      className="group flex flex-col w-full cursor-pointer"
     >
-      {/* Container Ảnh (Tỷ lệ vuông) */}
-      <div className="aspect-square bg-gray-50 relative overflow-hidden">
+      {/* Container Ảnh (Bo góc nhẹ giống ảnh tham khảo) */}
+      <div className="aspect-square w-full bg-gray-100 rounded-xl overflow-hidden relative">
         {displayImage ? (
           <img
             src={displayImage}
             alt={product.productName}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-in-out"
+            // Thêm hiệu ứng zoom nhẹ khi hover cho mượt mà
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-in-out"
           />
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400">
-            <ImageIcon size={40} strokeWidth={1} className="mb-2 opacity-50" />
+            <ImageIcon size={40} strokeWidth={1} className="mb-2 opacity-40" />
             <span className="text-[10px] uppercase tracking-widest font-medium">
               No Image
             </span>
           </div>
         )}
-
-        {/* Badge Category */}
-        {product.category && (
-          <div className="absolute top-3 left-3">
-            <span className="bg-white/95 backdrop-blur-sm text-gray-700 border border-gray-200 text-[10px] font-bold px-2.5 py-1 rounded-md shadow-sm">
-              {product.category.categoryName.toUpperCase()}
-            </span>
-          </div>
-        )}
       </div>
 
-      {/* Nội dung Card */}
-      <div className="p-5 flex-1 flex flex-col">
-        <h3 className="font-medium text-gray-900 group-hover:text-blue-600 transition-colors text-base line-clamp-2 mb-1">
+      {/* Nội dung Card (Chữ canh trái, thiết kế tối giản) */}
+      <div className="pt-3 pb-1 flex flex-col text-left">
+        {/* Tên sản phẩm */}
+        <h3 className="font-normal text-[15px] text-gray-800 truncate">
           {product.productName}
         </h3>
 
-        <p className="text-gray-500 text-sm line-clamp-1 mb-4 flex-1">
-          {product.description || "Thiết kế tùy chỉnh độc đáo"}
+        {/* Thể loại phụ (Chữ xám, in hoa nhỏ) */}
+        <p className="text-gray-500 text-[11px] uppercase tracking-wider mt-1 truncate">
+          {product.category?.categoryName || "CHƯA PHÂN LOẠI"}
         </p>
 
-        <div className="pt-4 border-t border-gray-100 flex items-end justify-between mt-auto">
-          <div>
-            <p className="text-[11px] text-gray-500 uppercase font-semibold tracking-wider mb-0.5">
-              Giá từ
-            </p>
-            <p className="text-gray-900 font-bold text-lg">
-              {minPrice ? `$${minPrice.toFixed(2)}` : "Liên hệ"}
-            </p>
-          </div>
-
-          {/* Nút Cart mờ, hiện rõ khi hover */}
-          <button
-            className="bg-gray-50 text-gray-600 hover:bg-blue-600 hover:text-white p-2.5 rounded-md transition-colors duration-300 border border-gray-200 hover:border-blue-600"
-            onClick={(e) => {
-              e.preventDefault(); // Ngăn không cho click vào nút này bị chuyển trang (tránh xung đột với thẻ Link bọc ngoài)
-              // TODO: Thêm logic add to cart nhanh ở đây nếu cần
-            }}
-          >
-            <ShoppingBag size={18} />
-          </button>
+        {/* Giá tiền (Chữ to, in đậm) */}
+        <div className="mt-1.5 flex items-center">
+          <span className="text-gray-700 font-bold text-lg">
+            {minPrice ? `${minPrice.toLocaleString("vi-VN")}đ` : "Liên hệ"}
+          </span>
         </div>
       </div>
     </Link>

@@ -48,7 +48,6 @@ export class MomoService {
     try {
       const response = await axios.post(endpoint, requestBody);
 
-      // LOG DỮ LIỆU ĐỂ KIỂM TRA
       console.log('--- PHẢN HỒI TỪ MOMO ---');
       console.log(response.data);
 

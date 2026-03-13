@@ -15,7 +15,7 @@ const BASE_URL = "http://localhost:3000";
 const CartPage = () => {
   const [cartItems, setCartItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [updatingId, setUpdatingId] = useState<number | null>(null); // Trạng thái loading khi update 1 item
+  const [updatingId, setUpdatingId] = useState<number | null>(null);
 
   // Gọi API lấy giỏ hàng
   const fetchCart = async () => {
@@ -39,7 +39,6 @@ const CartPage = () => {
     return acc + parseFloat(price) * item.quantity;
   }, 0);
 
-  // Logic gọi API Cập nhật số lượng
   const updateQuantity = async (
     cartItemId: number,
     currentQuantity: number,
@@ -53,7 +52,6 @@ const CartPage = () => {
       await axiosClient.patch(`/carts/items/${cartItemId}`, {
         quantity: newQuantity,
       });
-      // Gọi lại API để đồng bộ data mới nhất (gồm cả tính toán tổng tiền từ BE nếu có)
       await fetchCart();
     } catch (error: any) {
       alert(error.response?.data?.message || "Không thể cập nhật số lượng");
@@ -85,7 +83,7 @@ const CartPage = () => {
     const variantImg = item.variant?.images?.[0]?.url;
     const productImg = item.variant?.product?.images?.[0]?.url;
     const finalUrl = variantImg || productImg;
-    return finalUrl ? `${BASE_URL}${finalUrl}` : ""; // Fallback ảnh rỗng nếu không có
+    return finalUrl ? `${BASE_URL}${finalUrl}` : "";
   };
 
   // Trạng thái Loading ban đầu
@@ -179,7 +177,7 @@ const CartPage = () => {
                           {price.toLocaleString()}đ
                         </p>
 
-                        {/* Hiển thị Tùy chọn thiết kế (customizedDesignJson) */}
+                        {/* Hiển thị Tùy chọn thiết kế */}
                         {item.customizedDesignJson &&
                           Object.keys(item.customizedDesignJson).length > 0 && (
                             <div className="mt-2 flex flex-wrap gap-1">
@@ -263,27 +261,22 @@ const CartPage = () => {
               Tổng đơn hàng
             </h2>
 
-            <div className="space-y-4 text-sm text-gray-600 mb-6">
-              <div className="flex justify-between">
-                <span>Tạm tính</span>
+            {/* Đã xóa Phí vận chuyển, chỉ giữ Tạm tính kèm số lượng */}
+            <div className="text-sm text-gray-600 mb-6">
+              <div className="flex justify-between items-center">
+                <span>Tạm tính ({cartItems.length} sản phẩm)</span>
                 <span className="font-medium text-gray-900">
                   {subtotal.toLocaleString()}đ
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span>Phí vận chuyển</span>
-                <span className="font-medium text-gray-900 text-right">
-                  Tính lúc thanh toán
                 </span>
               </div>
             </div>
 
             <div className="border-t border-gray-200 pt-4 mb-6">
-              <div className="flex justify-between items-center">
-                <span className="text-base font-bold text-gray-900">
+              <div className="flex justify-between items-end mb-1">
+                <span className="text-base font-bold text-gray-900 mb-1">
                   Tổng cộng
                 </span>
-                <span className="text-xl font-bold text-[#ff4d6d]">
+                <span className="text-2xl font-bold text-[#ff4d6d]">
                   {subtotal.toLocaleString()}đ
                 </span>
               </div>
