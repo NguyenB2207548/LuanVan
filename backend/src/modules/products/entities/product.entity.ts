@@ -9,6 +9,7 @@ import {
   OneToMany,
   ManyToMany,
   JoinTable,
+  DeleteDateColumn,
 } from 'typeorm';
 import { Category } from '../../categorys/entities/category.entity';
 import { Variant } from './variant.entity';
@@ -35,13 +36,20 @@ export class Product {
   })
   status: string;
 
+  @DeleteDateColumn({ name: 'deleted_at', nullable: true, select: false })
+  deletedAt: Date;
+
   @ManyToOne(() => User, (user) => user.products)
   @JoinColumn({ name: 'seller_id' })
   seller: User;
 
-  @ManyToOne(() => Category, (category) => category.products)
-  @JoinColumn({ name: 'category_id' })
-  category: Category;
+  @ManyToMany(() => Category, (category) => category.products)
+  @JoinTable({
+    name: 'product_categories',
+    joinColumn: { name: 'product_id', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'category_id', referencedColumnName: 'id' },
+  })
+  categories: Category[];
 
   @OneToMany(() => Variant, (variant) => variant.product)
   variants: Variant[];

@@ -8,6 +8,7 @@ import {
   Delete,
   UseGuards,
   Request,
+  Query,
 } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -23,6 +24,19 @@ export class ProductsController {
   @Get()
   findAll() {
     return this.productsService.findAll();
+  }
+  @Get('seller')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.SELLER, UserRole.ADMIN)
+  async findAllBySeller(
+    @Request() req,
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+  ) {
+    const user = req.user;
+    const sellerId = user.id;
+
+    return this.productsService.findAllBySeller(sellerId, page, limit);
   }
 
   @Get(':id')

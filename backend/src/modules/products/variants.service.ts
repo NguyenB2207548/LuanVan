@@ -1,52 +1,73 @@
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Variant } from './entities/variant.entity';
 import { Repository, DataSource } from 'typeorm';
-// import { DataSource } from 'typeorm/browser';
+import { Variant } from './entities/variant.entity';
 import { CreateVariantDto } from './dto/create-variant.dto';
+import { AttributeValue } from './entities/attribute_value.entity';
 
+@Injectable() // BẮT BUỘC PHẢI CÓ
 export class VariantsService {
   constructor(
-    @InjectRepository(Variant) private variantRepository: Repository<Variant>,
-    private dataSource: DataSource,
+    @InjectRepository(Variant)
+    private readonly variantRepository: Repository<Variant>,
+    private readonly dataSource: DataSource,
   ) {}
 
-  async findAll(): Promise<Variant[]> {
-    return this.variantRepository.find();
+  async findAll() {
+    return await this.variantRepository.find();
   }
 
+  // Lấy danh sách kèm theo các giá trị thuộc tính (để Frontend hiển thị được Màu, Size)
   async findVariantsByProductId(productId: number): Promise<Variant[]> {
     return this.variantRepository.find({
       where: { product: { id: productId } },
+      relations: ['attributeValues', 'attributeValues.attribute', 'images'],
     });
   }
 
   async createVariants(productId: number, createVariantDto: CreateVariantDto) {
-    return await this.dataSource.transaction(async (manager) => {
-      const { stock, attributeValueIds, price } = createVariantDto;
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-      // Variant
-      const variant = manager.create(Variant, {
+    try {
+      const { stock, attributeValueIds, price, sku } = createVariantDto;
+
+      // 1. Tạo Variant
+      // Lưu ý: attributeValues nhận vào mảng object có ID
+      const variant = queryRunner.manager.create(Variant, {
         product: { id: productId },
         stock,
+        price, // Lưu trực tiếp vào Variant như Entity đã định nghĩa
+        sku: sku || `SKU-${productId}-${Date.now()}`,
         attributeValues: attributeValueIds.map((id) => ({ id })),
       });
-      const savedVariant = await manager.save(variant);
 
-      // Price
-      if (price) {
-        const newPrice = manager.create('Price', {
-          amount: price,
-          priceType: 'original',
-          effectiveDate: new Date(),
-          variant: { id: savedVariant.id },
-        });
-        await manager.save(newPrice);
+      const savedVariant = await queryRunner.manager.save(variant);
+
+      // 2. Nếu có ảnh đi kèm trong DTO (từ bước trước)
+      if (createVariantDto.images?.length) {
+        // Xử lý lưu ảnh variant ở đây nếu cần
       }
+
+      await queryRunner.commitTransaction();
       return savedVariant;
-    });
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw new BadRequestException('Không thể tạo biến thể: ' + error.message);
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   async delete(id: number): Promise<void> {
-    await this.variantRepository.delete(id);
+    const result = await this.variantRepository.delete(id);
+    if (result.affected === 0) {
+      throw new NotFoundException(`Không tìm thấy biến thể #${id} để xóa`);
+    }
   }
 }

@@ -2,6 +2,7 @@
 import {
   ConflictException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -13,6 +14,7 @@ import { AttributeValue } from './entities/attribute_value.entity';
 
 @Injectable()
 export class AttributesService {
+  logger: any;
   constructor(
     @InjectRepository(Attribute)
     private readonly attributeRepository: Repository<Attribute>,
@@ -30,37 +32,53 @@ export class AttributesService {
   }
 
   async create(createAttributeDto: CreateAttributeDto) {
-    const existingAttribute = await this.attributeRepository.findOne({
-      where: { attributeName: createAttributeDto.name },
-    });
+    try {
+      const isExist = await this.attributeRepository
+        .createQueryBuilder('attr')
+        .where('attr.attributeName = :name', {
+          name: createAttributeDto.attributeName,
+        })
+        .getExists();
 
-    if (existingAttribute) {
-      throw new ConflictException(
-        `Thuộc tính "${createAttributeDto.name}" đã tồn tại trên hệ thống!`,
+      if (isExist) {
+        throw new ConflictException(
+          `Thuộc tính "${createAttributeDto.attributeName}" đã tồn tại trên hệ thống!`,
+        );
+      }
+
+      const newAttribute = this.attributeRepository.create({
+        attributeName: createAttributeDto.attributeName,
+      });
+
+      return await this.attributeRepository.save(newAttribute);
+    } catch (error) {
+      this.logger.error(
+        `Lỗi khi tạo thuộc tính: ${error.message}`,
+        error.stack,
+      );
+
+      if (error instanceof ConflictException) throw error;
+
+      throw new InternalServerErrorException(
+        'Không thể tạo thuộc tính mới vào lúc này',
       );
     }
-
-    const newAttribute = this.attributeRepository.create({
-      attributeName: createAttributeDto.name,
-    });
-    const savedAttribute = await this.attributeRepository.save(newAttribute);
-
-    return savedAttribute;
   }
 
   async addAttributeValue(dto: CreateAttributeValueDto) {
-    const attribute = await this.attributeRepository.findOne({
-      where: { id: dto.attributeId },
-    });
+    const isParentExist = await this.attributeRepository
+      .createQueryBuilder('attr')
+      .where('attr.id = :id', { id: dto.attributeId })
+      .getExists();
 
-    if (!attribute) {
+    if (!isParentExist) {
       throw new NotFoundException('Không tìm thấy thuộc tính cha!');
     }
 
     const existingValue = await this.attributeValueRepository.findOne({
       where: {
         valueName: dto.valueName,
-        attribute: { id: dto.attributeId },
+        attributeId: dto.attributeId,
       },
     });
 
@@ -70,12 +88,17 @@ export class AttributesService {
       );
     }
 
-    const newValue = this.attributeValueRepository.create({
-      valueName: dto.valueName,
-      attribute: { id: dto.attributeId },
-    });
+    try {
+      const newValue = this.attributeValueRepository.create({
+        valueName: dto.valueName,
+        attributeId: dto.attributeId,
+      });
 
-    return await this.attributeValueRepository.save(newValue);
+      return await this.attributeValueRepository.save(newValue);
+    } catch (error) {
+      this.logger.error(`Lỗi khi tạo giá trị thuộc tính: ${error.message}`);
+      throw new InternalServerErrorException('Lỗi hệ thống khi lưu giá trị');
+    }
   }
 
   async deleteAttribute(id: number) {

@@ -5,6 +5,7 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   OneToMany,
+  ManyToMany,
 } from 'typeorm';
 
 import { Product } from '../../products/entities/product.entity';
@@ -17,6 +18,9 @@ export class Category {
   @Column({ name: 'category_name', length: 100, unique: true })
   categoryName: string;
 
+  @Column({ name: 'image_url', type: 'text', nullable: true })
+  imageUrl: string;
+
   @Column({
     type: 'enum',
     enum: ['active', 'inactive'],
@@ -27,7 +31,10 @@ export class Category {
   @Column({ type: 'text', nullable: true })
   description: string;
 
-  @OneToMany(() => Product, (product) => product.category)
+  // @OneToMany(() => Product, (product) => product.category)
+  // products: Product[];
+
+  @ManyToMany(() => Product, (product) => product.categories)
   products: Product[];
 
   @CreateDateColumn({ name: 'created_at' })

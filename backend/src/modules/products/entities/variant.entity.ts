@@ -9,6 +9,7 @@ import {
   OneToMany,
   CreateDateColumn,
   UpdateDateColumn,
+  DeleteDateColumn,
 } from 'typeorm';
 import { AttributeValue } from './attribute_value.entity';
 import { Product } from '../../products/entities/product.entity';
@@ -22,8 +23,23 @@ export class Variant {
   @Column({ type: 'int', default: 0 })
   stock: number;
 
-  @Column({ type: 'decimal', precision: 12, scale: 2, default: 0 })
+  @Column({
+    type: 'decimal',
+    precision: 12,
+    scale: 2,
+    default: 0,
+    transformer: {
+      to: (value: number) => value,
+      from: (value: string) => parseFloat(value),
+    },
+  })
   price: number;
+
+  @Column({ length: 100, unique: true, nullable: true })
+  sku: string;
+
+  @DeleteDateColumn({ name: 'deleted_at', nullable: true, select: false })
+  deletedAt: Date;
 
   @ManyToOne(() => Product, (product) => product.variants, {
     onDelete: 'CASCADE',

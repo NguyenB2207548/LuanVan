@@ -1,9 +1,10 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { DataSource } from 'typeorm';
+import { DataSource, IsNull } from 'typeorm';
 import { Order } from './entities/order.entity';
 import { OrderItem } from './entities/order-item.entity';
 import { Cart } from '../carts/entities/cart.entity';
@@ -27,10 +28,8 @@ export class OrdersService {
     });
   }
 
-  // 1. CHECKOUT: Tách đơn theo Seller & Xóa giỏ hàng
   async createOrderFromCart(userId: number, dto: CreateOrderDto) {
     return await this.dataSource.transaction(async (manager) => {
-      // 1. Lấy Giỏ hàng (Giữ nguyên logic của bạn)
       const cart = await manager.findOne(Cart, {
         where: { user: { id: userId } },
         relations: [
@@ -42,58 +41,59 @@ export class OrdersService {
       });
 
       if (!cart || cart.items.length === 0) {
-        throw new BadRequestException('Giỏ hàng trống, không thể đặt hàng!');
+        throw new BadRequestException('Giỏ hàng trống!');
       }
 
-      // 2. Nhóm CartItem theo Seller ID (Giữ nguyên logic của bạn)
-      const itemsBySeller = new Map<number, any[]>();
+      // Nhóm CartItem theo Seller
+      const itemsBySeller = new Map<number, CartItem[]>();
       for (const item of cart.items) {
         const sellerId = item.variant.product.seller?.id;
         if (!sellerId)
           throw new BadRequestException(
-            `Sản phẩm ${item.variant.product.productName} không có người bán hợp lệ`,
+            `Sản phẩm ${item.variant.product.productName} không rõ người bán`,
           );
 
-        if (!itemsBySeller.has(sellerId)) {
-          itemsBySeller.set(sellerId, []);
-        }
+        if (!itemsBySeller.has(sellerId)) itemsBySeller.set(sellerId, []);
         itemsBySeller.get(sellerId)!.push(item);
       }
 
       const createdOrders: Order[] = [];
+      let grandTotal = 0; // Tổng tiền của tất cả các đơn để thanh toán MoMo
 
-      // 3. Duyệt qua từng nhóm Seller để tạo Đơn hàng (Giữ nguyên logic của bạn)
+      //  Tạo Đơn hàng cho từng Seller
       for (const [sellerId, items] of itemsBySeller) {
-        let totalAmount = 0;
+        let sellerOrderTotal = 0;
         const orderItems: OrderItem[] = [];
 
         for (const cartItem of items) {
           const variant = cartItem.variant;
 
+          // Check & Update Stock
           if (variant.stock < cartItem.quantity) {
             throw new BadRequestException(
-              `Sản phẩm "${variant.product.productName}" không đủ hàng.`,
+              `Sản phẩm "${variant.product.productName}" hết hàng.`,
             );
           }
-
           variant.stock -= cartItem.quantity;
           await manager.save(Variant, variant);
 
           const price = Number(variant.price);
-          totalAmount += price * cartItem.quantity;
+          sellerOrderTotal += price * cartItem.quantity;
 
+          // Lưu OrderItem kèm Snapshot thông tin
           const orderItem = manager.create(OrderItem, {
             variant: { id: variant.id },
             quantity: cartItem.quantity,
             priceAtPurchase: price,
+            variantNameSnapshot: `${variant.product.productName} - ${variant.sku}`, // Quan trọng!
             customizedDesignJson: cartItem.customizedDesignJson,
           });
           orderItems.push(orderItem);
         }
 
         const order = manager.create(Order, {
-          orderNumber: `ORD-${Date.now()}-${sellerId}-${userId}`,
-          totalAmount,
+          orderNumber: `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+          totalAmount: sellerOrderTotal,
           recipientName: dto.recipientName,
           phoneNumber: dto.phoneNumber,
           shippingAddress: dto.shippingAddress,
@@ -106,23 +106,24 @@ export class OrdersService {
 
         const savedOrder = await manager.save(Order, order);
         createdOrders.push(savedOrder);
+        grandTotal += sellerOrderTotal;
       }
 
-      // 4. Xóa sạch giỏ hàng (Sử dụng CartItem entity để an toàn hơn string)
+      //  Dọn dẹp giỏ hàng
       await manager.delete(CartItem, { cart: { id: cart.id } });
 
-      // 5. TÍCH HỢP THANH TOÁN MOMO
       let payUrl = null;
-
-      // Nếu chọn MOMO và có đơn hàng được tạo
       if (dto.paymentMethod === 'MOMO' && createdOrders.length > 0) {
-        // Để đơn giản cho demo: Thanh toán cho đơn hàng đầu tiên trong danh sách tách đơn
-        // Hoặc bạn có thể logic gộp tiền nhưng MoMo cần 1 OrderId duy nhất.
-        payUrl = await this.momoService.createPaymentUrl(createdOrders[0]);
+        const orderIds = createdOrders.map((o) => o.id);
+        payUrl = await this.momoService.createPaymentUrl({
+          amount: grandTotal,
+          orderIds: orderIds,
+          orderInfo: `Thanh toán ${createdOrders.length} đơn hàng tại MyGiftShop`,
+        });
       }
 
-      // Trả về cả danh sách đơn và link thanh toán (nếu có)
       return {
+        message: 'Đặt hàng thành công',
         orders: createdOrders,
         payUrl: payUrl,
       };
@@ -133,84 +134,201 @@ export class OrdersService {
     return await this.dataSource.manager.save(Order, order);
   }
 
-  // 2. SELLER: Xác nhận đơn hàng (Chuyển từ pending -> confirmed)
   async sellerConfirmOrder(orderId: number, sellerId: number) {
-    const order = await this.dataSource.manager.findOne(Order, {
-      where: { id: orderId, seller: { id: sellerId }, status: 'pending' },
+    return await this.dataSource.transaction(async (manager) => {
+      const order = await manager.findOne(Order, {
+        where: { id: orderId, seller: { id: sellerId } },
+        relations: ['items'],
+      });
+
+      if (!order) {
+        throw new NotFoundException('Không tìm thấy đơn hàng của bạn');
+      }
+
+      //  Kiểm tra trạng thái hiện tại
+      if (order.status !== 'pending') {
+        throw new BadRequestException(
+          `Đơn hàng đã ở trạng thái: ${order.status}`,
+        );
+      }
+
+      // CHẶN XÁC NHẬN nếu là MOMO nhưng chưa thanh toán thành công
+      if (order.paymentMethod === 'MOMO' && order.paymentStatus !== 'paid') {
+        throw new BadRequestException(
+          'Đơn hàng thanh toán qua MoMo chưa được xác nhận tiền về, không thể xác nhận đơn.',
+        );
+      }
+
+      //  Cập nhật trạng thái
+      order.status = 'confirmed';
+      const savedOrder = await manager.save(Order, order);
+
+      // (Tùy chọn) Gửi thông báo/Email cho khách hàng tại đây
+      // this.notificationService.send(order.user.id, 'Đơn hàng của bạn đã được xác nhận!');
+
+      return {
+        message:
+          'Xác nhận đơn hàng thành công, hãy chuẩn bị hàng để giao cho Shipper.',
+        data: savedOrder,
+      };
     });
-
-    if (!order)
-      throw new NotFoundException(
-        'Không tìm thấy đơn hàng chờ xác nhận của bạn',
-      );
-
-    order.status = 'confirmed';
-    return await this.dataSource.manager.save(Order, order);
   }
 
-  // 3. SHIPPER: Lấy danh sách đơn hàng chờ nhận (confirmed)
+  async cancelOrder(orderId: number, userId: number, reason: string) {
+    return await this.dataSource.transaction(async (manager) => {
+      const order = await manager.findOne(Order, {
+        where: { id: orderId, user: { id: userId } },
+        relations: ['items', 'items.variant'],
+      });
+
+      if (!order) throw new NotFoundException('Đơn hàng không tồn tại');
+
+      if (order.status !== 'pending') {
+        throw new BadRequestException(
+          'Không thể hủy đơn hàng đã xác nhận hoặc đang giao',
+        );
+      }
+
+      // 1. Hoàn lại số lượng kho cho từng Variant
+      for (const item of order.items) {
+        if (item.variant) {
+          item.variant.stock += item.quantity;
+          await manager.save(Variant, item.variant);
+        }
+      }
+
+      // 2. Cập nhật trạng thái đơn
+      order.status = 'cancelled';
+
+      // 3. Xử lý hoàn tiền nếu đã thanh toán MoMo
+      if (order.paymentStatus === 'paid') {
+        order.paymentStatus = 'refunded';
+      }
+
+      return await manager.save(Order, order);
+    });
+  }
+
   async getAvailableOrdersForShipper() {
     return await this.dataSource.manager.find(Order, {
-      where: { status: 'confirmed' },
-      relations: ['items', 'items.variant', 'items.variant.product', 'seller'],
+      where: {
+        status: 'confirmed',
+        shipper: IsNull(),
+      },
+      relations: ['seller'],
+      select: {
+        id: true,
+        orderNumber: true,
+        totalAmount: true,
+        recipientName: true,
+        phoneNumber: true,
+        shippingAddress: true,
+        createdAt: true,
+        seller: { fullName: true, phoneNumber: true },
+      },
       order: { createdAt: 'DESC' },
     });
   }
 
-  // 4. SHIPPER: Nhận đơn hàng (Chuyển từ confirmed -> shipping)
   async shipperPickUpOrder(orderId: number, shipperId: number) {
-    const order = await this.dataSource.manager.findOne(Order, {
-      where: { id: orderId, status: 'confirmed' },
+    return await this.dataSource.transaction(async (manager) => {
+      const order = await manager.findOne(Order, {
+        where: { id: orderId, status: 'confirmed' },
+        lock: { mode: 'pessimistic_write' },
+      });
+
+      if (!order || order.shipper) {
+        throw new BadRequestException(
+          'Đơn hàng đã có người khác nhận hoặc không còn khả dụng',
+        );
+      }
+
+      order.status = 'shipping';
+      order.shipper = { id: shipperId } as any;
+
+      return await manager.save(Order, order);
     });
-
-    if (!order)
-      throw new NotFoundException(
-        'Đơn hàng không còn khả dụng hoặc đã có người nhận',
-      );
-
-    order.status = 'shipping';
-    order.shipper = { id: shipperId } as any; // Gán quan hệ Object Shipper
-    return await this.dataSource.manager.save(Order, order);
   }
 
-  // 5. SHIPPER: Hoàn thành giao hàng (Chuyển từ shipping -> delivered)
   async shipperCompleteOrder(orderId: number, shipperId: number) {
     const order = await this.dataSource.manager.findOne(Order, {
       where: { id: orderId, shipper: { id: shipperId }, status: 'shipping' },
     });
 
-    if (!order)
-      throw new NotFoundException(
-        'Đơn hàng không thuộc quyền vận chuyển của bạn',
-      );
+    if (!order) throw new NotFoundException('Đơn hàng không hợp lệ');
 
     order.status = 'delivered';
-    order.paymentStatus = 'paid';
+
+    if (order.paymentMethod === 'COD') {
+      order.paymentStatus = 'paid';
+    }
+
     return await this.dataSource.manager.save(Order, order);
   }
+  async getOrdersByRole(
+    role: string,
+    actorId: number,
+    page: number = 1,
+    limit: number = 10,
+  ) {
+    const query = this.dataSource.manager
+      .createQueryBuilder(Order, 'order')
+      .leftJoinAndSelect('order.items', 'items')
+      .leftJoinAndSelect('items.variant', 'variant')
+      .leftJoinAndSelect('variant.product', 'product')
+      // Chỉ lấy ảnh đại diện của Variant hoặc Product để giảm tải
+      .leftJoinAndSelect(
+        'variant.images',
+        'vImages',
+        'vImages.isPrimary = :isPrimary',
+        { isPrimary: true },
+      )
+      .leftJoinAndSelect(
+        'product.images',
+        'pImages',
+        'pImages.isPrimary = :isPrimary',
+        { isPrimary: true },
+      );
 
-  // 6. LẤY DANH SÁCH ĐƠN HÀNG THEO VAI TRÒ (Dành cho Lịch sử đơn hàng)
-  async getOrdersByRole(role: string, actorId: number) {
-    const where: any = {};
-    if (role === 'user') where.user = { id: actorId };
-    if (role === 'seller') where.seller = { id: actorId };
-    if (role === 'shipper') where.shipper = { id: actorId };
+    // 1. Phân quyền truy vấn
+    switch (role) {
+      case 'user':
+        query
+          .where('order.user_id = :actorId', { actorId })
+          .leftJoinAndSelect('order.seller', 'seller');
+        break;
+      case 'seller':
+        query
+          .where('order.seller_id = :actorId', { actorId })
+          .leftJoinAndSelect('order.user', 'customer');
+        break;
+      case 'shipper':
+        query
+          .where('order.shipper_id = :actorId', { actorId })
+          .leftJoinAndSelect('order.seller', 'seller');
+        break;
+      default:
+        throw new BadRequestException('Role không hợp lệ');
+    }
 
-    return await this.dataSource.manager.find(Order, {
-      where,
-      relations: [
-        'items',
-        'items.variant',
-        'items.variant.product',
-        'items.variant.images', // Ảnh lấy trực tiếp qua relation
-        'items.variant.product.images',
-      ],
-      order: { createdAt: 'DESC' },
-    });
+    // 2. Phân trang & Sắp xếp
+    query
+      .orderBy('order.createdAt', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit);
+
+    const [items, total] = await query.getManyAndCount();
+
+    return {
+      data: items,
+      meta: {
+        total,
+        page,
+        lastPage: Math.ceil(total / limit),
+      },
+    };
   }
-
-  // 7. CHI TIẾT ĐƠN HÀNG
-  async getOrderById(orderId: number) {
+  async getOrderById(orderId: number, actor?: { id: number; role: string }) {
     const order = await this.dataSource.manager.findOne(Order, {
       where: { id: orderId },
       relations: [
@@ -224,7 +342,24 @@ export class OrdersService {
       ],
     });
 
-    if (!order) throw new NotFoundException('Không tìm thấy đơn hàng');
+    if (!order) {
+      throw new NotFoundException(`Không tìm thấy đơn hàng #${orderId}`);
+    }
+
+    if (actor) {
+      const isOwner =
+        (actor.role === 'user' && order.user.id === actor.id) ||
+        (actor.role === 'seller' && order.seller.id === actor.id) ||
+        (actor.role === 'shipper' && order.shipper?.id === actor.id) ||
+        actor.role === 'admin';
+
+      if (!isOwner) {
+        throw new ForbiddenException(
+          'Bạn không có quyền xem chi tiết đơn hàng này',
+        );
+      }
+    }
+
     return order;
   }
 }

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import type { Product } from "../types/product";
 import ProductCard from "./ProductCard";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export interface ProductRowProps {
   title: string;
@@ -18,46 +19,45 @@ const ProductRow: React.FC<ProductRowProps> = ({
   loading,
 }) => {
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
-      {/* KHU VỰC TIÊU ĐỀ: Nằm giữa, to hơn */}
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      {/* TIÊU ĐỀ: Chuyển về font đứng, dày, cực kỳ gọn gàng */}
       <div className="flex flex-col items-center justify-center mb-10 text-center">
-        <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 tracking-tight">
+        <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight uppercase">
           {title}
         </h2>
-        {/* Dòng line trang trí nhỏ dưới tiêu đề */}
-        <div className="w-12 h-1 bg-gray-900 mt-4 rounded-full opacity-80"></div>
+        {/* Thanh bar mảnh và sang hơn */}
+        <div className="w-12 h-1 bg-slate-900 mt-4 rounded-full"></div>
       </div>
 
-      {/* KHU VỰC GRID SẢN PHẨM */}
+      {/* GRID SẢN PHẨM */}
       {loading ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6 gap-y-10">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-5 gap-y-10">
           {[1, 2, 3, 4, 5].map((n) => (
-            <div
-              key={n}
-              className="aspect-[3/4] bg-gray-100 animate-pulse rounded-xl border border-gray-100"
-            ></div>
+            <div key={n} className="space-y-4">
+              <Skeleton className="aspect-[4/5] w-full rounded-2xl" />
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-4 w-1/2" />
+            </div>
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6 gap-y-10">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-5 gap-y-10">
           {products.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
         </div>
       )}
 
-      {/* KHU VỰC NÚT XEM TẤT CẢ: Chữ to hơn (text-lg), icon to hơn (size 20) */}
+      {/* NÚT XEM TẤT CẢ: Làm lại theo phong cách nút bấm bo tròn chuyên nghiệp */}
       <div className="mt-12 flex justify-center">
         <Link
           to={linkTo}
-          className="group flex items-center gap-1.5 text-lg font-bold text-gray-900 hover:text-gray-600 transition-colors"
+          className="group relative inline-flex items-center gap-3 px-8 py-3.5 bg-white border border-slate-200 rounded-full text-sm font-bold text-slate-900 shadow-sm hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all duration-300 active:scale-95"
         >
-          <span className="underline underline-offset-[4px] decoration-2">
-            Xem tất cả
-          </span>
+          <span>Xem tất cả</span>
           <ArrowRight
-            size={20}
-            className="group-hover:translate-x-1.5 transition-transform duration-300"
+            size={18}
+            className="transition-transform duration-300 group-hover:translate-x-1"
           />
         </Link>
       </div>

@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity'; // Đảm bảo import đúng Entity User
@@ -51,5 +55,37 @@ export class UsersService {
 
   async findByEmail(email: string): Promise<User | null> {
     return await this.userRepository.findOne({ where: { email } });
+  }
+
+  // Vô hiệu hóa người dùng
+  async deactivate(id: number) {
+    const user = await this.findOne(id);
+    if (!user) {
+      throw new NotFoundException('Không tìm thấy người dùng để vô hiệu hóa.');
+    }
+
+    if (!user.isActive) {
+      throw new BadRequestException(
+        'Tài khoản này đã bị vô hiệu hóa từ trước.',
+      );
+    }
+
+    await this.userRepository.update(id, { isActive: false });
+    return { message: `Tài khoản ${user.email} đã được vô hiệu hóa.` };
+  }
+
+  // Khôi phục người dùng
+  async activate(id: number) {
+    const user = await this.findOne(id);
+    if (!user) {
+      throw new NotFoundException('Không tìm thấy người dùng để khôi phục.');
+    }
+
+    if (user.isActive) {
+      throw new BadRequestException('Tài khoản này hiện đang hoạt động.');
+    }
+
+    await this.userRepository.update(id, { isActive: true });
+    return { message: `Tài khoản ${user.email} đã được khôi phục thành công.` };
   }
 }

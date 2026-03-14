@@ -42,25 +42,21 @@ export class CartsService {
     const { variantId, quantity, customizedDesignJson } = dto;
 
     return await this.dataSource.transaction(async (manager) => {
+      // 1. Kiểm tra Variant & Stock
       const variant = await manager.findOne(Variant, {
         where: { id: variantId },
       });
-
-      if (!variant) {
-        throw new NotFoundException('Sản phẩm không tồn tại');
-      }
-
+      if (!variant) throw new NotFoundException('Sản phẩm không tồn tại');
       if (variant.stock < quantity) {
         throw new BadRequestException(
-          `Số lượng sản phẩm trong kho không đủ, còn lại: ${variant.stock}`,
+          `Kho không đủ hàng (Còn lại: ${variant.stock})`,
         );
       }
 
-      // Tìm hoặc tạo giỏ hàng cho User
+      // 2. Tìm hoặc tạo Cart
       let cart = await manager.findOne(Cart, {
         where: { user: { id: userId } },
       });
-
       if (!cart) {
         cart = await manager.save(
           Cart,
@@ -68,31 +64,37 @@ export class CartsService {
         );
       }
 
-      // KIỂM TRA: Nếu cùng variant và CÙNG thiết kế thiết kế cũ thì tăng số lượng
-      // (Trong quà tặng cá nhân hóa, nếu thiết kế khác nhau thì nên là 2 item khác nhau)
-      let cartItem = await manager.findOne(CartItem, {
-        where: {
-          cart: { id: cart.id },
-          variant: { id: variantId },
-          // Chỉ gộp nếu thiết kế giống hệt (hoặc không có thiết kế)
-          customizedDesignJson: customizedDesignJson || null,
-        },
-      });
+      // 3. Logic tìm Item để gộp
+      // CHÚ Ý: Chỉ nên gộp nếu KHÔNG CÓ thiết kế cá nhân hóa (Sản phẩm bán sẵn)
+      // Nếu có thiết kế, mỗi lần thêm nên là 1 dòng mới để khách hàng dễ quản lý
+      let cartItem: CartItem | null = null;
+
+      if (!customizedDesignJson) {
+        cartItem = await manager.findOne(CartItem, {
+          where: {
+            cart: { id: cart.id },
+            variant: { id: variantId },
+            // customizedDesignJson: IsNull() // Sử dụng IsNull() từ TypeORM nếu muốn chính xác
+          },
+        });
+      }
 
       if (cartItem) {
+        // Kiểm tra lại tổng số lượng sau khi cộng dồn có vượt quá kho không
+        if (variant.stock < cartItem.quantity + quantity) {
+          throw new BadRequestException('Tổng số lượng vượt quá tồn kho');
+        }
         cartItem.quantity += quantity;
       } else {
         cartItem = manager.create(CartItem, {
-          cart: { id: cart.id },
-          variant: { id: variantId },
+          cart,
+          variant,
           quantity,
           customizedDesignJson,
         });
       }
 
       await manager.save(CartItem, cartItem);
-
-      // Trả về giỏ hàng mới nhất
       return this.getCart(userId);
     });
   }

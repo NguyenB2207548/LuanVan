@@ -8,6 +8,7 @@ import {
   ShoppingCart,
   LogOut,
   User,
+  UserCheck,
 } from "lucide-react";
 import {
   Sidebar,
@@ -33,6 +34,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 const adminMenuItems = [
   { title: "Bảng điều khiển", url: "/admin", icon: LayoutDashboard },
   { title: "Quản lý người dùng", url: "/admin/users", icon: Users },
+  { title: "Phê duyệt quyền", url: "/admin/approvals", icon: UserCheck },
   { title: "Quản lý sản phẩm", url: "/admin/products", icon: Package },
   { title: "Quản lý danh mục", url: "/admin/categories", icon: Tags },
   { title: "Quản lý thuộc tính", url: "/admin/attributes", icon: Settings2 },

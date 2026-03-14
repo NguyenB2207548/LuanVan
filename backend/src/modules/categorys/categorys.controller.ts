@@ -31,8 +31,8 @@ export class CategoriesController {
   }
 
   @Post()
-  @UseGuards(JwtAuthGuard)
-  @Roles(UserRole.SELLER, UserRole.ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
   async create(@Body() createCategoryDto: CreateCategoryDto) {
     const category = await this.categoriesService.create(createCategoryDto);
     return {
@@ -42,6 +42,8 @@ export class CategoriesController {
   }
 
   @Patch(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
   async updateCategory(
     @Param('id') id: number,
     @Body() updateCategory: UpdateCategoryDto,
@@ -54,7 +56,7 @@ export class CategoriesController {
   }
 
   @Delete(':id')
-  @Roles('admin')
+  @Roles(UserRole.ADMIN)
   @UseGuards(JwtAuthGuard, RolesGuard)
   async deleteCategory(@Param('id') id: number) {
     await this.categoriesService.delete(id);

@@ -1,194 +1,257 @@
-import React, { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  MoreHorizontal,
+  Users,
   Search,
-  UserPlus,
-  UserX,
-  Edit2,
+  Edit,
+  Trash2,
+  Plus,
   ShieldCheck,
+  User as UserIcon,
 } from "lucide-react";
+import axiosClient from "../../api/axiosClient";
 
-// Mock data - Sau này bạn sẽ thay bằng dữ liệu từ API
-const users = [
-  {
-    id: 1,
-    name: "Nguyễn Văn A",
-    email: "vana@gmail.com",
-    role: "admin",
-    status: "active",
-  },
-  {
-    id: 2,
-    name: "Trần Thị B",
-    email: "seller_b@gmail.com",
-    role: "seller",
-    status: "active",
-  },
-  {
-    id: 3,
-    name: "Lê Văn C",
-    email: "shipper_c@gmail.com",
-    role: "shipper",
-    status: "inactive",
-  },
-  {
-    id: 4,
-    name: "Phạm Minh D",
-    email: "user_d@gmail.com",
-    role: "user",
-    status: "active",
-  },
-];
+// Định nghĩa Type dựa trên database của bạn
+interface User {
+  id: number;
+  email: string;
+  fullName: string;
+  role: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
 const UserManagementPage = () => {
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const navigate = useNavigate();
 
-  // Hàm hiển thị Badge cho Role
-  const getRoleBadge = (role: string) => {
-    switch (role) {
-      case "admin":
-        return (
-          <Badge className="bg-red-100 text-red-700 hover:bg-red-100">
-            Admin
-          </Badge>
-        );
-      case "seller":
-        return (
-          <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">
-            Seller
-          </Badge>
-        );
-      case "shipper":
-        return (
-          <Badge className="bg-green-100 text-green-700 hover:bg-green-100">
-            Shipper
-          </Badge>
-        );
-      default:
-        return <Badge variant="secondary">User</Badge>;
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      const res = await axiosClient.get("/users"); // Đảm bảo backend có API này
+      // Giả sử API trả về mảng trực tiếp hoặc nằm trong res.data.data
+      setUsers(res.data.data || res.data || []);
+    } catch (err) {
+      console.error("Error fetching users", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  // Lọc người dùng theo tên hoặc email
+  const filteredUsers = users.filter(
+    (user) =>
+      user.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email?.toLowerCase().includes(searchTerm.toLowerCase()),
+  );
+
+  const handleDeleteUser = async (userId: number, userName: string) => {
+    // 1. Hiển thị hộp thoại xác nhận để tránh xóa nhầm
+    const isConfirm = window.confirm(
+      `Are you sure you want to delete user "${userName}"? This action cannot be undone.`,
+    );
+
+    if (!isConfirm) return;
+
+    try {
+      await axiosClient.delete(`/users/${userId}`);
+
+      setUsers((prevUsers) => prevUsers.filter((user) => user.id !== userId));
+    } catch (err: any) {
+      console.error("Error deleting user:", err);
+      alert(err.response?.data?.message || "Failed to delete user.");
     }
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header Area */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="w-full">
+      {/* PAGE HEADER */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">
-            Quản lý người dùng
-          </h2>
-          <p className="text-muted-foreground">
-            Quản lý danh sách thành viên và phân quyền hệ thống.
-          </p>
+          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            <Users className="text-blue-600" size={26} />
+            User Management
+          </h1>
         </div>
-        <Button className="w-full md:w-auto gap-2">
-          <UserPlus size={18} /> Thêm người dùng
-        </Button>
+
+        <button
+          onClick={() => navigate("/admin/users/add")}
+          className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white font-medium text-sm rounded-md hover:bg-blue-700 transition-colors shadow-sm"
+        >
+          <Plus size={16} />
+          Add User
+        </button>
       </div>
 
-      {/* Filter Area */}
-      <div className="flex items-center gap-2 max-w-sm border rounded-lg px-3 bg-white">
-        <Search className="text-muted-foreground" size={18} />
-        <Input
-          placeholder="Tìm theo tên hoặc email..."
-          className="border-none shadow-none focus-visible:ring-0"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
+      {/* FILTER & TOOLBAR */}
+      <div className="bg-white p-4 border border-gray-200 rounded-lg mb-6 flex items-center justify-between">
+        <div className="relative w-full max-w-md">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <Search className="text-gray-400" size={16} />
+          </div>
+          <input
+            type="text"
+            placeholder="Search users by name or email..."
+            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
       </div>
 
-      {/* Table Area */}
-      <div className="rounded-md border bg-white shadow-sm">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-slate-50/50">
-              <TableHead className="w-[80px]">ID</TableHead>
-              <TableHead>Người dùng</TableHead>
-              <TableHead>Vai trò</TableHead>
-              <TableHead>Trạng thái</TableHead>
-              <TableHead className="text-right">Thao tác</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {users.map((user) => (
-              <TableRow key={user.id}>
-                <TableCell className="font-medium">#{user.id}</TableCell>
-                <TableCell>
-                  <div className="flex flex-col">
-                    <span className="font-medium">{user.name}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {user.email}
-                    </span>
-                  </div>
-                </TableCell>
-                <TableCell>{getRoleBadge(user.role)}</TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <div
-                      className={`h-2 w-2 rounded-full ${user.status === "active" ? "bg-green-500" : "bg-slate-300"}`}
-                    />
-                    <span className="text-sm">
-                      {user.status === "active" ? "Đang hoạt động" : "Đã khóa"}
-                    </span>
-                  </div>
-                </TableCell>
-                <TableCell className="text-right">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="h-8 w-8 p-0">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>Hành động</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem className="gap-2">
-                        <Edit2 size={14} /> Chỉnh sửa
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="gap-2">
-                        <ShieldCheck size={14} /> Thay đổi quyền
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem className="gap-2 text-red-600 focus:text-red-600">
-                        <UserX size={14} /> Khóa tài khoản
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+      {/* DATA TABLE */}
+      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-16"
+                >
+                  ID
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider"
+                >
+                  User Info
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider"
+                >
+                  Role
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider"
+                >
+                  Joined Date
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider w-24"
+                >
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {loading ? (
+                <tr>
+                  <td
+                    colSpan={5}
+                    className="px-6 py-12 text-center text-sm text-gray-500"
+                  >
+                    <div className="flex justify-center items-center gap-2">
+                      <div className="animate-spin w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+                      Loading users...
+                    </div>
+                  </td>
+                </tr>
+              ) : filteredUsers.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={5}
+                    className="px-6 py-12 text-center text-sm text-gray-500"
+                  >
+                    No users found matching your search.
+                  </td>
+                </tr>
+              ) : (
+                filteredUsers.map((user) => (
+                  <tr
+                    key={user.id}
+                    className="hover:bg-gray-50 transition-colors"
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
+                      #{user.id}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="h-9 w-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-sm shrink-0">
+                          {user.fullName
+                            ? user.fullName.charAt(0).toUpperCase()
+                            : "U"}
+                        </div>
+                        <div className="ml-3">
+                          <div className="text-sm font-medium text-gray-900">
+                            {user.fullName || "Unknown Name"}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {user.email}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {user.role === "admin" ? (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium bg-purple-50 text-purple-700 border border-purple-200">
+                          <ShieldCheck size={14} />
+                          Admin
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium bg-gray-50 text-gray-700 border border-gray-200">
+                          <UserIcon size={14} />
+                          User
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {user.createdAt
+                        ? new Date(user.createdAt).toLocaleDateString("en-US", {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                          })
+                        : "N/A"}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex items-center justify-end gap-3">
+                        <button
+                          onClick={() =>
+                            navigate(`/admin/users/edit/${user.id}`)
+                          }
+                          className="text-blue-600 hover:text-blue-900 transition-colors"
+                          title="Edit User"
+                        >
+                          <Edit size={16} />
+                        </button>
+                        <button
+                          onClick={() =>
+                            handleDeleteUser(user.id, user.fullName)
+                          }
+                          className="text-red-500 hover:text-red-700 transition-colors"
+                          title="Delete User"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      {/* Pagination Placeholder */}
-      <div className="flex items-center justify-end space-x-2 py-4">
-        <Button variant="outline" size="sm" disabled>
-          Trước
-        </Button>
-        <Button variant="outline" size="sm">
-          Tiếp theo
-        </Button>
-      </div>
+      {/* FOOTER COUNTER */}
+      {!loading && filteredUsers.length > 0 && (
+        <div className="mt-4 flex items-center justify-between text-sm text-gray-500">
+          <div>
+            Showing <span className="font-medium">{filteredUsers.length}</span>{" "}
+            users
+          </div>
+        </div>
+      )}
     </div>
   );
 };

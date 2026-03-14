@@ -7,7 +7,6 @@ import {
 } from 'typeorm';
 import { Cart } from './cart.entity';
 import { Variant } from '../../products/entities/variant.entity';
-
 @Entity('cart_items')
 export class CartItem {
   @PrimaryGeneratedColumn()
@@ -16,14 +15,20 @@ export class CartItem {
   @Column({ type: 'int', default: 1 })
   quantity: number;
 
-  @Column({ type: 'json', nullable: true })
+  @Column({ type: 'json', nullable: true, default: null })
   customizedDesignJson: any;
 
   @ManyToOne(() => Cart, (cart) => cart.items, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'cart_id' })
   cart: Cart;
 
-  @ManyToOne(() => Variant, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Variant, { onDelete: 'CASCADE', eager: true })
   @JoinColumn({ name: 'variant_id' })
   variant: Variant;
+
+  @Column({ name: 'cart_id' })
+  cartId: number;
+
+  @Column({ name: 'variant_id' })
+  variantId: number;
 }

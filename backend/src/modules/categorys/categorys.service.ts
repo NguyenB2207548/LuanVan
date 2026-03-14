@@ -11,6 +11,7 @@ import { UpdateCategoryDto } from './dto/update-category.dto';
 
 @Injectable()
 export class CategoriesService {
+  logger: any;
   constructor(
     @InjectRepository(Category)
     private categoryRepository: Repository<Category>,
@@ -27,7 +28,6 @@ export class CategoriesService {
     }
     return category;
   }
-
   async create(createCategoryDto: CreateCategoryDto): Promise<Category> {
     try {
       const existingCategory = await this.categoryRepository.findOne({
@@ -35,17 +35,26 @@ export class CategoriesService {
       });
 
       if (existingCategory) {
-        throw new ConflictException('Tên danh mục đã tồn tại');
+        throw new ConflictException(
+          `Danh mục "${createCategoryDto.categoryName}" đã tồn tại`,
+        );
       }
 
       const newCategory = this.categoryRepository.create(createCategoryDto);
 
       return await this.categoryRepository.save(newCategory);
     } catch (error) {
+      this.logger.error(`Lỗi khi tạo danh mục: ${error.message}`, error.stack);
       if (error instanceof ConflictException) {
         throw error;
       }
-      throw new InternalServerErrorException('Lỗi khi tạo danh mục');
+
+      // Nếu là lỗi khác (ví dụ: mất kết nối DB), ném lỗi 500 kèm tin nhắn chi tiết nếu đang ở môi trường dev
+      throw new InternalServerErrorException(
+        process.env.NODE_ENV === 'development'
+          ? `Lỗi DB: ${error.message}`
+          : 'Có lỗi xảy ra trong quá trình tạo danh mục',
+      );
     }
   }
 

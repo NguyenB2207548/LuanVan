@@ -11,6 +11,8 @@ import {
   OneToOne,
   OneToMany,
 } from 'typeorm';
+import { ShipperProfile } from './shipper-profile.entity';
+import { SellerProfile } from './seller-profile.entity';
 
 export enum UserRole {
   USER = 'user',
@@ -43,12 +45,6 @@ export class User {
   })
   role: UserRole;
 
-  @Column({ name: 'shop_name', nullable: true })
-  shopName: string;
-
-  @Column({ name: 'vehicle_plate', nullable: true })
-  vehiclePlate: string;
-
   @Column({ default: true })
   isActive: boolean;
 
@@ -63,6 +59,12 @@ export class User {
 
   @OneToMany(() => Review, (review) => review.user)
   reviews: Review[];
+
+  @OneToOne(() => ShipperProfile, (shipperProfile) => shipperProfile.user)
+  shipperProfile: ShipperProfile;
+
+  @OneToOne(() => SellerProfile, (sellerProfile) => sellerProfile.user)
+  sellerProfile: SellerProfile;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

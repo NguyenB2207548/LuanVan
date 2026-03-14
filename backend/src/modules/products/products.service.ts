@@ -3,7 +3,7 @@ import {
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
-import { DataSource, Repository } from 'typeorm';
+import { Repository, DataSource, In, IsNull } from 'typeorm';
 import { CreateProductDto } from './dto/create-product.dto';
 import { Product } from './entities/product.entity';
 import { Variant } from './entities/variant.entity';
@@ -12,38 +12,62 @@ import { AttributeValue } from './entities/attribute_value.entity';
 import { Category } from '../categorys/entities/category.entity';
 import { Image } from '../images/entities/image.entity';
 import { User } from '../users/entities/user.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { UpdateProductDto } from './dto/update-product.dto';
+import { CreateVariantDto } from './dto/create-variant.dto';
 
 @Injectable()
 export class ProductsService {
-  constructor(private dataSource: DataSource) {}
+  constructor(
+    private dataSource: DataSource,
 
-  // 1. Lấy tất cả sản phẩm (Kèm theo Seller, Ảnh, Biến thể và Thuộc tính)
-  async findAll() {
-    const productRepository = this.dataSource.getRepository(Product);
+    @InjectRepository(Product)
+    private productRepository: Repository<Product>,
+  ) {}
 
-    // Nhờ cấu trúc Entity mới, ta chỉ cần 1 câu lệnh find với relations
-    return await productRepository.find({
+  async findAll(page: number = 1, limit: number = 10) {
+    const skip = (page - 1) * limit;
+
+    const [items, total] = await this.productRepository.findAndCount({
       relations: [
-        'category',
+        'categories',
         'seller',
-        'images', // Ảnh của sản phẩm
+        'images',
         'variants',
-        'variants.images', // Ảnh của từng biến thể
         'variants.attributeValues',
         'variants.attributeValues.attribute',
-        'attributes',
       ],
+
+      select: {
+        id: true,
+        productName: true,
+        status: true,
+        createdAt: true,
+        seller: {
+          id: true,
+          fullName: true,
+        },
+      },
       order: { createdAt: 'DESC' },
+      take: limit,
+      skip: skip,
     });
+
+    return {
+      data: items,
+      meta: {
+        total,
+        page,
+        lastPage: Math.ceil(total / limit),
+      },
+    };
   }
 
-  // 2. Chi tiết sản phẩm
   async findOne(id: number) {
-    const productRepository = this.dataSource.getRepository(Product);
-    const product = await productRepository.findOne({
+    const product = await this.productRepository.findOne({
       where: { id },
       relations: [
-        'category',
+        'categories',
         'seller',
         'images',
         'variants',
@@ -54,13 +78,51 @@ export class ProductsService {
       ],
     });
 
-    if (!product) {
-      throw new NotFoundException(`Không tìm thấy sản phẩm có ID #${id}`);
-    }
+    if (!product) throw new NotFoundException(`Không tìm thấy sản phẩm #${id}`);
     return product;
   }
 
-  // 3. Tạo sản phẩm (Có Seller ID từ JWT)
+  async findAllBySeller(
+    sellerId: number,
+    page: number = 1,
+    limit: number = 10,
+  ) {
+    const skip = (page - 1) * limit;
+
+    const [items, total] = await this.productRepository.findAndCount({
+      where: {
+        seller: { id: sellerId }, // Lọc chính xác theo ID của người bán
+      },
+      relations: [
+        'categories',
+        'images',
+        'variants',
+        'variants.attributeValues',
+        'variants.attributeValues.attribute',
+      ],
+
+      select: {
+        id: true,
+        productName: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+      order: { createdAt: 'DESC' },
+      take: limit,
+      skip: skip,
+    });
+
+    return {
+      data: items,
+      meta: {
+        total,
+        page,
+        lastPage: Math.ceil(total / limit),
+      },
+    };
+  }
+
   async create(createProductDto: CreateProductDto, sellerId: number) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -70,36 +132,32 @@ export class ProductsService {
       const { productName, description, categoryId, variants, productImages } =
         createProductDto;
 
-      // Kiểm tra danh mục
+      // Kiểm tra category và seller
       const category = await queryRunner.manager.findOne(Category, {
         where: { id: categoryId },
       });
-      if (!category) throw new BadRequestException('Danh mục không tồn tại');
-
-      // Kiểm tra Seller
       const seller = await queryRunner.manager.findOne(User, {
         where: { id: sellerId },
       });
+
+      if (!category) throw new BadRequestException('Danh mục không tồn tại');
       if (!seller) throw new BadRequestException('Seller không hợp lệ');
 
-      // 1. Khởi tạo Product
       const newProduct = queryRunner.manager.create(Product, {
         productName,
         description,
-        category,
+        categories: [category],
         seller,
-        status: 'active',
       });
-
       const savedProduct = await queryRunner.manager.save(newProduct);
 
-      // 2. Lưu ảnh cho Product (Dùng khóa ngoại product_id)
-      if (productImages && productImages.length > 0) {
-        const productImgs = productImages.map((url, index) =>
+      // ảnh sản phẩm
+      if (productImages?.length) {
+        const productImgs = productImages.map((url, i) =>
           queryRunner.manager.create(Image, {
             url,
             product: savedProduct,
-            isPrimary: index === 0,
+            isPrimary: i === 0,
           }),
         );
         await queryRunner.manager.save(productImgs);
@@ -107,65 +165,51 @@ export class ProductsService {
 
       const productAttributesMap = new Map<string, Attribute>();
 
-      // 3. Xử lý Variants
-      if (variants && variants.length > 0) {
+      if (variants?.length) {
         for (const variantDto of variants) {
-          const variantAttributeValues: AttributeValue[] = [];
+          // Tìm các AttributeValue object dựa trên mảng ID gửi lên
+          const variantAttributeValues = await queryRunner.manager.find(
+            AttributeValue,
+            {
+              where: { id: In(variantDto.attributeValueIds) },
+              relations: ['attribute'], // Lấy luôn attribute cha để thống kê
+            },
+          );
 
-          for (const attrData of variantDto.attributeValues) {
-            // Xử lý Attribute (Màu sắc, Kích thước...)
-            let attribute = await queryRunner.manager.findOne(Attribute, {
-              where: { attributeName: attrData.name },
-            });
-
-            if (!attribute) {
-              attribute = await queryRunner.manager.save(
-                queryRunner.manager.create(Attribute, {
-                  attributeName: attrData.name,
-                }),
-              );
-            }
-            productAttributesMap.set(attrData.name, attribute);
-
-            // Xử lý Attribute Value (Đỏ, Xanh, XL...)
-            let attributeValue = await queryRunner.manager.findOne(
-              AttributeValue,
-              {
-                where: {
-                  valueName: attrData.value,
-                  attribute: { id: attribute.id },
-                },
-              },
+          if (
+            variantAttributeValues.length !==
+            variantDto.attributeValueIds.length
+          ) {
+            throw new BadRequestException(
+              'Một hoặc nhiều giá trị thuộc tính không tồn tại',
             );
-
-            if (!attributeValue) {
-              attributeValue = await queryRunner.manager.save(
-                queryRunner.manager.create(AttributeValue, {
-                  valueName: attrData.value,
-                  attribute: attribute,
-                }),
-              );
-            }
-            variantAttributeValues.push(attributeValue);
           }
 
-          // Tạo Variant (Giá và kho hàng nằm trực tiếp ở đây)
+          // Lưu các attribute vào map để cập nhật cho Product sau này
+          variantAttributeValues.forEach((av) => {
+            productAttributesMap.set(av.attribute.attributeName, av.attribute);
+          });
+
+          // Tạo Variant
           const newVariant = queryRunner.manager.create(Variant, {
             product: savedProduct,
             stock: variantDto.stock,
-            price: variantDto.price, // Hợp nhất giá trực tiếp
+            price: variantDto.price,
+            sku:
+              variantDto.sku ||
+              `${savedProduct.id}-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
             attributeValues: variantAttributeValues,
           });
 
           const savedVariant = await queryRunner.manager.save(newVariant);
 
-          // Lưu ảnh cho Variant (Dùng khóa ngoại variant_id)
-          if (variantDto.images && variantDto.images.length > 0) {
-            const variantImgs = variantDto.images.map((url, index) =>
+          // Lưu ảnh cho Variant
+          if (variantDto.images?.length) {
+            const variantImgs = variantDto.images.map((url, i) =>
               queryRunner.manager.create(Image, {
                 url,
                 variant: savedVariant,
-                isPrimary: index === 0,
+                isPrimary: i === 0,
               }),
             );
             await queryRunner.manager.save(variantImgs);
@@ -173,12 +217,11 @@ export class ProductsService {
         }
       }
 
-      // Cập nhật quan hệ Attributes cho Product
       savedProduct.attributes = Array.from(productAttributesMap.values());
       await queryRunner.manager.save(savedProduct);
 
       await queryRunner.commitTransaction();
-      return { message: 'Tạo sản phẩm thành công', data: savedProduct };
+      return { message: 'Tạo sản phẩm thành công', id: savedProduct.id };
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw error;
@@ -188,12 +231,134 @@ export class ProductsService {
   }
 
   async remove(id: number) {
-    const productRepository = this.dataSource.getRepository(Product);
-    const product = await productRepository.findOne({ where: { id } });
-    if (!product) throw new NotFoundException(`Không tìm thấy sản phẩm #${id}`);
+    const product = await this.productRepository.findOne({ where: { id } });
 
-    // Nhờ CASCADE ở Entity, các Variant và Image liên quan sẽ tự bị xóa
-    await productRepository.remove(product);
-    return { message: `Đã xóa sản phẩm #${id}` };
+    if (!product) {
+      throw new NotFoundException(`Không tìm thấy sản phẩm #${id}`);
+    }
+
+    await this.productRepository.softRemove(product);
+
+    return { message: `Sản phẩm #${id} đã được chuyển vào thùng rác.` };
+  }
+
+  async update(id: number, updateProductDto: UpdateProductDto) {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const product = await queryRunner.manager.findOne(Product, {
+        where: { id },
+        relations: ['variants', 'images', 'categories'],
+      });
+
+      if (!product)
+        throw new NotFoundException(`Sản phẩm #${id} không tồn tại`);
+
+      const { productName, description, categoryId, variants, productImages } =
+        updateProductDto;
+
+      // 1. Cập nhật thông tin cơ bản
+      if (productName) product.productName = productName;
+      if (description) product.description = description;
+
+      // 2. Cập nhật Category
+      if (categoryId) {
+        const category = await queryRunner.manager.findOne(Category, {
+          where: { id: categoryId },
+        });
+        if (!category) throw new BadRequestException('Danh mục không tồn tại');
+        product.categories = [category];
+      }
+
+      // 3. Cập nhật Ảnh chung của Sản phẩm (Product Images)
+      if (productImages) {
+        // Chỉ xóa những ảnh là ảnh của Product (variant_id IS NULL)
+        await queryRunner.manager.delete(Image, {
+          product: { id: product.id },
+          variant: IsNull(),
+        });
+
+        const newImages = productImages.map((url, i) =>
+          queryRunner.manager.create(Image, {
+            url,
+            product,
+            isPrimary: i === 0, // Ảnh đầu tiên là ảnh chính sản phẩm
+          }),
+        );
+        await queryRunner.manager.save(Image, newImages);
+      }
+
+      // 4. Cập nhật Biến thể (Variants)
+      if (variants) {
+        // BƯỚC QUAN TRỌNG: Dọn dẹp ảnh của các Variant cũ trước khi xóa variant
+        const oldVariantIds = product.variants.map((v) => v.id);
+        if (oldVariantIds.length > 0) {
+          await queryRunner.manager.delete(Image, {
+            variant: { id: In(oldVariantIds) },
+          });
+        }
+
+        // Xóa mềm các variant cũ
+        await queryRunner.manager.softRemove(product.variants);
+
+        for (const vDto of variants) {
+          const variantDto = vDto as unknown as CreateVariantDto;
+
+          const variantAttrValues = await queryRunner.manager.find(
+            AttributeValue,
+            {
+              where: { id: In(variantDto.attributeValueIds) },
+            },
+          );
+
+          if (
+            variantAttrValues.length !== variantDto.attributeValueIds.length
+          ) {
+            throw new BadRequestException(
+              'Một số giá trị thuộc tính không tồn tại',
+            );
+          }
+
+          // Tạo Variant mới
+          const newVariant = queryRunner.manager.create(Variant, {
+            product: product,
+            stock: variantDto.stock,
+            price: variantDto.price,
+            sku:
+              variantDto.sku ||
+              `${product.id}-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+            attributeValues: variantAttrValues,
+          });
+
+          const savedVariant = await queryRunner.manager.save(
+            Variant,
+            newVariant,
+          );
+
+          // LƯU ẢNH CHO VARIANT MỚI (Phần này code cũ của bạn bị thiếu)
+          if (variantDto.images && variantDto.images.length > 0) {
+            const variantImgs = variantDto.images.map((url, i) =>
+              queryRunner.manager.create(Image, {
+                url,
+                variant: savedVariant,
+                isPrimary: i === 0, // Ảnh đầu tiên của mỗi variant là ảnh chính variant đó
+              }),
+            );
+            await queryRunner.manager.save(Image, variantImgs);
+          }
+        }
+      }
+
+      await queryRunner.manager.save(Product, product);
+      await queryRunner.commitTransaction();
+      return { message: 'Cập nhật sản phẩm thành công' };
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
   }
 }

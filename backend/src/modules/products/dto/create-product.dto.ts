@@ -9,39 +9,40 @@ import {
   Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { CreateVariantDto } from './create-variant.dto';
 
-class AttributeValueDto {
-  @IsString()
-  @IsNotEmpty({ message: 'Tên thuộc tính không được để trống' })
-  name: string;
+// class AttributeValueDto {
+//   @IsString()
+//   @IsNotEmpty({ message: 'Tên thuộc tính không được để trống' })
+//   name: string;
 
-  @IsString()
-  @IsNotEmpty({ message: 'Giá trị thuộc tính không được để trống' })
-  value: string;
-}
+//   @IsString()
+//   @IsNotEmpty({ message: 'Giá trị thuộc tính không được để trống' })
+//   value: string;
+// }
 
-class CreateVariantDto {
-  @IsNumber()
-  @IsPositive({ message: 'Giá sản phẩm phải là số dương' })
-  @IsNotEmpty()
-  price: number;
+// class CreateVariantDto {
+//   @IsNumber()
+//   @IsPositive({ message: 'Giá sản phẩm phải là số dương' })
+//   @IsNotEmpty()
+//   price: number;
 
-  @IsNumber()
-  @Min(0, { message: 'Số lượng tồn kho không được âm' })
-  @IsNotEmpty()
-  stock: number;
+//   @IsNumber()
+//   @Min(0, { message: 'Số lượng tồn kho không được âm' })
+//   @IsNotEmpty()
+//   stock: number;
 
-  @IsArray()
-  @IsNotEmpty()
-  @ValidateNested({ each: true })
-  @Type(() => AttributeValueDto)
-  attributeValues: AttributeValueDto[];
+//   @IsArray()
+//   @IsNotEmpty()
+//   @ValidateNested({ each: true })
+//   @Type(() => AttributeValueDto)
+//   attributeValues: AttributeValueDto[];
 
-  @IsArray()
-  @IsOptional()
-  @IsString({ each: true })
-  images?: string[];
-}
+//   @IsArray()
+//   @IsOptional()
+//   @IsString({ each: true })
+//   images?: string[];
+// }
 
 export class CreateProductDto {
   @IsString()

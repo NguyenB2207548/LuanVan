@@ -17,6 +17,9 @@ export class AttributeValue {
   @Column({ name: 'value_name' })
   valueName: string;
 
+  @Column({ name: 'attribute_id' })
+  attributeId: number;
+
   @ManyToOne(() => Attribute, (attribute) => attribute.attributeValues, {
     onDelete: 'CASCADE',
   })

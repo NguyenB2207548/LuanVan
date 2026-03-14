@@ -13,6 +13,7 @@ import { ImagesModule } from './modules/images/images.module';
 import { DesignsModule } from './modules/designs/designs.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
+import { StatisticsModule } from './modules/statistics/statistics.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { UploadsModule } from './modules/uploads/uploads.module';
     DesignsModule,
     AuthModule,
     UploadsModule,
+    StatisticsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -16,14 +16,23 @@ export class OrderItem {
   @Column({ type: 'int' })
   quantity: number;
 
-  @Column({ type: 'decimal', precision: 12, scale: 2 })
+  @Column({
+    type: 'decimal',
+    precision: 12,
+    scale: 2,
+    transformer: { to: (v: number) => v, from: (v: string) => parseFloat(v) },
+  })
   priceAtPurchase: number;
+
+  // Snapshot để lưu lại thông tin dù sản phẩm có bị xóa
+  @Column({ name: 'variant_name_snapshot', nullable: true })
+  variantNameSnapshot: string;
 
   @ManyToOne(() => Order, (order) => order.items, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'order_id' })
   order: Order;
 
-  @ManyToOne(() => Variant)
+  @ManyToOne(() => Variant, { nullable: true }) // Cho phép null nếu sản phẩm bị xóa cứng
   @JoinColumn({ name: 'variant_id' })
   variant: Variant;
 

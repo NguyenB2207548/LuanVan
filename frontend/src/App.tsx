@@ -26,6 +26,10 @@ import DesignerPage from "./pages/user/DesignerPage";
 import Dashboard from "./pages/admin/Dashboard";
 import UserManagementPage from "./pages/admin/UserManagementPage";
 import { TooltipProvider } from "./components/ui/tooltip";
+import ApprovalManagementPage from "./pages/admin/ApprovalManagementPage";
+import RegisterShipperPage from "./pages/user/RegisterShipperPage";
+import RegisterSellerPage from "./pages/user/RegisterSellerPage";
+import OrderHistoryPage from "./pages/user/OrderHistoryPage";
 
 function App() {
   return (
@@ -39,6 +43,9 @@ function App() {
             <Route path="/products/:id" element={<ProductDetail />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/register-seller" element={<RegisterSellerPage />} />
+            <Route path="/register-shipper" element={<RegisterShipperPage />} />
+            <Route path="/order-history" element={<OrderHistoryPage />} />
 
             {/* Routes yêu cầu đăng nhập */}
             <Route
@@ -61,11 +68,7 @@ function App() {
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<Dashboard />} />
               <Route path="users" element={<UserManagementPage />} />
-              {/* Thêm trang duyệt yêu cầu nâng cấp role */}
-              <Route
-                path="approvals"
-                element={<div>Trang duyệt yêu cầu</div>}
-              />
+              <Route path="approvals" element={<ApprovalManagementPage />} />
             </Route>
           </Route>
 

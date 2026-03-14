@@ -13,7 +13,7 @@ import { User } from 'src/modules/users/entities/user.entity';
       database: 'luanvan',
       entities: [__dirname + '/../**/*.entity{.ts,.js}'],
       // entities: [User],
-      synchronize: false,
+      synchronize: true,
       logging: false,
     }),
   ],

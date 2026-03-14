@@ -4,6 +4,7 @@ import {
   IsOptional,
   IsEnum,
   MaxLength,
+  IsUrl,
 } from 'class-validator';
 
 export class CreateCategoryDto {
@@ -11,6 +12,9 @@ export class CreateCategoryDto {
   @IsNotEmpty({ message: 'Tên danh mục không được để trống' })
   @MaxLength(100, { message: 'Tên danh mục không được quá 100 ký tự' })
   categoryName: string;
+
+  @IsOptional()
+  imageUrl?: string;
 
   @IsOptional()
   @IsString()
