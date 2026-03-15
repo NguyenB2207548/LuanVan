@@ -16,6 +16,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/entities/user.entity';
+import { ProductSearchDto } from './dto/search-product.dto';
 
 @Controller('products')
 export class ProductsController {
@@ -39,10 +40,39 @@ export class ProductsController {
     return this.productsService.findAllBySeller(sellerId, page, limit);
   }
 
+  @Get('latest')
+  async getLatest() {
+    return this.productsService.getLatestProducts();
+  }
+
+  @Get('trending')
+  async getTrending() {
+    return this.productsService.getTrendingProducts();
+  }
+
+  @Get('search')
+  async search(@Query() query: ProductSearchDto) {
+    return this.productsService.searchProducts(query);
+  }
+
+  @Get(':productId/pod-config')
+  async getPodConfig(@Param('productId', ParseIntPipe) productId: number) {
+    return this.productsService.getPodDesignByProductId(productId);
+  }
+
   @Get(':id')
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return await this.productsService.findOne(id);
   }
+
+  @Get(':id/related')
+  async getRelated(
+    @Param('id') id: number,
+    @Query('categoryId') categoryId: number,
+  ) {
+    return this.productsService.getRelatedProducts(id, categoryId);
+  }
+
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.SELLER, UserRole.ADMIN)

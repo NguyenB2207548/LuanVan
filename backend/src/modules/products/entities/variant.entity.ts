@@ -10,10 +10,13 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   DeleteDateColumn,
+  OneToOne,
 } from 'typeorm';
 import { AttributeValue } from './attribute_value.entity';
 import { Product } from '../../products/entities/product.entity';
 import { Image } from '../../images/entities/image.entity';
+import { OrderItem } from 'src/modules/orders/entities/order-item.entity';
+import { Mockup } from 'src/modules/designs/entities/mockup.entity';
 
 @Entity('variants')
 export class Variant {
@@ -57,6 +60,12 @@ export class Variant {
 
   @OneToMany(() => Image, (image) => image.variant)
   images: Image[];
+
+  @OneToMany(() => OrderItem, (orderItem) => orderItem.variant)
+  orderItems: OrderItem[];
+
+  @OneToOne(() => Mockup, (mockup) => mockup.variant)
+  mockup: Mockup;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

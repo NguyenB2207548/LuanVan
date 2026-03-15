@@ -1,28 +1,26 @@
 import { Module } from '@nestjs/common';
-import { DesignsService } from './designs.service';
-import { DesignsController } from './designs.controller';
-import { TypeOrmModule } from '@nestjs/typeorm/dist/typeorm.module';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { DesignService } from './designs.service';
+import { DesignController } from './designs.controller';
 import { Design } from './entities/design.entity';
-import { DesignOption } from './entities/design-option.entity';
-import { LinkDesign } from './entities/design-link.entity';
+import { Artwork } from './entities/artwork.entity';
+import { Mockup } from './entities/mockup.entity';
+import { PrintArea } from './entities/print_area.entity';
 import { Product } from '../products/entities/product.entity';
 import { Variant } from '../products/entities/variant.entity';
-import { GimpController } from './gimp.controller';
-import { GimpService } from './gimp.service';
-import { PsdController } from './psd.controller';
-import { PsdExtractorService } from './psd.service';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([
       Design,
-      DesignOption,
-      LinkDesign,
+      Artwork,
+      Mockup,
+      PrintArea,
       Product,
       Variant,
     ]),
   ],
-  controllers: [DesignsController, GimpController, PsdController],
-  providers: [DesignsService, GimpService, PsdExtractorService],
+  controllers: [DesignController],
+  providers: [DesignService],
 })
 export class DesignsModule {}

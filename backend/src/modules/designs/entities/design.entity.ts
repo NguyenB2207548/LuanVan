@@ -1,30 +1,32 @@
+import { Product } from 'src/modules/products/entities/product.entity';
 import {
-  Entity,
-  PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
-  UpdateDateColumn,
+  Entity,
+  JoinColumn,
   OneToMany,
+  OneToOne,
+  PrimaryGeneratedColumn,
 } from 'typeorm';
-import { DesignOption } from './design-option.entity';
+import { Artwork } from './artwork.entity';
 
 @Entity('designs')
 export class Design {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ name: 'design_name' })
-  designName: string;
+  @Column()
+  name: string;
 
-  @Column({ type: 'json' })
-  templateJson: any;
+  // 1-1 với Product: Mỗi sản phẩm có một cấu trúc thiết kế mẫu
+  @OneToOne(() => Product)
+  @JoinColumn({ name: 'product_id' })
+  product: Product;
 
-  @OneToMany(() => DesignOption, (option) => option.design)
-  options: DesignOption[];
+  // 1-N với Artworks: Chứa các layer mặc định do Seller thiết lập
+  @OneToMany(() => Artwork, (artwork) => artwork.design, { cascade: true })
+  artworks: Artwork[];
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
-
-  @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: Date;
 }

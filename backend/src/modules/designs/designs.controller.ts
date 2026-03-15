@@ -2,110 +2,101 @@ import {
   Controller,
   Post,
   Body,
-  Get,
-  Param,
-  ParseIntPipe,
+  UseGuards,
+  Req,
   Patch,
+  Param,
+  Get,
+  ParseIntPipe,
   Query,
-  BadRequestException,
-  Delete,
 } from '@nestjs/common';
-import { DesignsService } from './designs.service';
-import { CreateDesignDto } from './dto/create-design.dto';
-import { CreateLinkDesignDto } from './dto/create-link-design.dto';
-import { UpdateDesignDto } from './dto/update-design.dto';
-import { UpdateDesignOptionsDto } from './dto/create-design-option.dto';
-import { GetActiveDesignDto } from './dto/get-active-design.dto';
+import { DesignService } from './designs.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { UserRole } from '../users/entities/user.entity';
+import { CreateDesignDto, UpdateMockupDto } from './dto/create-design.dto';
+import { CreatePrintAreaDto } from './dto/create-print-area.dto';
 
 @Controller('designs')
-export class DesignsController {
-  constructor(private readonly designsService: DesignsService) {}
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(UserRole.SELLER)
+export class DesignController {
+  constructor(private readonly designService: DesignService) {}
 
   @Post()
-  async create(@Body() createDesignDto: CreateDesignDto) {
-    const design = await this.designsService.create(createDesignDto);
-    return {
-      message: 'Tạo mẫu thiết kế mới thành công',
-      data: design,
-    };
+  async create(@Req() req: any, @Body() dto: CreateDesignDto) {
+    return this.designService.createDesign(req.user.id, dto);
   }
 
-  @Get()
-  async findAll() {
-    return await this.designsService.findAll();
-  }
-
-  @Get('variant/:id')
-  async getDesignByVariant(@Param('id', ParseIntPipe) variantId: number) {
-    if (!variantId) {
-      throw new BadRequestException('variantId query parameter is required');
-    }
-
-    const design = await this.designsService.getDesignByVariant(variantId);
-    return {
-      message: 'Lấy thiết kế theo biến thể thành công',
-      data: design,
-    };
-  }
-
-  // @Get('active')
-  // async getActiveDesign(@Query() query: GetActiveDesignDto) {
-  //   console.log('Query received:', query);
-  //   console.log('productId type:', typeof query.productId);
-  //   console.log('variantId type:', typeof query.variantId);
-  //   return this.designsService.getActiveDesign(
-  //     query.productId,
-  //     query.variantId,
-  //   );
-  // }
-
-  @Get(':id')
-  async findOne(@Param('id', ParseIntPipe) id: number) {
-    return await this.designsService.findOne(id);
-  }
-
-  @Post('link')
-  async createLink(@Body() dto: CreateLinkDesignDto) {
-    return await this.designsService.linkDesign(dto);
-  }
-
-  @Patch(':id')
-  async update(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() updateDesignDto: UpdateDesignDto,
+  @Patch('variant/:id/mockup')
+  async updateMockup(
+    @Req() req: any,
+    @Param('id', ParseIntPipe) variantId: number,
+    @Body() dto: UpdateMockupDto,
   ) {
-    const updatedData = await this.designsService.update(id, updateDesignDto);
-    return {
-      message: 'Cập nhật mẫu thiết kế thành công',
-      data: updatedData,
-    };
+    return this.designService.updateVariantMockup(req.user.id, variantId, dto);
   }
 
-  @Get(':id')
-  async getDesignDetail(@Param('id', ParseIntPipe) id: number) {
-    return this.designsService.findOne(id);
+  @Get('product/:productId')
+  async getByProduct(
+    @Req() req: any,
+    @Param('productId', ParseIntPipe) productId: number,
+  ) {
+    return this.designService.getDesignForSeller(req.user.id, productId);
   }
 
-  // @Post(':id/options')
-  // async updateOptions(
-  //   @Param('id', ParseIntPipe) id: number,
-  //   @Body() updateOptionsDto: UpdateDesignOptionsDto,
-  // ) {
-  //   return this.designsService.updateDesignOptions(id, updateOptionsDto);
-  // }
-
-  @Delete(':id')
-  async delete(@Param('id', ParseIntPipe) id: number) {
-    return await this.designsService.delete(id);
+  // API thêm Mockup cho Variant
+  @Post('variant/:variantId/mockup')
+  async addVariantMockup(
+    @Req() req: any,
+    @Param('variantId', ParseIntPipe) variantId: number,
+    @Body() dto: UpdateMockupDto,
+  ) {
+    return this.designService.addMockupToVariant(req.user.id, variantId, dto);
   }
 
-  @Delete('link/:id')
-  async deleteLink(@Param('id', ParseIntPipe) variantId: number) {
-    return await this.designsService.deleteLink(variantId);
+  // API thêm Mockup chung cho Sản phẩm
+  @Post('product/:productId/mockup')
+  async addProductMockup(
+    @Req() req: any,
+    @Param('productId', ParseIntPipe) productId: number,
+    @Body() dto: UpdateMockupDto,
+  ) {
+    return this.designService.addMockupToProduct(req.user.id, productId, dto);
   }
 
-  @Post('extract-layers')
-  async extractLayers(@Body('fileName') fileName: string) {
-    return await this.designsService.extractPsdLayersOnly(fileName);
+  // API thêm PrintArea cho Mockup (Dùng chung cho cả Mockup của Product và Variant)
+  @Patch('mockup/:mockupId/print-area')
+  @Roles(UserRole.SELLER)
+  async setPrintArea(
+    @Req() req: any,
+    @Param('mockupId', ParseIntPipe) mockupId: number,
+    @Body() dto: CreatePrintAreaDto,
+  ) {
+    const sellerId = req.user.id;
+    return this.designService.addPrintArea(sellerId, mockupId, dto);
+  }
+
+  @Get('product/:productId/preview')
+  @Roles(UserRole.SELLER, UserRole.ADMIN)
+  async getPreview(
+    @Req() req: any,
+    @Param('productId', ParseIntPipe) productId: number,
+  ) {
+    return this.designService.getDesignPreview(
+      req.user.id,
+      req.user.role,
+      productId,
+    );
+  }
+
+  @Get('admin/all')
+  @Roles(UserRole.ADMIN)
+  async adminGetAll(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+  ) {
+    return this.designService.adminGetAllDesigns(page, limit);
   }
 }

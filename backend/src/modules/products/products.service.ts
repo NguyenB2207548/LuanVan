@@ -3,7 +3,7 @@ import {
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
-import { Repository, DataSource, In, IsNull } from 'typeorm';
+import { Repository, DataSource, In, IsNull, Not } from 'typeorm';
 import { CreateProductDto } from './dto/create-product.dto';
 import { Product } from './entities/product.entity';
 import { Variant } from './entities/variant.entity';
@@ -15,6 +15,8 @@ import { User } from '../users/entities/user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { CreateVariantDto } from './dto/create-variant.dto';
+import { ProductSearchDto } from './dto/search-product.dto';
+import { Design } from '../designs/entities/design.entity';
 
 @Injectable()
 export class ProductsService {
@@ -24,6 +26,71 @@ export class ProductsService {
     @InjectRepository(Product)
     private productRepository: Repository<Product>,
   ) {}
+
+  async getPodDesignByProductId(productId: number) {
+    // 1. Kiểm tra sản phẩm có tồn tại không
+    const product = await this.dataSource.getRepository(Product).findOne({
+      where: { id: productId },
+    });
+
+    if (!product) throw new NotFoundException('Sản phẩm không tồn tại');
+
+    // 2. Lấy Design cùng các quan hệ liên quan
+    const designData = await this.dataSource.getRepository(Design).findOne({
+      where: { product: { id: productId } },
+      relations: [
+        'artworks', // Các layer JSON mặc định
+        'product',
+        'product.variants', // Lấy variants để map với mockups
+        'product.variants.mockup', // Lấy phôi ảnh
+        'product.variants.mockup.printArea', // Lấy tọa độ vùng in
+      ],
+      order: {
+        artworks: { order: 'ASC' }, // Sắp xếp layer theo thứ tự hiển thị
+      },
+    });
+
+    if (!designData) {
+      throw new NotFoundException(
+        'Sản phẩm này chưa được cấu hình thiết kế POD',
+      );
+    }
+
+    // 3. Chuẩn hóa dữ liệu trả về cho Frontend
+    return {
+      designId: designData.id,
+      productName: designData.product.productName,
+      // Danh sách các layer mặc định để vẽ lên Canvas
+      defaultArtworks: designData.artworks.map((art) => ({
+        id: art.id,
+        layers: JSON.parse(art.layersJson), // Parse string thành Object JSON
+        order: art.order,
+      })),
+      // Danh sách các tùy chọn phôi (Mockups) cho từng Variant
+      variantsMockups: designData.product.variants.map((variant) => ({
+        variantId: variant.id,
+        sku: variant.sku,
+        price: variant.price,
+        mockup: variant.mockup
+          ? {
+              url: variant.mockup.url,
+              printArea: variant.mockup.printArea
+                ? {
+                    x: variant.mockup.printArea.x,
+                    y: variant.mockup.printArea.y,
+                    width: variant.mockup.printArea.width,
+                    height: variant.mockup.printArea.height,
+                    // Thông số thực tế để tính toán file in sau này
+                    realWidthInch: variant.mockup.printArea.realWidthInch,
+                    realHeightInch: variant.mockup.printArea.realHeightInch,
+                    targetDpi: variant.mockup.printArea.targetDpi,
+                  }
+                : null,
+            }
+          : null,
+      })),
+    };
+  }
 
   async findAll(page: number = 1, limit: number = 10) {
     const skip = (page - 1) * limit;
@@ -121,6 +188,134 @@ export class ProductsService {
         lastPage: Math.ceil(total / limit),
       },
     };
+  }
+
+  /**
+   * Lấy 10 sản phẩm mới nhất
+   */
+  async getLatestProducts() {
+    return await this.dataSource.getRepository(Product).find({
+      relations: ['images', 'variants'],
+      where: {
+        images: { isPrimary: true },
+      },
+      order: { createdAt: 'DESC' },
+      take: 10,
+    });
+  }
+
+  /**
+   * Lấy 10 sản phẩm thịnh hành (Bán chạy nhất)
+   */
+  async getTrendingProducts() {
+    return await this.dataSource.manager
+      .createQueryBuilder(Product, 'product')
+      .leftJoinAndSelect(
+        'product.images',
+        'image',
+        'image.isPrimary = :isPrimary',
+        { isPrimary: true },
+      )
+      .leftJoinAndSelect('product.variants', 'variant')
+      // Join với OrderItem để đếm số lượng bán
+      .leftJoin('variant.orderItems', 'orderItem')
+      .select([
+        'product.id',
+        'product.productName',
+        'product.description',
+        'image.url',
+      ])
+      // Tính tổng số lượng bán ra
+      .addSelect('SUM(COALESCE(orderItem.quantity, 0))', 'totalSold')
+      .groupBy('product.id')
+      .addGroupBy('image.id')
+      .orderBy('totalSold', 'DESC')
+      .limit(10)
+      .getMany();
+  }
+
+  async searchProducts(query: ProductSearchDto) {
+    const {
+      keyword,
+      categoryId,
+      minPrice,
+      maxPrice,
+      page = 1,
+      limit = 12,
+    } = query;
+    const skip = (page - 1) * limit;
+
+    const queryBuilder = this.dataSource
+      .getRepository(Product)
+      .createQueryBuilder('product')
+      .leftJoinAndSelect(
+        'product.images',
+        'image',
+        'image.isPrimary = :isPrimary',
+        { isPrimary: true },
+      )
+      .leftJoinAndSelect('product.categories', 'category')
+      .leftJoinAndSelect('product.variants', 'variant');
+
+    // 1. Tìm kiếm theo tên (Keyword)
+    if (keyword) {
+      queryBuilder.andWhere('product.productName LIKE :keyword', {
+        keyword: `%${keyword}%`,
+      });
+    }
+
+    // 2. Lọc theo danh mục
+    if (categoryId) {
+      queryBuilder.andWhere('category.id = :categoryId', { categoryId });
+    }
+
+    // 3. Lọc theo khoảng giá (Dựa trên giá của các biến thể)
+    if (minPrice !== undefined) {
+      queryBuilder.andWhere('variant.price >= :minPrice', { minPrice });
+    }
+    if (maxPrice !== undefined) {
+      queryBuilder.andWhere('variant.price <= :maxPrice', { maxPrice });
+    }
+
+    // 4. Phân trang & Trả về kết quả
+    queryBuilder.orderBy('product.createdAt', 'DESC').skip(skip).take(limit);
+
+    const [items, total] = await queryBuilder.getManyAndCount();
+
+    return {
+      data: items,
+      meta: {
+        total,
+        page,
+        lastPage: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async getRelatedProducts(
+    productId: number,
+    categoryId: number,
+    limit: number = 4,
+  ) {
+    return await this.dataSource.getRepository(Product).find({
+      where: {
+        categories: { id: categoryId },
+        id: Not(productId),
+      },
+      relations: ['images', 'variants'],
+      // Chỉ lấy ảnh chính để hiển thị slider
+      join: {
+        alias: 'product',
+        leftJoinAndSelect: {
+          images: 'product.images',
+        },
+      },
+      // Filter ảnh chính ở tầng ứng dụng hoặc dùng QueryBuilder để tối ưu hơn
+      order: {
+        createdAt: 'DESC',
+      },
+      take: limit,
+    });
   }
 
   async create(createProductDto: CreateProductDto, sellerId: number) {

@@ -16,15 +16,54 @@ import { MomoService } from './momo.service';
 
 @Injectable()
 export class OrdersService {
-  constructor(
-    private readonly dataSource: DataSource,
-    private momoService: MomoService,
-  ) {}
+  orderRepository: any;
+  // findByOrderNumber(orderNumber: any) {
+  //   throw new Error('Method not implemented.');
+  // }
+  dataSource: any;
+  momoService: any;
+  async getOrderItemWithDesign(orderItemId: number) {
+    const orderItem = await this.dataSource.getRepository(OrderItem).findOne({
+      where: { id: orderItemId },
+      relations: ['variant', 'variant.mockup', 'variant.mockup.printArea'],
+    });
 
-  async findByOrderNumber(orderNumber: string) {
-    return await this.dataSource.manager.findOne(Order, {
-      where: { orderNumber },
-      relations: ['user', 'seller'],
+    if (!orderItem) {
+      throw new NotFoundException('Không tìm thấy chi tiết đơn hàng');
+    }
+
+    return orderItem; // QUAN TRỌNG: Phải có dòng return này
+  }
+
+  async getOrderDetails(orderId: number, user: { id: number; role: string }) {
+    const order = await this.orderRepository.findOne({
+      where: { id: orderId },
+      relations: [
+        'user',
+        'seller',
+        'items',
+        'items.variant',
+        'items.variant.product',
+      ],
+    });
+
+    if (!order) throw new NotFoundException('Đơn hàng không tồn tại');
+
+    // Kiểm tra quyền truy cập (như đã thảo luận ở các bước trước)
+    const canAccess =
+      user.role === 'admin' ||
+      order.user.id === user.id ||
+      order.seller.id === user.id;
+
+    if (!canAccess)
+      throw new ForbiddenException('Bạn không có quyền xem đơn hàng này');
+
+    return order;
+  }
+
+  async findByOrderNumber(orderNumber: string): Promise<Order | null> {
+    return await this.orderRepository.findOne({
+      where: { orderNumber: orderNumber }, // Đảm bảo field name đúng với entity của bạn
     });
   }
 
@@ -209,6 +248,50 @@ export class OrdersService {
     });
   }
 
+  async shipperFailOrder(orderId: number, shipperId: number, reason: string) {
+    return await this.dataSource.transaction(async (manager) => {
+      // 1. Tìm đơn hàng gắn với Shipper này và đang trong quá trình giao
+      const order = await manager.findOne(Order, {
+        where: {
+          id: orderId,
+          shipper: { id: shipperId },
+          status: 'shipping',
+        },
+        relations: ['items', 'items.variant'],
+      });
+
+      if (!order) {
+        throw new NotFoundException(
+          'Không tìm thấy đơn hàng đang giao của bạn',
+        );
+      }
+
+      // 2. Hoàn lại số lượng vào kho (Restock)
+      for (const item of order.items) {
+        if (item.variant) {
+          item.variant.stock += item.quantity;
+          await manager.save(Variant, item.variant);
+        }
+      }
+
+      // 3. Cập nhật trạng thái đơn hàng
+      order.status = 'failed';
+      // order.cancelReason = reason; // Bạn nên thêm field này vào Entity Order để lưu lý do bùng hàng
+
+      // Nếu là đơn MoMo đã thanh toán, có thể cần đánh dấu để Admin hoàn tiền (Refund)
+      if (order.paymentStatus === 'paid') {
+        order.paymentStatus = 'refund_pending';
+      }
+
+      const savedOrder = await manager.save(Order, order);
+
+      return {
+        message: 'Đã xác nhận giao hàng thất bại và hoàn kho thành công.',
+        data: savedOrder,
+      };
+    });
+  }
+
   async getAvailableOrdersForShipper() {
     return await this.dataSource.manager.find(Order, {
       where: {
@@ -327,39 +410,5 @@ export class OrdersService {
         lastPage: Math.ceil(total / limit),
       },
     };
-  }
-  async getOrderById(orderId: number, actor?: { id: number; role: string }) {
-    const order = await this.dataSource.manager.findOne(Order, {
-      where: { id: orderId },
-      relations: [
-        'user',
-        'seller',
-        'shipper',
-        'items',
-        'items.variant',
-        'items.variant.product',
-        'items.variant.images',
-      ],
-    });
-
-    if (!order) {
-      throw new NotFoundException(`Không tìm thấy đơn hàng #${orderId}`);
-    }
-
-    if (actor) {
-      const isOwner =
-        (actor.role === 'user' && order.user.id === actor.id) ||
-        (actor.role === 'seller' && order.seller.id === actor.id) ||
-        (actor.role === 'shipper' && order.shipper?.id === actor.id) ||
-        actor.role === 'admin';
-
-      if (!isOwner) {
-        throw new ForbiddenException(
-          'Bạn không có quyền xem chi tiết đơn hàng này',
-        );
-      }
-    }
-
-    return order;
   }
 }

@@ -10,6 +10,7 @@ import {
   ManyToMany,
   JoinTable,
   DeleteDateColumn,
+  OneToOne,
 } from 'typeorm';
 import { Category } from '../../categorys/entities/category.entity';
 import { Variant } from './variant.entity';
@@ -17,6 +18,8 @@ import { Attribute } from './attribute.entity';
 import { Review } from 'src/modules/reviews/entities/review.entity';
 import { User } from '../../users/entities/user.entity';
 import { Image } from '../../images/entities/image.entity';
+import { Design } from 'src/modules/designs/entities/design.entity';
+import { Mockup } from 'src/modules/designs/entities/mockup.entity';
 
 @Entity('products')
 export class Product {
@@ -67,6 +70,12 @@ export class Product {
 
   @OneToMany(() => Review, (review) => review.product)
   reviews: Review[];
+
+  @OneToOne(() => Design, (design) => design.product)
+  design: Design;
+
+  @OneToOne(() => Mockup, (mockup) => mockup.variant)
+  mockup: Mockup;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

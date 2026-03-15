@@ -1,11 +1,62 @@
-import { IsNotEmpty, IsString, IsObject, IsOptional } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsNumber,
+  IsString,
+  IsArray,
+  ValidateNested,
+  IsOptional,
+} from 'class-validator';
+import { Type } from 'class-transformer';
+
+class ArtworkDto {
+  @IsNotEmpty()
+  @IsString()
+  layersJson: string;
+
+  @IsOptional()
+  @IsNumber()
+  order: number;
+}
 
 export class CreateDesignDto {
-  @IsString()
-  @IsNotEmpty({ message: 'Tên mẫu thiết kế không được để trống' })
-  designName: string;
+  @IsNotEmpty()
+  @IsNumber()
+  productId: number;
 
-  @IsObject()
-  @IsNotEmpty({ message: 'Dữ liệu template JSON không được để trống' })
-  templateJson: any;
+  @IsNotEmpty()
+  @IsString()
+  name: string;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ArtworkDto)
+  artworks: ArtworkDto[];
+}
+
+export class UpdateMockupDto {
+  @IsNotEmpty()
+  @IsString()
+  url: string;
+
+  @IsNotEmpty()
+  @IsNumber()
+  x: number;
+
+  @IsNotEmpty()
+  @IsNumber()
+  y: number;
+
+  @IsNotEmpty()
+  @IsNumber()
+  width: number;
+
+  @IsNotEmpty()
+  @IsNumber()
+  height: number;
+
+  @IsNumber()
+  realWidthInch: number;
+
+  @IsNumber()
+  realHeightInch: number;
 }

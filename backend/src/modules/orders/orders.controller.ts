@@ -10,6 +10,8 @@ import {
   HttpStatus,
   Res,
   Request,
+  Req,
+  BadRequestException,
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { OrdersService } from './orders.service';
@@ -22,6 +24,7 @@ import { UserRole } from '../users/entities/user.entity';
 @Controller('orders')
 @UseGuards(JwtAuthGuard, RolesGuard) // Áp dụng bảo vệ cho toàn bộ controller
 export class OrdersController {
+  exportService: any;
   constructor(private readonly ordersService: OrdersService) {}
 
   // --- CUSTOMER (Người mua) ---
@@ -80,9 +83,35 @@ export class OrdersController {
 
   // --- CHUNG / ADMIN ---
 
+  // @Get(':id')
+  // getOrderById(@Param('id', ParseIntPipe) orderId: number) {
+  //   return this.ordersService.getOrderById(orderId);
+  // }
+
   @Get(':id')
-  getOrderById(@Param('id', ParseIntPipe) orderId: number) {
-    return this.ordersService.getOrderById(orderId);
+  @UseGuards(JwtAuthGuard)
+  async findOne(@Param('id') id: number, @Req() req: any) {
+    return this.ordersService.getOrderDetails(id, req.user);
+  }
+
+  @Patch(':id/cancel')
+  @Roles(UserRole.USER, UserRole.ADMIN)
+  async cancelOrder(
+    @Param('id', ParseIntPipe) orderId: number,
+    @Request() req,
+    @Body('reason') reason: string,
+  ) {
+    return this.ordersService.cancelOrder(orderId, req.user.id, req.user.role);
+  }
+
+  @Patch(':id/shipper-fail')
+  @Roles(UserRole.SHIPPER)
+  async failOrder(
+    @Param('id', ParseIntPipe) orderId: number,
+    @Request() req,
+    @Body('reason') reason: string,
+  ) {
+    return this.ordersService.shipperFailOrder(orderId, req.user.id, reason);
   }
 
   @Post('momo-ipn')
@@ -97,5 +126,39 @@ export class OrdersController {
       }
     }
     return res.status(HttpStatus.NO_CONTENT).send();
+  }
+
+  @Get(':id/export-print-file')
+  @Roles(UserRole.ADMIN, UserRole.SELLER)
+  async exportPrintFile(
+    @Param('id', ParseIntPipe) orderItemId: number,
+    @Res() res: Response,
+  ) {
+    // 1. Lấy dữ liệu (Lúc này orderItem sẽ có kiểu là OrderItem entity)
+    const orderItem =
+      await this.ordersService.getOrderItemWithDesign(orderItemId);
+
+    // 2. Kiểm tra dữ liệu cấu hình in
+    const printArea = orderItem.variant?.mockup?.printArea;
+
+    if (!printArea || !orderItem.customizedDesignJson) {
+      throw new BadRequestException(
+        'Đơn hàng này thiếu thông tin cấu hình in ấn (Mockup/PrintArea/Json)',
+      );
+    }
+
+    // 3. Gọi service render
+    const imageBuffer = await this.exportService.renderHighResImage(
+      orderItem.customizedDesignJson,
+      printArea,
+    );
+
+    // 4. Trả về file
+    res.setHeader('Content-Type', 'image/png');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename=print-file-${orderItemId}.png`,
+    );
+    res.send(imageBuffer);
   }
 }
