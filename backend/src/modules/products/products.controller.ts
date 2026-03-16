@@ -27,6 +27,7 @@ export class ProductsController {
   findAll() {
     return this.productsService.findAll();
   }
+
   @Get('seller')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.SELLER, UserRole.ADMIN)
@@ -60,11 +61,6 @@ export class ProductsController {
   async getListForDesigner(@Req() req: any) {
     return this.productsService.findAllForDesigner(req.user.id);
   }
-
-  // @Get(':productId/pod-config')
-  // async getPodConfig(@Param('productId', ParseIntPipe) productId: number) {
-  //   return this.productsService.getPodDesignByProductId(productId);
-  // }
 
   @Get(':id')
   async findOne(@Param('id', ParseIntPipe) id: number) {

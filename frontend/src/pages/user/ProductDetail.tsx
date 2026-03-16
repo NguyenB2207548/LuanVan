@@ -5,24 +5,23 @@ import type { Product, Variant } from "../../types/product";
 import { Loader2 } from "lucide-react";
 import ImageOptionSelector from "../../components/user/ImageOptionSelector";
 import DesignControls from "../../components/user/DesignControls";
-import LivePreviewCanvas from "../../components/common/DesignerCanvas";
+import DesignerCanvas from "../../components/common/DesignerCanvas";
 
 const BASE_URL = "http://localhost:3000";
 
 const ProductDetail = () => {
   const { id } = useParams();
-  const [product, setProduct] = useState<Product | null>(null);
-  const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null);
+  const [product, setProduct] = useState<any>(null);
+  const [selectedVariant, setSelectedVariant] = useState<any>(null);
 
   const [activeImage, setActiveImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
 
   const [designData, setDesignData] = useState<any>(null);
-  const [designChoices, setDesignChoices] = useState<Record<number, any>>({});
+  const [designChoices, setDesignChoices] = useState<Record<string, any>>({});
 
   const [showPreview, setShowPreview] = useState(false);
-
   const [isAddingToCart, setIsAddingToCart] = useState(false);
 
   const handleAddToCart = async () => {
@@ -30,106 +29,68 @@ const ProductDetail = () => {
       alert("Vui lòng chọn phân loại sản phẩm trước khi thêm vào giỏ hàng.");
       return;
     }
-
     setIsAddingToCart(true);
     try {
-      // Chuẩn bị payload khớp chuẩn với AddToCartDto ở Backend
       const payload = {
         variantId: selectedVariant.id,
         quantity: quantity,
-        // Chỉ gửi designChoices nếu người dùng có tương tác thiết kế cá nhân hóa
         customizedDesignJson:
           Object.keys(designChoices).length > 0 ? designChoices : null,
       };
-
       await axiosClient.post("/carts", payload);
-
       alert("Thêm vào giỏ hàng thành công!");
-
-      // TODO: Nếu bạn có dùng Zustand/Redux để quản lý số lượng giỏ hàng trên Header thì gọi action cập nhật ở đây.
     } catch (error: any) {
-      console.error("Lỗi thêm vào giỏ hàng:", error);
-
-      // Bắt lỗi trực tiếp từ NestJS (Ví dụ: Lỗi không đủ tồn kho, Lỗi chưa đăng nhập)
-      const errorMessage =
-        error.response?.data?.message || "Có lỗi xảy ra. Vui lòng thử lại!";
-
-      // Nếu Backend trả về mảng lỗi (từ class-validator), lấy lỗi đầu tiên
-      if (Array.isArray(errorMessage)) {
-        alert(errorMessage[0]);
-      } else {
-        alert(errorMessage);
-      }
+      alert(error.response?.data?.message || "Có lỗi xảy ra");
     } finally {
       setIsAddingToCart(false);
     }
   };
 
+  // 1. Khởi tạo dữ liệu
   useEffect(() => {
-    const fetchDesign = async () => {
-      if (!selectedVariant?.id) {
-        setDesignData(null);
-        return;
-      }
-
+    const fetchProductAndDesign = async () => {
       try {
-        const response = await axiosClient.get(
-          `/designs/variant/${selectedVariant.id}`,
-        );
-        if (response.data && response.data.data) {
-          const design = response.data.data;
-          setDesignData(design);
-
-          const initialChoices: Record<string, any> = {};
-
-          if (design.templateJson?.details) {
-            design.templateJson.details.forEach((layer: any) => {
-              if (layer.type === "text" && layer.defaultValue) {
-                initialChoices[layer.id] = layer.defaultValue;
-              }
-
-              if (
-                (layer.type === "dynamic_image" || layer.type === "group") &&
-                layer.options?.length > 0
-              ) {
-                initialChoices[layer.id] = layer.options[0].id;
-              }
-
-              if (layer.type === "dynamic_text" && layer.options?.length > 0) {
-                initialChoices[layer.id] = layer.options[0].name;
-              }
-            });
-          }
-
-          setDesignChoices(initialChoices);
-        } else {
-          setDesignData(null);
-        }
-      } catch (error) {
-        console.error("Lỗi khi tải dữ liệu thiết kế:", error);
-        setDesignData(null);
-      }
-    };
-
-    fetchDesign();
-  }, [selectedVariant]);
-
-  useEffect(() => {
-    const fetchProduct = async () => {
-      try {
+        setLoading(true);
         const response = await axiosClient.get(`/products/${id}`);
         const data = response.data;
         setProduct(data);
+
         if (data?.variants?.length > 0) {
-          const firstVar = data.variants[0];
-          setSelectedVariant(firstVar);
-          if (firstVar.images?.length > 0) {
-            setActiveImage(firstVar.images[0].url);
-          } else if (data.images?.length > 0) {
-            setActiveImage(data.images[0].url);
-          }
-        } else if (data.images?.length > 0) {
-          setActiveImage(data.images[0].url);
+          const firstVariant = data.variants[0];
+          setSelectedVariant(firstVariant);
+
+          // Mặc định hiện ảnh chính (Primary)
+          const primaryImg =
+            data.images?.find((img: any) => img.isPrimary)?.url ||
+            data.images?.[0]?.url ||
+            firstVariant.mockup?.url;
+
+          setActiveImage(primaryImg);
+        }
+
+        if (data.design && data.design.artwork) {
+          const artwork = data.design.artwork;
+          setDesignData(artwork);
+
+          const initialChoices: Record<string, any> = {};
+          const layers = artwork.layersJson?.details || [];
+
+          layers.forEach((layer: any) => {
+            if (layer.type === "text") {
+              initialChoices[layer.id] = layer.text;
+            }
+            if (
+              (layer.type === "dynamic_image" || layer.type === "group") &&
+              layer.options?.length > 0
+            ) {
+              const defaultOpt =
+                layer.options.find(
+                  (o: any) => o.image_url === layer.image_url,
+                ) || layer.options[0];
+              initialChoices[layer.id] = defaultOpt.id;
+            }
+          });
+          setDesignChoices(initialChoices);
         }
       } catch (error) {
         console.error("Error:", error);
@@ -137,27 +98,38 @@ const ProductDetail = () => {
         setLoading(false);
       }
     };
-    fetchProduct();
+    fetchProductAndDesign();
   }, [id]);
 
-  useEffect(() => {
-    if (selectedVariant?.images && selectedVariant.images.length > 0) {
-      setActiveImage(selectedVariant.images[0].url);
-    } else if (product?.images && product.images.length > 0) {
-      setActiveImage(product.images[0].url);
+  // 2. Logic khi click chọn Variant (Hiện ảnh mockup/variant, tắt Preview)
+  const handleVariantSelect = (variantId: any) => {
+    const variant = product.variants.find((v: any) => v.id === variantId);
+    if (variant) {
+      setSelectedVariant(variant);
+      setShowPreview(false); // Tắt preview để quay về chế độ xem ảnh tĩnh
+      const variantImg =
+        variant.mockup?.url ||
+        (variant.images?.length > 0 ? variant.images[0].url : activeImage);
+      setActiveImage(variantImg);
     }
-  }, [selectedVariant, product]);
-
-  const getPrice = () => {
-    if (!selectedVariant?.prices || selectedVariant.prices.length === 0)
-      return 0;
-    return parseFloat(selectedVariant.prices[0].amount.toString());
   };
 
-  const displayImages =
-    selectedVariant?.images && selectedVariant.images.length > 0
-      ? selectedVariant.images
-      : product?.images || [];
+  // Logic khi click vào ảnh nhỏ bên trái
+  const handleThumbnailClick = (imgUrl: string) => {
+    setActiveImage(imgUrl);
+    setShowPreview(false); // Tắt preview để hiện ảnh vừa chọn
+  };
+
+  // 3. Tự động bật Canvas khi tương tác thiết kế
+  const handleDesignChoicesChange = (newChoices: any) => {
+    setDesignChoices(newChoices);
+    if (!showPreview) setShowPreview(true);
+  };
+
+  const getPrice = () =>
+    selectedVariant?.price || product?.variants?.[0]?.price || 0;
+
+  const displayImages = product?.images || [];
 
   if (loading)
     return (
@@ -165,7 +137,6 @@ const ProductDetail = () => {
         <Loader2 className="animate-spin text-pink-500" size={48} />
       </div>
     );
-
   if (!product)
     return (
       <div className="text-center py-20 font-medium">Product not found.</div>
@@ -176,171 +147,177 @@ const ProductDetail = () => {
       <div className="flex flex-col md:flex-row gap-10">
         <div className="w-full lg:w-1/2">
           <div className="sticky top-8 flex gap-4">
+            {/* THUMBNAILS LIST */}
             <div className="flex flex-col gap-2 w-20 overflow-y-auto hide-scrollbar">
-              {/* NÚT THUMBNAIL TÙY CHỈNH: LIVE PREVIEW */}
-              {designData?.templateJson && (
+              {product.design && (
                 <div
                   onClick={() => setShowPreview(true)}
-                  className={`border-2 rounded p-1 cursor-pointer transition-all flex flex-col items-center justify-center text-center h-24 bg-white ${
-                    showPreview
-                      ? "border-[#ff4d6d]"
-                      : "border-gray-800 hover:border-gray-500"
-                  }`}
+                  className={`border-2 rounded p-1 cursor-pointer h-24 bg-white flex flex-col items-center justify-center text-center transition-all ${showPreview ? "border-[#ff4d6d]" : "border-gray-300 hover:border-gray-500"}`}
                 >
-                  <span className="text-[11px] font-bold text-[#ff4d6d] uppercase">
+                  <span className="text-[10px] font-black text-[#ff4d6d] uppercase">
                     Live
                     <br />
                     Preview
                   </span>
                 </div>
               )}
-
-              {/* DANH SÁCH ẢNH VARIANT GỐC */}
-              {displayImages.map((img, idx) => (
+              {displayImages.map((img: any, idx: number) => (
                 <div
                   key={idx}
-                  onClick={() => {
-                    setActiveImage(img.url);
-                    setShowPreview(false);
-                  }}
-                  className={`border rounded p-1 cursor-pointer transition-all ${
-                    !showPreview && activeImage === img.url
-                      ? "border-red-400 ring-1 ring-red-400"
-                      : "border-gray-200 hover:border-red-300"
-                  }`}
+                  onClick={() => handleThumbnailClick(img.url)} // SỬA TẠI ĐÂY: Dùng hàm tập trung
+                  className={`border rounded p-1 cursor-pointer transition-all ${!showPreview && activeImage === img.url ? "border-red-400 ring-1 ring-red-400" : "border-gray-200"}`}
                 >
                   <img
-                    src={`${BASE_URL}${img.url}`}
-                    alt="thumb"
+                    src={img.url ? `${BASE_URL}${img.url}` : undefined}
                     className="w-full object-cover aspect-square rounded-sm"
+                    alt="thumb"
                   />
                 </div>
               ))}
             </div>
 
-            {/* MAIN IMAGE DISPLAY */}
-            <div className="flex-1 bg-white border border-gray-100 relative group rounded-lg overflow-hidden flex items-center justify-center">
-              <img
-                src={activeImage ? `${BASE_URL}${activeImage}` : ""}
-                alt="placeholder constraint"
-                className={`w-full h-auto object-contain ${showPreview && designData?.templateJson ? "opacity-0 invisible" : "block transition-transform duration-500 group-hover:scale-105"}`}
-              />
+            {/* MAIN DISPLAY AREA */}
+            <div className="flex-1 bg-white border border-gray-100 relative rounded-lg overflow-hidden flex items-center justify-center min-h-[500px]">
+              {/* Ảnh sản phẩm thông thường */}
+              {!showPreview && activeImage && (
+                <img
+                  src={`${BASE_URL}${activeImage}`}
+                  className="w-full h-auto object-contain"
+                  alt="Product"
+                />
+              )}
 
-              {showPreview && designData?.templateJson && (
-                <>
-                  <div className="absolute top-3 left-3 bg-white/90 border border-red-200 px-2 py-1 text-[10px] text-red-500 font-bold uppercase z-20 shadow-sm rounded">
-                    Live Preview
+              {/* Designer Canvas (Live Preview) */}
+              {showPreview && product.design?.artwork?.layersJson && (
+                <div className="absolute inset-0 flex items-center justify-center bg-white z-10">
+                  <div className="absolute top-3 left-3 bg-white/90 border border-red-200 px-2 py-1 text-[10px] text-red-500 font-bold uppercase z-20 rounded shadow-sm">
+                    Personalized Preview
                   </div>
+                  <DesignerCanvas
+                    backgroundUrl={
+                      selectedVariant?.mockup?.url ||
+                      product.design.artwork.layersJson.mockup
+                    }
+                    layers={product.design.artwork.layersJson.details.map(
+                      (layer: any) => {
+                        if (layer.type === "text") {
+                          return {
+                            ...layer,
+                            text: designChoices[layer.id] || layer.text,
+                          };
+                        }
+                        if (
+                          layer.type === "dynamic_image" ||
+                          layer.type === "group"
+                        ) {
+                          const selectedOptionId = designChoices[layer.id];
+                          const selectedOpt = layer.options?.find(
+                            (o: any) =>
+                              String(o.id) === String(selectedOptionId),
+                          );
 
-                  <div className="absolute inset-0 p-4 flex items-center justify-center">
-                    <LivePreviewCanvas
-                      designData={designData}
-                      designChoices={designChoices}
-                      baseUrl={BASE_URL}
-                    />
-                  </div>
-                </>
+                          return {
+                            ...layer,
+                            image_url: selectedOpt
+                              ? selectedOpt.image_url
+                              : layer.image_url,
+                            url: selectedOpt
+                              ? selectedOpt.image_url
+                              : layer.image_url,
+                          };
+                        }
+                        return layer;
+                      },
+                    )}
+                    virtualPrintArea={{
+                      ...(selectedVariant?.mockup?.printArea ||
+                        product.design.artwork.layersJson.printArea),
+                      visible: true,
+                    }}
+                    selectedId={null}
+                    setSelectedId={() => {}}
+                    mode="client"
+                    maxWidth={500}
+                  />
+                </div>
               )}
             </div>
           </div>
         </div>
 
+        {/* INFO & CONTROLS */}
         <div className="w-full lg:w-1/2 lg:pl-8">
           <div className="mb-8">
-            <h1 className="text-xl lg:text-[32px] font-normal text-gray-800 leading-tight mb-4 block">
+            <h1 className="text-xl lg:text-[32px] font-normal text-gray-800 leading-tight mb-4">
               {product.productName}
             </h1>
-            <div className="flex items-center gap-3">
-              <span className="text-[#ff4d6d] text-2xl lg:text-3xl font-bold">
-                {getPrice().toLocaleString()} VND
-              </span>
-            </div>
+            <span className="text-[#ff4d6d] text-2xl lg:text-3xl font-bold">
+              {getPrice().toLocaleString()} VND
+            </span>
           </div>
 
-          {/* BIẾN THỂ VÀ THIẾT KẾ */}
           <div className="mt-10">
             <ImageOptionSelector
               label="Choose a product type"
               selectedId={selectedVariant?.id}
-              onSelect={(id) => {
-                const variant = product.variants.find((v) => v.id === id);
-                if (variant) setSelectedVariant(variant);
-              }}
-              options={product.variants.map((v) => ({
+              onSelect={handleVariantSelect}
+              options={product.variants.map((v: any) => ({
                 id: v.id,
-                image: v.images?.[0]?.url
-                  ? `${BASE_URL}${v.images[0].url}`
-                  : `${BASE_URL}${product.images?.[0]?.url}`,
+                image: v.mockup?.url
+                  ? `${BASE_URL}${v.mockup.url}`
+                  : product.images?.[0]?.url
+                    ? `${BASE_URL}${product.images[0].url}`
+                    : null,
                 title: v.attributeValues
                   ?.map((av: any) => av.valueName)
                   .join(" / "),
               }))}
             />
 
-            {/* Personalized Controls */}
             <DesignControls
               designData={designData}
               designChoices={designChoices}
-              setDesignChoices={setDesignChoices}
+              setDesignChoices={handleDesignChoicesChange}
               setShowPreview={setShowPreview}
               baseUrl={BASE_URL}
             />
           </div>
-          {/* THÊM VÀO GIỎ HÀNG */}
-          <div className="mt-8 flex flex-col gap-4">
+
+          <div className="mt-8">
             <div className="flex items-center gap-4">
               <span className="font-semibold text-gray-700">Quantity:</span>
               <div className="flex items-center border border-gray-300 rounded-md">
                 <button
-                  className="px-4 py-2 hover:bg-gray-100 border-r border-gray-300 transition-colors"
+                  className="px-4 py-2 hover:bg-gray-100"
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
                 >
                   −
                 </button>
                 <input
                   type="number"
-                  className="w-12 text-center focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  className="w-12 text-center outline-none"
                   value={quantity}
                   readOnly
                 />
                 <button
-                  className="px-4 py-2 hover:bg-gray-100 border-l border-gray-300 transition-colors"
+                  className="px-4 py-2 hover:bg-gray-100"
                   onClick={() => setQuantity(quantity + 1)}
                 >
                   +
                 </button>
               </div>
             </div>
-            <div className="mt-6">
-              <button
-                onClick={handleAddToCart}
-                disabled={isAddingToCart}
-                className="w-full bg-[#ff4d6d] text-white font-bold py-4 rounded-full hover:bg-[#e63958] hover:shadow-xl transition-all duration-300 uppercase tracking-widest text-sm flex items-center justify-center gap-2 group disabled:opacity-70 disabled:cursor-not-allowed"
-              >
-                {isAddingToCart ? (
-                  <Loader2 className="animate-spin w-5 h-5" />
-                ) : (
-                  <svg
-                    className="w-5 h-5 transition-transform group-hover:-translate-y-1"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
-                    />
-                  </svg>
-                )}
-                {isAddingToCart ? "Đang thêm..." : "Add to cart"}
-              </button>
-
-              <p className="text-center text-xs text-gray-500 mt-3 italic">
-                Guaranteed safe & secure checkout
-              </p>
-            </div>
+            <button
+              onClick={handleAddToCart}
+              disabled={isAddingToCart}
+              className="w-full mt-6 bg-[#ff4d6d] text-white font-bold py-4 rounded-full hover:shadow-xl transition-all uppercase tracking-widest text-sm flex items-center justify-center gap-2"
+            >
+              {isAddingToCart ? (
+                <Loader2 className="animate-spin w-5 h-5" />
+              ) : (
+                "Add to cart"
+              )}
+            </button>
           </div>
         </div>
       </div>

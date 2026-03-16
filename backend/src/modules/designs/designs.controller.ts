@@ -96,26 +96,11 @@ export class DesignController {
     return this.designService.createDesign(req.user.id, dto);
   }
 
-  @Get('product/:productId')
-  async getByProduct(
-    @Req() req: any,
-    @Param('productId', ParseIntPipe) productId: number,
-  ) {
-    return this.designService.getDesignForSeller(req.user.id, productId);
+  @Get('seller/list')
+  @UseGuards(JwtAuthGuard)
+  async getSellerDesignList(@Req() req: any) {
+    return this.designService.getDesignsBySeller(req.user.id);
   }
-
-  // @Get('product/:productId/preview')
-  // @Roles(UserRole.SELLER, UserRole.ADMIN)
-  // async getPreview(
-  //   @Req() req: any,
-  //   @Param('productId', ParseIntPipe) productId: number,
-  // ) {
-  //   return this.designService.getDesignPreview(
-  //     req.user.id,
-  //     req.user.role,
-  //     productId,
-  //   );
-  // }
 
   @Get('admin/all')
   @Roles(UserRole.ADMIN)

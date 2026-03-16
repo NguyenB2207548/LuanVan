@@ -19,8 +19,8 @@ export class Artwork {
   @Column({ name: 'artwork_name', length: 255, nullable: true })
   artworkName: string;
 
-  @Column({ type: 'text', comment: 'Lưu trữ JSON chi tiết các layer' })
-  layersJson: string;
+  @Column({ type: 'json' })
+  layersJson: any;
 
   @ManyToOne(() => User, (user) => user.artworks, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'seller_id' })

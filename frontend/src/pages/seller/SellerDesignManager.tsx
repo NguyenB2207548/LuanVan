@@ -53,7 +53,7 @@ const SellerDesignManager = () => {
   const fetchMergedDesigns = async () => {
     try {
       setLoading(true);
-      const res = await axiosClient.get("/merged-products");
+      const res = await axiosClient.get("/designs/seller/list");
       setMergedDesigns(res.data || []);
     } catch (err) {
       console.error("Lỗi khi tải danh sách sản phẩm gộp", err);
@@ -90,7 +90,7 @@ const SellerDesignManager = () => {
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
             <Box className="text-blue-600" size={26} />
-            Quản lý Sản phẩm đã gộp
+            Quản lý thiết kế
           </h1>
         </div>
 
@@ -111,7 +111,7 @@ const SellerDesignManager = () => {
           </div>
           <input
             type="text"
-            placeholder="Tìm theo tên sản phẩm gộp..."
+            placeholder="Tìm theo tên thiết kế"
             className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -149,7 +149,7 @@ const SellerDesignManager = () => {
         <div className="bg-white border border-gray-200 rounded-lg p-12 text-center">
           <ImageIcon size={48} className="mx-auto text-gray-200 mb-4" />
           <p className="text-gray-500 text-sm font-medium">
-            Chưa có sản phẩm gộp nào.
+            Chưa có thiết kế nào.
           </p>
         </div>
       ) : viewMode === "grid" ? (

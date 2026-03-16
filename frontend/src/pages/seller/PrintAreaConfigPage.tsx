@@ -1,42 +1,47 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import axiosClient from "@/api/axiosClient";
 import DesignerCanvas from "../../components/common/DesignerCanvas";
-import {
-  Save,
-  RotateCcw,
-  ArrowLeft,
-  Info,
-  Maximize,
-  Loader2,
-  CheckCircle2,
-} from "lucide-react";
+import { Save, RotateCcw, ArrowLeft, Maximize, Loader2 } from "lucide-react";
+
+const DEFAULT_PRINT_AREA = {
+  x: 250,
+  y: 200,
+  width: 250,
+  height: 250,
+  visible: true,
+};
 
 const PrintAreaConfigPage = () => {
-  const { type, id } = useParams(); // type: 'product' hoặc 'variant'
+  const { type, id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
 
-  // --- STATES ---
   const [loading, setLoading] = useState(true);
   const [mockupUrl, setMockupUrl] = useState("");
   const [targetName, setTargetName] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  // Dữ liệu Print Area (Pixel thực tế)
-  const [virtualPrintArea, setVirtualPrintArea] = useState({
-    x: 100,
-    y: 100,
-    width: 300,
-    height: 400,
-    visible: true,
-  });
+  const [virtualPrintArea, setVirtualPrintArea] = useState(DEFAULT_PRINT_AREA);
 
-  // 1. Fetch thông tin Mockup ban đầu
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        // Tùy vào type là product hay variant mà gọi API tương ứng
+
+        if (location.state?.mockupUrl) {
+          setMockupUrl(location.state.mockupUrl);
+          setTargetName(location.state.name || "Sản phẩm mới");
+          if (location.state.initialData) {
+            setVirtualPrintArea({
+              ...location.state.initialData,
+              visible: true,
+            });
+          }
+          setLoading(false);
+          return;
+        }
+
         const endpoint =
           type === "product" ? `/products/${id}` : `/variants/${id}`;
         const res = await axiosClient.get(endpoint);
@@ -45,7 +50,6 @@ const PrintAreaConfigPage = () => {
         setTargetName(data.name || "Sản phẩm không tên");
         setMockupUrl(data.thumbnail || data.mockupUrl || "");
 
-        // Nếu đã có cấu hình printArea từ trước thì nạp vào
         if (data.printArea) {
           setVirtualPrintArea({
             ...data.printArea,
@@ -59,143 +63,148 @@ const PrintAreaConfigPage = () => {
       }
     };
     fetchData();
-  }, [id, type]);
+  }, [id, type, location.state]);
 
-  // 2. Lưu cấu hình vào Database
   const handleSaveConfig = async () => {
+    // Nếu là từ trang tạo mới (AddProductPage) gửi sang
+    if (location.state?.returnTo) {
+      navigate(location.state.returnTo, {
+        state: {
+          // QUAN TRỌNG: Giữ lại toàn bộ state cũ (bao gồm ảnh mockupUrl, name, v.v.)
+          ...location.state,
+          // Cập nhật hoặc thêm mới thông tin vùng in
+          updatedPrintArea: {
+            type: location.state.type,
+            index: location.state.index,
+            data: virtualPrintArea,
+          },
+        },
+      });
+      return;
+    }
+
+    // Luồng edit trực tiếp vào Database (giữ nguyên)
     try {
       const endpoint =
         type === "product" ? `/products/${id}` : `/variants/${id}`;
 
-      // Gửi nguyên object virtualPrintArea (đã là pixel thực nhờ DesignerCanvas xử lý)
       await axiosClient.patch(endpoint, {
         printArea: virtualPrintArea,
       });
 
       alert("Cấu hình Vùng In đã được lưu thành công!");
+      navigate(-1);
     } catch (err) {
       alert("Lỗi khi lưu cấu hình.");
     }
   };
 
   const handleReset = () => {
-    setVirtualPrintArea({
-      x: 100,
-      y: 100,
-      width: 300,
-      height: 400,
-      visible: true,
-    });
+    setVirtualPrintArea(DEFAULT_PRINT_AREA);
     setSelectedId(null);
+  };
+
+  // Hàm xử lý khi thay đổi giá trị trong ô input
+  const handleInputChange = (key: string, value: string) => {
+    const numValue = value === "" ? 0 : parseInt(value);
+    setVirtualPrintArea((prev) => ({
+      ...prev,
+      [key]: numValue,
+    }));
   };
 
   if (loading)
     return (
-      <div className="flex h-screen items-center justify-center bg-gray-50">
-        <Loader2 className="animate-spin text-blue-600" size={40} />
+      <div className="flex h-screen items-center justify-center bg-white">
+        <Loader2 className="animate-spin text-blue-600" size={32} />
       </div>
     );
 
   return (
-    <div className="flex flex-col h-screen bg-[#F8FAFC]">
-      {/* TOPBAR */}
-      <div className="h-16 bg-white border-b px-6 flex items-center justify-between shadow-sm z-10">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => navigate(-1)}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-          >
-            <ArrowLeft size={20} />
-          </button>
-          <div>
-            <h1 className="text-sm font-black text-gray-900 uppercase tracking-tighter">
-              Thiết lập Vùng In:{" "}
-              <span className="text-blue-600">{targetName}</span>
-            </h1>
-          </div>
-        </div>
-
+    <div className="flex flex-col h-screen bg-white text-gray-800 font-sans">
+      <div className="h-12 bg-gray-100 border-b border-gray-300 px-4 flex items-center justify-between z-10">
         <div className="flex items-center gap-3">
           <button
-            onClick={handleReset}
-            className="flex items-center gap-2 px-4 py-2 text-xs font-bold text-gray-500 hover:text-gray-700 transition-all"
+            onClick={() => navigate(-1)}
+            className="p-1 hover:bg-gray-200 border border-gray-300 rounded-sm transition-colors"
           >
-            <RotateCcw size={16} /> Reset
+            <ArrowLeft size={18} />
+          </button>
+          <h1 className="text-xs font-bold uppercase tracking-tight">
+            Thiết lập Vùng In:{" "}
+            <span className="text-blue-600">{targetName}</span>
+          </h1>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleReset}
+            className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-gray-600 hover:bg-gray-200 border border-gray-300 rounded-sm transition-all"
+          >
+            <RotateCcw size={14} /> Reset
           </button>
           <button
             onClick={handleSaveConfig}
-            className="flex items-center gap-2 bg-gray-900 text-white px-6 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-blue-600 transition-all shadow-lg active:scale-95"
+            className="flex items-center gap-1 bg-blue-700 text-white px-4 py-1.5 rounded-sm font-bold text-xs uppercase hover:bg-blue-800 transition-all shadow-sm"
           >
-            Lưu cấu hình <Save size={16} />
+            Xác nhận cấu hình <Save size={14} />
           </button>
         </div>
       </div>
 
       <div className="flex-1 flex overflow-hidden">
-        {/* SIDEBAR: THÔNG SỐ */}
-        <div className="w-80 bg-white border-r p-6 overflow-y-auto">
-          <div className="space-y-8">
+        <div className="w-64 bg-gray-50 border-r border-gray-300 p-4 overflow-y-auto">
+          <div className="space-y-6">
             <section>
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2 mb-4">
-                <Maximize size={14} /> Tọa độ Natural Pixel
+              <label className="text-[10px] font-bold text-gray-500 uppercase flex items-center gap-2 mb-4">
+                <Maximize size={12} /> Dimensions (Pixels)
               </label>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-3">
                 {["x", "y", "width", "height"].map((key) => (
-                  <div key={key} className="space-y-1">
-                    <label className="text-[9px] font-bold text-gray-500 uppercase">
+                  <div
+                    key={key}
+                    className="flex items-center justify-between bg-white border border-gray-200 p-2 rounded-sm shadow-sm"
+                  >
+                    <label className="text-[10px] font-bold text-gray-400 uppercase w-10">
                       {key}
                     </label>
-                    <div className="p-3 bg-gray-50 border border-gray-100 rounded-xl font-mono text-sm text-blue-700 font-bold">
-                      {Math.round(
-                        virtualPrintArea[
-                          key as keyof typeof virtualPrintArea
-                        ] as number,
-                      )}
+                    {/* Thay đổi div thành input để có thể điền số */}
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="number"
+                        className="w-20 font-mono text-xs text-blue-700 font-bold text-right outline-none focus:bg-blue-50"
+                        value={Math.round(
+                          virtualPrintArea[
+                            key as keyof typeof virtualPrintArea
+                          ] as number,
+                        )}
+                        onChange={(e) => handleInputChange(key, e.target.value)}
+                      />
+                      <span className="text-[10px] text-gray-400 font-mono">
+                        px
+                      </span>
                     </div>
                   </div>
                 ))}
               </div>
-              <p className="text-[10px] text-gray-400 mt-4 leading-relaxed italic">
-                * Mọi tọa độ được tính toán dựa trên kích thước thật của file
-                ảnh gốc để đảm bảo độ chính xác khi in ấn.
-              </p>
-            </section>
-
-            <section className="bg-blue-50 p-4 rounded-2xl border border-blue-100">
-              <h4 className="text-xs font-black text-blue-900 mb-2 flex items-center gap-2">
-                <Info size={14} /> Hướng dẫn
-              </h4>
-              <ul className="text-[11px] text-blue-700 space-y-2 font-medium">
-                <li className="flex gap-2">
-                  <CheckCircle2 size={12} className="shrink-0" />
-                  Click vào khung xanh để bắt đầu điều chỉnh.
-                </li>
-                <li className="flex gap-2">
-                  <CheckCircle2 size={12} className="shrink-0" />
-                  Kéo các điểm neo để thay đổi kích thước vùng in.
-                </li>
-                <li className="flex gap-2">
-                  <CheckCircle2 size={12} className="shrink-0" />
-                  Di chuyển vùng in đến vị trí mong muốn trên mockup.
-                </li>
-              </ul>
             </section>
           </div>
         </div>
 
-        {/* MAIN CANVAS AREA */}
-        <div className="flex-1 bg-[#E2E8F0] p-10 flex items-center justify-center overflow-auto">
-          <DesignerCanvas
-            backgroundUrl={mockupUrl}
-            layers={[]} // Mode print-area không cần layers
-            virtualPrintArea={virtualPrintArea}
-            setVirtualPrintArea={setVirtualPrintArea}
-            selectedId={selectedId}
-            setSelectedId={setSelectedId}
-            mode="print-area" // Chế độ chuyên dụng cho trang này
-            maxWidth={600}
-          />
+        <div className="flex-1 bg-gray-200 p-8 flex items-center justify-center overflow-auto">
+          <div className="bg-white border border-gray-300 p-2 shadow-md">
+            <DesignerCanvas
+              backgroundUrl={mockupUrl}
+              layers={[]}
+              virtualPrintArea={virtualPrintArea}
+              setVirtualPrintArea={setVirtualPrintArea}
+              selectedId={selectedId}
+              setSelectedId={setSelectedId}
+              mode="print-area"
+              maxWidth={650}
+            />
+          </div>
         </div>
       </div>
     </div>

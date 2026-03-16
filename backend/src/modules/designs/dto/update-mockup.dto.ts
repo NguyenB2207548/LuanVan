@@ -23,9 +23,9 @@ export class UpdateMockupDto {
 
   @IsNumber()
   @IsOptional()
-  realWidthInch: number;
+  realWidthInch?: number;
 
   @IsNumber()
   @IsOptional()
-  realHeightInch: number;
+  realHeightInch?: number;
 }

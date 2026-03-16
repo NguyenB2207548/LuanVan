@@ -73,26 +73,20 @@ export class ProductsService {
         'seller',
         'images',
         'attributes',
-        // 1. Lấy Mockups và PrintAreas trực tiếp của Product (Phôi chung)
         'mockup',
-        'mockup.printAreas',
+        'mockup.printArea',
 
-        // 2. Lấy chi tiết các Variant
         'variants',
         'variants.images',
         'variants.attributeValues',
         'variants.attributeValues.attribute',
 
-        // 3. Lấy Mockups và PrintAreas riêng của từng Variant (nếu có)
         'variants',
-        'variants.mockup.printAreas',
+        'variants.mockup.printArea',
 
-        // 4. Lấy các Design đã được tạo cho sản phẩm này
-        'designs',
+        'design',
 
-        // 5. Lấy các Artwork thuộc về Design đó
-
-        'designs.artworks',
+        'design.artwork',
       ],
     });
 
@@ -134,22 +128,30 @@ export class ProductsService {
 
     const [items, total] = await this.productRepository.findAndCount({
       where: {
-        seller: { id: sellerId }, // Lọc chính xác theo ID của người bán
+        seller: { id: sellerId },
       },
       relations: [
         'categories',
         'images',
+        'mockup',
+        'mockup.printArea',
         'variants',
         'variants.attributeValues',
         'variants.attributeValues.attribute',
+        'variants.mockup',
+        'variants.mockup.printArea',
       ],
-
       select: {
         id: true,
         productName: true,
         status: true,
         createdAt: true,
         updatedAt: true,
+        // Phải thêm các dòng này:
+        categories: true,
+        images: true,
+        mockup: true,
+        variants: true,
       },
       order: { createdAt: 'DESC' },
       take: limit,

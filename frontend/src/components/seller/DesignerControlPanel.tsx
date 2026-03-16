@@ -1,15 +1,5 @@
 import React, { useState, useMemo } from "react";
-import {
-  Upload,
-  Save,
-  Layers,
-  UploadCloud,
-  Loader2,
-  ImageIcon,
-  Eye,
-  EyeOff,
-  Move,
-} from "lucide-react";
+import { Save, Layers, ImageIcon, Eye, EyeOff, Move } from "lucide-react";
 import AssetManagerModal from "../admin/AssetManagerModal";
 import AddLayerButtons from "./AddLayerButtons";
 import LayerListManager from "./LayerListManager";
@@ -19,8 +9,8 @@ import type { DesignLayer, ModalTarget } from "../../types/designer";
 const BASE_URL = "http://localhost:3000";
 
 interface DesignerControlPanelProps {
-  designName: string;
-  setDesignName: (name: string) => void;
+  artworkName: string;
+  setArtworkName: (name: string) => void;
   backgroundUrl: string;
   setBackgroundUrl: (url: string) => void;
   layers: DesignLayer[];
@@ -30,17 +20,16 @@ interface DesignerControlPanelProps {
   updateSelectedLayer: (field: string, value: any) => void;
   activeFilter: string;
   setActiveFilter: (filter: string) => void;
-  onSave: (templateData: any) => Promise<void>;
+  onSave: (layersData: any) => Promise<void>;
   isExtractingPsd: boolean;
-  // Bổ sung props để khớp với trang cha
   virtualPrintArea: any;
   setVirtualPrintArea: (area: any) => void;
   onOpenBgSelect: () => void;
 }
 
 const DesignerControlPanel: React.FC<DesignerControlPanelProps> = ({
-  designName,
-  setDesignName,
+  artworkName,
+  setArtworkName,
   backgroundUrl,
   setBackgroundUrl,
   layers,
@@ -58,19 +47,16 @@ const DesignerControlPanel: React.FC<DesignerControlPanelProps> = ({
 }) => {
   const selectedLayer = layers.find((l) => l.id === selectedId);
 
-  // Khôi phục hàm bị thiếu
   const updatePrintArea = (field: string, value: any) => {
     setVirtualPrintArea({ ...virtualPrintArea, [field]: value });
   };
 
-  // --- STATE QUẢN LÝ MODAL ---
   const [modalConfig, setModalConfig] = useState<{
     isOpen: boolean;
     multiple: boolean;
     target: ModalTarget | null;
   }>({ isOpen: false, multiple: false, target: null });
 
-  // --- LOGIC XỬ LÝ ẢNH ---
   const handleAssetsSelected = (urls: string[]) => {
     if (!modalConfig.target || urls.length === 0) return;
     const { type, index } = modalConfig.target;
@@ -102,27 +88,17 @@ const DesignerControlPanel: React.FC<DesignerControlPanelProps> = ({
     }
     setModalConfig({ isOpen: false, multiple: false, target: null });
   };
-  const handleSaveDesign = async () => {
-    // CHỈ kiểm tra designName, KHÔNG kiểm tra backgroundUrl nữa
-    if (!designName) {
-      return alert("Vui lòng nhập tên thiết kế.");
-    }
 
-    const templateData = {
+  const handleSaveDesign = async () => {
+    if (!artworkName) return alert("Vui lòng nhập tên thiết kế.");
+    const layersData = {
       details: layers,
-      internalMockup: backgroundUrl || "", // Cho phép rỗng
+      mockup: backgroundUrl || "",
       printArea: virtualPrintArea,
     };
-
-    // Gọi hàm onSave được truyền từ cha
-    await onSave({
-      designName,
-      templateJson: templateData,
-      thumbnailUrl: backgroundUrl || "", // Thumbnail cũng trở thành optional
-    });
+    await onSave({ artworkName, layersJson: layersData });
   };
 
-  // Tự động tính toán các option để làm Condition
   const allGroupOptions = useMemo(() => {
     return layers
       .filter((l) => l.type === "group")
@@ -137,69 +113,128 @@ const DesignerControlPanel: React.FC<DesignerControlPanelProps> = ({
   }, [layers]);
 
   return (
-    <div className="w-[350px] bg-white h-full flex flex-col shadow-sm z-10 border-l border-gray-200 overflow-hidden relative">
-      <div className="p-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
-        <h1 className="text-sm font-bold uppercase tracking-wider text-gray-700 flex items-center gap-2">
-          <Layers size={18} className="text-blue-600" /> Artwork Studio
+    <div className="w-[320px] bg-white h-full flex flex-col border-l border-gray-300 relative text-gray-800">
+      {/* HEADER - Sharp edges */}
+      <div className="p-3 border-b border-gray-300 bg-gray-100 flex justify-between items-center">
+        <h1 className="text-xs font-bold uppercase flex items-center gap-2">
+          <Layers size={16} /> Designer Panel
         </h1>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar pb-24">
-        {/* BASIC INFO */}
-        <section className="space-y-3">
-          <label className="text-[10px] font-black text-gray-400 uppercase">
-            Tên thiết kế
-          </label>
-          <input
-            className="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-xl text-sm font-bold outline-none focus:border-blue-500"
-            value={designName}
-            onChange={(e) => setDesignName(e.target.value)}
-          />
-
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              onClick={onOpenBgSelect}
-              className="flex items-center justify-center gap-2 p-2 bg-gray-900 text-white rounded-xl text-[11px] font-bold hover:bg-blue-600 transition-all"
-            >
-              <ImageIcon size={14} /> Mockup Phôi
-            </button>
-            <button
-              onClick={() =>
-                updatePrintArea("visible", !virtualPrintArea.visible)
-              }
-              className={`flex items-center justify-center gap-2 p-2 rounded-xl text-[11px] font-bold border transition-all ${
-                virtualPrintArea.visible
-                  ? "bg-blue-50 border-blue-200 text-blue-600"
-                  : "bg-white border-gray-200 text-gray-400"
-              }`}
-            >
-              {virtualPrintArea.visible ? (
-                <Eye size={14} />
-              ) : (
-                <EyeOff size={14} />
-              )}{" "}
-              Vùng in
-            </button>
+      <div className="flex-1 overflow-y-auto p-3 space-y-5 custom-scrollbar pb-20">
+        {/* BASIC INFO SECTION */}
+        <section className="space-y-4">
+          <div className="space-y-1">
+            <label className="text-[11px] font-bold text-gray-600 uppercase">
+              Tên thiết kế
+            </label>
+            <input
+              className="w-full p-2 bg-white border border-gray-300 rounded-sm text-sm outline-none focus:border-blue-500"
+              value={artworkName}
+              onChange={(e) => setArtworkName(e.target.value)}
+            />
           </div>
 
           <button
             onClick={() => document.getElementById("hidden-psd-input")?.click()}
             disabled={isExtractingPsd}
-            className="mt-3 w-full flex justify-center items-center gap-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 py-2 rounded border border-indigo-200 font-medium text-sm transition-colors"
+            className="w-full py-2 bg-gray-800 text-white text-xs font-bold uppercase rounded-sm hover:bg-black transition-colors disabled:bg-gray-400"
           >
-            {isExtractingPsd ? (
-              <>
-                <Loader2 className="animate-spin" size={16} /> Extracting PSD...
-              </>
-            ) : (
-              <>
-                <UploadCloud size={16} /> Import PSD File
-              </>
-            )}
+            {isExtractingPsd ? "Extracting..." : "Import PSD"}
           </button>
+
+          {/* MOCKUP AREA - Minimal radius */}
+          <div className="space-y-1">
+            <label className="text-[11px] font-bold text-gray-600 uppercase">
+              Mockup nền
+            </label>
+            <div
+              onClick={onOpenBgSelect}
+              className="relative aspect-video bg-gray-100 border border-gray-300 rounded-sm flex flex-col items-center justify-center cursor-pointer hover:bg-gray-200 overflow-hidden"
+            >
+              {backgroundUrl ? (
+                <img
+                  src={`${BASE_URL}${backgroundUrl}`}
+                  className="w-full h-full object-contain"
+                  alt="mockup"
+                />
+              ) : (
+                <div className="flex flex-col items-center">
+                  <ImageIcon size={20} className="text-gray-400 mb-1" />
+                  <span className="text-[10px] text-gray-500">
+                    Click to upload
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* PRINT AREA - Clean table style */}
+          <div className="p-3 border border-gray-300 bg-white space-y-3">
+            <div className="flex justify-between items-center border-b border-gray-100 pb-2">
+              <label className="text-[11px] font-bold uppercase flex items-center gap-2">
+                <Move size={12} /> Print Area
+              </label>
+              <button
+                onClick={() =>
+                  updatePrintArea("visible", !virtualPrintArea.visible)
+                }
+                className="text-gray-500 hover:text-blue-600"
+              >
+                {virtualPrintArea.visible ? (
+                  <Eye size={16} />
+                ) : (
+                  <EyeOff size={16} />
+                )}
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] text-gray-500">Width (px)</span>
+                <input
+                  type="number"
+                  className="w-full p-1 border border-gray-200 text-sm font-mono"
+                  value={Math.round(virtualPrintArea.width)}
+                  onChange={(e) =>
+                    updatePrintArea("width", Number(e.target.value))
+                  }
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] text-gray-500">Height (px)</span>
+                <input
+                  type="number"
+                  className="w-full p-1 border border-gray-200 text-sm font-mono"
+                  value={Math.round(virtualPrintArea.height)}
+                  onChange={(e) =>
+                    updatePrintArea("height", Number(e.target.value))
+                  }
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] text-gray-500">X Position</span>
+                <input
+                  type="number"
+                  className="w-full p-1 border border-gray-200 text-sm font-mono"
+                  value={Math.round(virtualPrintArea.x)}
+                  onChange={(e) => updatePrintArea("x", Number(e.target.value))}
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] text-gray-500">Y Position</span>
+                <input
+                  type="number"
+                  className="w-full p-1 border border-gray-200 text-sm font-mono"
+                  value={Math.round(virtualPrintArea.y)}
+                  onChange={(e) => updatePrintArea("y", Number(e.target.value))}
+                />
+              </div>
+            </div>
+          </div>
         </section>
 
-        <hr className="border-gray-200" />
+        <div className="h-px bg-gray-300" />
 
         <AddLayerButtons
           onAddLayer={(layer) => {
@@ -209,7 +244,7 @@ const DesignerControlPanel: React.FC<DesignerControlPanelProps> = ({
           currentLayerCount={layers.length}
         />
 
-        <hr className="border-gray-200" />
+        <div className="h-px bg-gray-300" />
 
         <LayerListManager
           layers={layers}
@@ -233,29 +268,20 @@ const DesignerControlPanel: React.FC<DesignerControlPanelProps> = ({
               setModalConfig({ isOpen: true, multiple, target })
             }
           />
-        ) : selectedId === "print_area" ? (
-          <div className="p-6 bg-blue-50 border border-blue-100 rounded-2xl text-center">
-            <Move size={24} className="mx-auto text-blue-400 mb-2" />
-            <p className="text-[10px] font-black text-blue-700 uppercase">
-              Đang điều chỉnh vùng in
-            </p>
-          </div>
         ) : (
-          <div className="text-center py-10 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-100">
-            <p className="text-[10px] font-bold text-gray-300 uppercase">
-              Chọn Layer để cấu hình
-            </p>
+          <div className="text-center py-6 border border-dashed border-gray-300 text-[10px] text-gray-400 uppercase">
+            No layer selected
           </div>
         )}
       </div>
 
-      {/* SAVE BUTTON */}
-      <div className="p-4 border-t border-gray-200 bg-gray-50 absolute bottom-0 w-full shadow-lg">
+      {/* SAVE BUTTON - Solid and sharp */}
+      <div className="p-3 border-t border-gray-300 bg-gray-100 absolute bottom-0 w-full">
         <button
           onClick={handleSaveDesign}
-          className="w-full bg-blue-600 text-white py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-blue-700 transition-all"
+          className="w-full bg-blue-700 text-white py-2.5 rounded-sm font-bold text-xs uppercase hover:bg-blue-800 transition-colors"
         >
-          <Save size={18} className="inline mr-2" /> Lưu Artwork
+          <Save size={16} className="inline mr-2" /> Save Design
         </button>
       </div>
 

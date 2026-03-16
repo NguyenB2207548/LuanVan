@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   ArrowLeft,
   Plus,
@@ -14,7 +14,6 @@ import {
 
 import axiosClient from "@/api/axiosClient";
 import AssetManagerModal from "../../components/admin/AssetManagerModal";
-import PrintAreaModal from "@/modals/PrintAreaModal";
 
 interface Attribute {
   id: number;
@@ -33,39 +32,55 @@ interface Category {
 
 const AddProductPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+
   const [loading, setLoading] = useState(false);
   const [attributes, setAttributes] = useState<Attribute[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
 
-  // PRODUCT DATA
-  const [productData, setProductData] = useState({
+  // Khởi tạo state mặc định để dùng cho việc Reset
+  const initialProductData = {
     productName: "",
     description: "",
     categoryId: "",
-  });
+    printArea: null as any,
+  };
 
-  // PRODUCT GALLERY
+  const [productData, setProductData] = useState(initialProductData);
   const [productImages, setProductImages] = useState<string[]>([]);
-
-  // PRODUCT MOCKUP
   const [productMockup, setProductMockup] = useState<string | null>(null);
-
-  // ATTRIBUTE SELECT
   const [selectedAttributeIds, setSelectedAttributeIds] = useState<number[]>(
     [],
   );
-
-  // VARIANTS
   const [variants, setVariants] = useState<any[]>([]);
-
-  // ASSET MODAL
   const [assetModalOpen, setAssetModalOpen] = useState(false);
-  const [assetTarget, setAssetTarget] = useState<
-    | "productGallery"
-    | "productMockup"
-    | { type: "variant"; index: number }
-    | null
-  >(null);
+  const [assetTarget, setAssetTarget] = useState<any>(null);
+
+  useEffect(() => {
+    if (location.state) {
+      const s = location.state;
+      if (s.productData) setProductData(s.productData);
+      if (s.productImages) setProductImages(s.productImages);
+      if (s.productMockup) setProductMockup(s.productMockup);
+      if (s.variants) setVariants(s.variants);
+      if (s.selectedAttributeIds)
+        setSelectedAttributeIds(s.selectedAttributeIds);
+
+      if (s.updatedPrintArea) {
+        const { type, index, data } = s.updatedPrintArea;
+        if (type === "product") {
+          setProductData((prev) => ({ ...prev, printArea: data }));
+        } else if (type === "variant" && index !== undefined) {
+          setVariants((prev) => {
+            const newVariants = [...prev];
+            newVariants[index] = { ...newVariants[index], ...data };
+            return newVariants;
+          });
+        }
+      }
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   const generateSlug = (str: string) => {
     return str
@@ -76,20 +91,20 @@ const AddProductPage = () => {
       .toUpperCase();
   };
 
+  // Cập nhật hàm tạo SKU: Thêm index và timestamp để tránh trùng lặp hoàn toàn
   const generateVariantSKU = (
     productName: string,
     selectedValues: string[],
+    index: number,
   ) => {
-    const prefix = generateSlug(productName).slice(0, 4); // Lấy 4 ký tự đầu tên SP
+    const prefix = generateSlug(productName || "PROD").slice(0, 4);
     const suffix = selectedValues
       .map((v) => generateSlug(v).slice(0, 3))
       .join("-");
-    const randomSuffix = Math.random()
-      .toString(36)
-      .substring(2, 5)
-      .toUpperCase(); // 3 ký tự ngẫu nhiên tránh trùng
+    const uniqueId = Date.now().toString(36).slice(-2).toUpperCase(); // 2 ký tự thời gian cuối
 
-    return `${prefix}-${suffix}-${randomSuffix}`;
+    // Cấu trúc: [TênSP]-[ThuộcTính]-[VịTríBiếnThể][MãDuyNhất]
+    return `${prefix}-${suffix}-${index + 1}${uniqueId}`;
   };
 
   useEffect(() => {
@@ -110,9 +125,8 @@ const AddProductPage = () => {
 
   useEffect(() => {
     if (variants.length === 0) return;
-
     const refreshSKUs = () => {
-      const newVariants = variants.map((v) => {
+      const newVariants = variants.map((v, idx) => {
         const selectedValueNames: string[] = [];
         Object.entries(v.attributeValueIds).forEach(([aId, vId]) => {
           if (!vId) return;
@@ -129,6 +143,7 @@ const AddProductPage = () => {
             sku: generateVariantSKU(
               productData.productName,
               selectedValueNames,
+              idx,
             ),
           };
         }
@@ -136,10 +151,9 @@ const AddProductPage = () => {
       });
       setVariants(newVariants);
     };
-
     const timer = setTimeout(refreshSKUs, 500);
     return () => clearTimeout(timer);
-  }, [productData.productName]);
+  }, [productData.productName, variants.length]); // Thêm variants.length để re-calculate khi add/remove
 
   const openAssetModal = (target: any) => {
     setAssetTarget(target);
@@ -182,29 +196,25 @@ const AddProductPage = () => {
 
   const updateVariantData = (index: number, field: string, value: any) => {
     const newVariants = [...variants];
-
     if (field.startsWith("attr_")) {
       const attrId = Number(field.split("_")[1]);
       newVariants[index].attributeValueIds[attrId] = value;
 
-      // --- LOGIC TỰ ĐỘNG TẠO SKU ---
-      const currentVariant = newVariants[index];
       const selectedValueNames: string[] = [];
+      Object.entries(newVariants[index].attributeValueIds).forEach(
+        ([aId, vId]) => {
+          if (!vId) return;
+          const attr = attributes.find((a) => a.id === Number(aId));
+          const val = attr?.attributeValues.find((v) => v.id === Number(vId));
+          if (val) selectedValueNames.push(val.valueName);
+        },
+      );
 
-      // Lấy tên của các giá trị đã chọn dựa trên ID hiện tại
-      Object.entries(currentVariant.attributeValueIds).forEach(([aId, vId]) => {
-        if (!vId) return;
-        const attr = attributes.find((a) => a.id === Number(aId));
-        const val = attr?.attributeValues.find((v) => v.id === Number(vId));
-        if (val) selectedValueNames.push(val.valueName);
-      });
-
-      // Cập nhật SKU nếu đã chọn ít nhất 1 thuộc tính,
-      // hoặc reset nếu người dùng chọn lại "Chọn thuộc tính"
       if (selectedValueNames.length > 0) {
-        currentVariant.sku = generateVariantSKU(
-          productData.productName || "PROD", // Fallback nếu chưa nhập tên SP
+        newVariants[index].sku = generateVariantSKU(
+          productData.productName,
           selectedValueNames,
+          index,
         );
       }
     } else {
@@ -213,160 +223,132 @@ const AddProductPage = () => {
     setVariants(newVariants);
   };
 
-  const [printAreaModalOpen, setPrintAreaModalOpen] = useState(false);
-  const [printAreaTarget, setPrintAreaTarget] = useState<{
-    type: "product" | "variant";
-    index?: number;
-    url: string;
-    initialData: any;
-  } | null>(null);
-
-  // --- MỞ MODAL PRINT AREA ---
-  const openPrintAreaModal = (type: "product" | "variant", index?: number) => {
-    let url = "";
-    let initialData = { x: 175, y: 135, width: 220, height: 275 };
-
-    if (type === "product") {
-      if (!productMockup) return alert("Vui lòng chọn mockup trước!");
-      url = `http://localhost:3000${productMockup}`;
-      // Nếu sau này bạn muốn load data cũ từ state thì lấy ở đây
-    } else {
-      if (index === undefined || !variants[index].mockup)
-        return alert("Vui lòng chọn mockup biến thể!");
-      url = `http://localhost:3000${variants[index].mockup}`;
-      const v = variants[index];
-      if (v.x)
-        initialData = { x: v.x, y: v.y, width: v.width, height: v.height };
-    }
-
-    setPrintAreaTarget({ type, index, url, initialData });
-    setPrintAreaModalOpen(true);
-  };
-
-  // --- NHẬN DỮ LIỆU TỪ CANVAS ---
-  const handleSavePrintArea = (data: any) => {
-    if (!printAreaTarget) return;
-
-    if (printAreaTarget.type === "product") {
-      // Lưu tọa độ vào state product (bạn có thể thêm state riêng hoặc gộp vào productData)
-      setProductData((prev: any) => ({ ...prev, printArea: data }));
-    } else if (
-      printAreaTarget.type === "variant" &&
-      printAreaTarget.index !== undefined
-    ) {
-      const newVariants = [...variants];
-      newVariants[printAreaTarget.index] = {
-        ...newVariants[printAreaTarget.index],
-        ...data, // Ghi đè x, y, width, height
-      };
-      setVariants(newVariants);
-    }
-    setPrintAreaModalOpen(false);
-  };
-
   const handleSaveProduct = async () => {
     try {
       setLoading(true);
-
-      // BƯỚC 1: Đóng gói dữ liệu Sản phẩm & Variants
       const payload = {
         productName: productData.productName,
         description: productData.description,
         categoryId: Number(productData.categoryId),
-        productImages: productImages, // Các URL từ Asset Manager
+        productImages: productImages,
         variants: variants.map((v) => ({
           sku: v.sku.trim(),
           price: Number(v.price),
           stock: Number(v.stock),
           attributeValueIds: Object.values(v.attributeValueIds)
-            .filter((val) => val !== "" && val !== null)
+            .filter((val) => val !== "")
             .map(Number),
         })),
       };
 
-      // Gọi API tạo Product
       const resProduct = await axiosClient.post("/products", payload);
-
-      // LOG dữ liệu để kiểm tra Backend có trả về variants kèm ID không
-      console.log("Dữ liệu Product vừa tạo:", resProduct.data);
-
       const productId = resProduct.data?.id;
-      const variantResponses = resProduct.data?.variants; // Đây là mảng chứa các ID mới tạo
+      const variantResponses = resProduct.data?.variants;
 
-      if (!productId) {
-        throw new Error("Server không trả về ID sản phẩm!");
-      }
-
-      // BƯỚC 2: Lưu Mockup cho Product chính (kèm tọa độ từ Canvas)
       if (productMockup) {
-        const pArea = (productData as any).printArea || {
-          x: 0,
-          y: 0,
-          width: 0,
-          height: 0,
+        // Đảm bảo lấy đúng các trường số, không lấy trường 'visible'
+        const pArea = productData.printArea || {
+          x: 250,
+          y: 200,
+          width: 250,
+          height: 250,
         };
 
         await axiosClient.post(`/designs/product/${productId}/mockup`, {
           url: productMockup,
-          ...pArea,
+          x: Number(pArea.x),
+          y: Number(pArea.y),
+          width: Number(pArea.width),
+          height: Number(pArea.height),
+          realWidthInch: 10, // Bổ sung cho khớp DTO
+          realHeightInch: 10, // Bổ sung cho khớp DTO
         });
       }
 
-      // BƯỚC 3: Lưu Mockup cho từng Variant (kèm tọa độ từ Canvas)
-      // Kiểm tra an toàn trước khi map để tránh lỗi "reading '0'"
-      if (
-        variantResponses &&
-        Array.isArray(variantResponses) &&
-        variantResponses.length > 0
-      ) {
-        const uploadPromises = variants.map((v, index) => {
-          if (v.mockup) {
-            // Sử dụng dấu ? để tránh crash nếu index không khớp
-            const vId = variantResponses[index]?.id;
-
-            if (vId) {
-              return axiosClient.post(`/designs/variant/${vId}/mockup`, {
-                url: v.mockup,
-                x: v.x || 0,
-                y: v.y || 0,
-                width: v.width || 0,
-                height: v.height || 0,
-              });
+      // BƯỚC 3: Lưu Mockup cho từng Variant
+      if (variantResponses) {
+        await Promise.all(
+          variants.map((v, index) => {
+            if (v.mockup && variantResponses[index]) {
+              return axiosClient.post(
+                `/designs/variant/${variantResponses[index].id}/mockup`,
+                {
+                  url: v.mockup,
+                  x: Number(v.x || 250),
+                  y: Number(v.y || 200),
+                  width: Number(v.width || 250),
+                  height: Number(v.height || 250),
+                  realWidthInch: 10, // Bổ sung cho khớp DTO
+                  realHeightInch: 10, // Bổ sung cho khớp DTO
+                },
+              );
             }
-          }
-          return null;
-        });
-
-        // Đợi tất cả các tiến trình upload mockup variant hoàn thành
-        await Promise.all(uploadPromises.filter((p) => p !== null));
-      } else {
-        console.warn(
-          "Cảnh báo: Không có dữ liệu variantResponses từ server, bỏ qua lưu mockup variant.",
+            return null;
+          }),
         );
       }
 
-      alert("Tạo sản phẩm và cấu hình vùng in thành công!");
-      navigate("/seller/products");
-    } catch (error: any) {
-      console.error("Lỗi chi tiết:", error);
-      // Hiển thị thông báo lỗi cụ thể từ Backend nếu có
-      const serverMessage = error.response?.data?.message;
-      const errorMsg = Array.isArray(serverMessage)
-        ? serverMessage.join(", ")
-        : serverMessage;
+      // --- LOGIC SAU KHI LƯU THÀNH CÔNG ---
+      alert("Sản phẩm đã được lưu thành công!");
 
+      // Reset toàn bộ state về ban đầu
+      setProductData(initialProductData);
+      setProductImages([]);
+      setProductMockup(null);
+      setSelectedAttributeIds([]);
+      setVariants([]);
+    } catch (error: any) {
+      console.error(error);
       alert(
         "Lỗi khi lưu sản phẩm: " +
-          (errorMsg || error.message || "Lỗi hệ thống"),
+          (error.response?.data?.message || "Hệ thống bận"),
       );
     } finally {
       setLoading(false);
     }
   };
 
+  const handleNavigateToConfig = (
+    type: "product" | "variant",
+    index?: number,
+  ) => {
+    let url = "";
+    let initialData = null;
+    if (type === "product") {
+      if (!productMockup) return alert("Vui lòng chọn mockup trước!");
+      url = `http://localhost:3000${productMockup}`;
+      initialData = productData.printArea;
+    } else {
+      if (index === undefined || !variants[index].mockup)
+        return alert("Vui lòng chọn mockup biến thể!");
+      url = `http://localhost:3000${variants[index].mockup}`;
+      const v = variants[index];
+      initialData = v.width
+        ? { x: v.x, y: v.y, width: v.width, height: v.height }
+        : null;
+    }
+
+    navigate("/seller/products/print-area-config", {
+      state: {
+        type,
+        index,
+        mockupUrl: url,
+        initialData: initialData || { x: 250, y: 200, width: 250, height: 250 },
+        returnTo: location.pathname,
+        productData,
+        productImages,
+        productMockup,
+        variants,
+        selectedAttributeIds,
+        name:
+          type === "product" ? productData.productName : `Biến thể #${index}`,
+      },
+    });
+  };
+
+  // UI (Giữ nguyên giao diện của bạn)
   return (
     <div className="max-w-6xl mx-auto pb-20 px-4">
-      {/* STICKY HEADER */}
       <div className="flex items-center justify-between mb-8 sticky top-0 bg-gray-50/90 backdrop-blur-sm py-4 z-20 border-b border-gray-200">
         <div className="flex items-center gap-4">
           <button
@@ -375,14 +357,12 @@ const AddProductPage = () => {
           >
             <ArrowLeft size={20} />
           </button>
-          <h1 className="text-xl font-bold text-gray-900">Thêm sản phẩm POD</h1>
+          <h1 className="text-xl font-bold text-gray-900">Thêm sản phẩm</h1>
         </div>
         <button
           onClick={handleSaveProduct}
           disabled={loading}
-          className={`flex items-center gap-2 px-6 py-2 bg-blue-600 text-white text-sm font-bold rounded-md hover:bg-blue-700 shadow-lg transition-all ${
-            loading ? "opacity-70 cursor-not-allowed" : ""
-          }`}
+          className={`flex items-center gap-2 px-6 py-2 bg-blue-600 text-white text-sm font-bold rounded-md hover:bg-blue-700 shadow-lg transition-all ${loading ? "opacity-70 cursor-not-allowed" : ""}`}
         >
           {loading ? (
             "Đang xử lý..."
@@ -396,7 +376,6 @@ const AddProductPage = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
-          {/* PHẦN 1: THÔNG TIN TỔNG QUAN */}
           <section className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
             <div className="p-6 border-b border-gray-100 bg-gray-50/50">
               <h2 className="text-sm font-bold text-gray-700">
@@ -412,6 +391,7 @@ const AddProductPage = () => {
                   <input
                     type="text"
                     className="w-full px-4 py-2 border border-gray-200 rounded-lg outline-none focus:ring-1 focus:ring-blue-500"
+                    value={productData.productName}
                     onChange={(e) =>
                       setProductData({
                         ...productData,
@@ -427,6 +407,7 @@ const AddProductPage = () => {
                   <textarea
                     rows={3}
                     className="w-full px-4 py-2 border border-gray-200 rounded-lg outline-none focus:ring-1 focus:ring-blue-500 text-sm"
+                    value={productData.description}
                     onChange={(e) =>
                       setProductData({
                         ...productData,
@@ -436,8 +417,6 @@ const AddProductPage = () => {
                   />
                 </div>
               </div>
-
-              {/* GALLERY */}
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-3">
                   Gallery ảnh sản phẩm
@@ -451,6 +430,7 @@ const AddProductPage = () => {
                       <img
                         src={`http://localhost:3000${img}`}
                         className="w-full h-full object-cover"
+                        alt=""
                       />
                       <button
                         onClick={() =>
@@ -475,7 +455,6 @@ const AddProductPage = () => {
             </div>
           </section>
 
-          {/* PHẦN 2: THIẾT LẬP BIẾN THỂ */}
           <section className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
             <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
               <h2 className="text-sm font-bold text-gray-700">
@@ -483,7 +462,6 @@ const AddProductPage = () => {
               </h2>
             </div>
             <div className="p-6 space-y-8">
-              {/* Bước 1: Chọn Attributes */}
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-3">
                   1. Chọn các thuộc tính
@@ -493,22 +471,16 @@ const AddProductPage = () => {
                     <button
                       key={attr.id}
                       onClick={() => toggleAttribute(attr.id)}
-                      className={`px-4 py-2 rounded-full text-xs font-bold border transition-all flex items-center gap-2 ${
-                        selectedAttributeIds.includes(attr.id)
-                          ? "bg-blue-600 text-white border-blue-600"
-                          : "bg-white text-gray-600 border-gray-200"
-                      }`}
+                      className={`px-4 py-2 rounded-full text-xs font-bold border transition-all flex items-center gap-2 ${selectedAttributeIds.includes(attr.id) ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-200"}`}
                     >
                       {selectedAttributeIds.includes(attr.id) && (
                         <Check size={14} />
-                      )}
+                      )}{" "}
                       {attr.attributeName}
                     </button>
                   ))}
                 </div>
               </div>
-
-              {/* Bước 2: Danh sách Variant */}
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <label className="block text-xs font-bold text-gray-500 uppercase">
@@ -522,7 +494,6 @@ const AddProductPage = () => {
                     <Plus size={14} /> Thêm biến thể
                   </button>
                 </div>
-
                 {variants.map((v, vIdx) => (
                   <div
                     key={vIdx}
@@ -536,7 +507,6 @@ const AddProductPage = () => {
                     >
                       <X size={14} />
                     </button>
-
                     <div className="md:col-span-3">
                       <div className="relative aspect-square bg-white border-2 border-dashed rounded-lg flex items-center justify-center group/m">
                         {v.mockup ? (
@@ -544,15 +514,14 @@ const AddProductPage = () => {
                             <img
                               src={`http://localhost:3000${v.mockup}`}
                               className="w-full h-full object-contain"
+                              alt=""
                             />
                             <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/m:opacity-100 transition-opacity gap-2">
-                              {/* NÚT MỞ CANVAS CHO VARIANT */}
                               <button
                                 onClick={() =>
-                                  openPrintAreaModal("variant", vIdx)
+                                  handleNavigateToConfig("variant", vIdx)
                                 }
                                 className="p-1.5 bg-blue-600 text-white rounded shadow-sm hover:bg-blue-700"
-                                title="Cấu hình vùng in"
                               >
                                 <Edit2 size={14} />
                               </button>
@@ -584,39 +553,37 @@ const AddProductPage = () => {
                         )}
                       </div>
                     </div>
-
                     <div className="md:col-span-9 grid grid-cols-2 md:grid-cols-3 gap-4">
-                      {selectedAttributeIds.map((attrId) => {
-                        const attr = attributes.find((a) => a.id === attrId);
-                        return (
-                          <div key={attrId}>
-                            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">
-                              {attr?.attributeName}
-                            </label>
-                            <select
-                              className="w-full p-2 border border-gray-200 rounded-lg text-xs bg-white outline-none"
-                              value={v.attributeValueIds[attrId] || ""}
-                              onChange={(e) =>
-                                updateVariantData(
-                                  vIdx,
-                                  `attr_${attrId}`,
-                                  e.target.value,
-                                )
-                              }
-                            >
-                              <option value="">
-                                Chọn {attr?.attributeName}
-                              </option>
-                              {attr?.attributeValues?.map((val) => (
+                      {selectedAttributeIds.map((attrId) => (
+                        <div key={attrId}>
+                          <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">
+                            {
+                              attributes.find((a) => a.id === attrId)
+                                ?.attributeName
+                            }
+                          </label>
+                          <select
+                            className="w-full p-2 border border-gray-200 rounded-lg text-xs bg-white outline-none"
+                            value={v.attributeValueIds[attrId] || ""}
+                            onChange={(e) =>
+                              updateVariantData(
+                                vIdx,
+                                `attr_${attrId}`,
+                                e.target.value,
+                              )
+                            }
+                          >
+                            <option value="">Chọn</option>
+                            {attributes
+                              .find((a) => a.id === attrId)
+                              ?.attributeValues?.map((val) => (
                                 <option key={val.id} value={val.id}>
                                   {val.valueName}
                                 </option>
                               ))}
-                            </select>
-                          </div>
-                        );
-                      })}
-
+                          </select>
+                        </div>
+                      ))}
                       <div>
                         <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">
                           Giá
@@ -624,6 +591,7 @@ const AddProductPage = () => {
                         <input
                           type="number"
                           className="w-full p-2 border border-gray-200 rounded-lg text-xs"
+                          value={v.price}
                           onChange={(e) =>
                             updateVariantData(vIdx, "price", e.target.value)
                           }
@@ -637,7 +605,6 @@ const AddProductPage = () => {
           </section>
         </div>
 
-        {/* CỘT PHẢI: MOCKUP CHÍNH & PHÂN LOẠI */}
         <div className="space-y-6">
           <section className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
             <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">
@@ -649,11 +616,11 @@ const AddProductPage = () => {
                   <img
                     src={`http://localhost:3000${productMockup}`}
                     className="w-full h-full object-contain"
+                    alt=""
                   />
                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity gap-3">
-                    {/* NÚT MỞ CANVAS CHO PRODUCT */}
                     <button
-                      onClick={() => openPrintAreaModal("product")}
+                      onClick={() => handleNavigateToConfig("product")}
                       className="p-2 bg-blue-600 text-white rounded-lg shadow-md hover:scale-110 transition-transform"
                     >
                       <Edit2 size={20} />
@@ -684,41 +651,29 @@ const AddProductPage = () => {
             <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">
               Phân loại
             </h2>
-            <div className="space-y-4">
-              <select
-                className="w-full p-2 border border-gray-200 rounded-lg text-sm bg-white outline-none"
-                onChange={(e) =>
-                  setProductData({ ...productData, categoryId: e.target.value })
-                }
-              >
-                <option value="">Chọn danh mục</option>
-                {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.categoryName}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <select
+              className="w-full p-2 border border-gray-200 rounded-lg text-sm bg-white outline-none"
+              value={productData.categoryId}
+              onChange={(e) =>
+                setProductData({ ...productData, categoryId: e.target.value })
+              }
+            >
+              <option value="">Chọn danh mục</option>
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.categoryName}
+                </option>
+              ))}
+            </select>
           </section>
         </div>
       </div>
-
       <AssetManagerModal
         isOpen={assetModalOpen}
         onClose={() => setAssetModalOpen(false)}
         onSelect={handleAssetSelect}
         multiple={assetTarget === "productGallery"}
       />
-
-      {printAreaTarget && (
-        <PrintAreaModal
-          isOpen={printAreaModalOpen}
-          mockupUrl={printAreaTarget.url}
-          initialData={printAreaTarget.initialData}
-          onClose={() => setPrintAreaModalOpen(false)}
-          onSave={handleSavePrintArea}
-        />
-      )}
     </div>
   );
 };

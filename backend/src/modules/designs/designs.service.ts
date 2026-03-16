@@ -20,14 +20,12 @@ import { CreateArtworkDto } from './dto/create-artwork.dto';
 
 @Injectable()
 export class DesignService {
-  productRepository: any;
-  mockupRepository: any;
-  artworkRepo: any;
   constructor(
     private dataSource: DataSource,
     @InjectRepository(Product) private productRepo: Repository<Product>,
     @InjectRepository(Variant) private variantRepo: Repository<Variant>,
     @InjectRepository(Design) private designRepo: Repository<Design>,
+    @InjectRepository(Artwork) private artworkRepo: Repository<Artwork>, // thêm dòng này
   ) {}
 
   // ======================= MOCKUP =========================
@@ -207,12 +205,6 @@ export class DesignService {
       order: {
         createdAt: 'DESC',
       },
-      select: {
-        id: true,
-        name: true,
-        thumbnailUrl: true,
-        createdAt: true,
-      },
     });
   }
 
@@ -262,19 +254,25 @@ export class DesignService {
     });
   }
 
-  async getDesignForSeller(sellerId: number, productId: number) {
-    const design = await this.dataSource.getRepository(Design).findOne({
-      where: { product: { id: productId, seller: { id: sellerId } } },
+  async getDesignsBySeller(sellerId: number) {
+    return await this.dataSource.getRepository(Design).find({
+      where: {
+        product: {
+          seller: { id: sellerId }, // Lọc tất cả thiết kế thuộc về Product của Seller này
+        },
+      },
       relations: [
-        'artworks',
-        'product.variants',
+        'artwork', // Quan hệ N-1 với Artwork gốc (nếu bạn đã đổi tên thành artwork)
+        'product', // Thông tin sản phẩm phôi
+        'product.images', // Ảnh gallery của sản phẩm
+        'product.variants', // Các biến thể
         'product.variants.mockup',
         'product.variants.mockup.printArea',
       ],
+      order: {
+        id: 'DESC', // Hiện cái mới nhất lên đầu
+      },
     });
-
-    if (!design) throw new NotFoundException('Thiết kế chưa được khởi tạo');
-    return design;
   }
 
   async adminGetAllDesigns(page: number = 1, limit: number = 10) {

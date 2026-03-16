@@ -23,8 +23,14 @@ const URLImage: React.FC<URLImageProps> = ({
   onUploadClick,
   draggable,
 }) => {
+  const finalUrl = l.image_url || l.url;
+
   const [img] = useImage(
-    l.url?.startsWith("http") ? l.url : `${BASE_URL}${l.url}`,
+    finalUrl
+      ? finalUrl.startsWith("http")
+        ? finalUrl
+        : `${BASE_URL}${finalUrl}`
+      : "",
     "anonymous",
   );
 

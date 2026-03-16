@@ -36,6 +36,7 @@ import SellerArtworkManager from "./pages/seller/SellerArtworkManager";
 import AddArtworkPage from "./pages/seller/AddArtworkPage";
 import SellerDesignManager from "./pages/seller/SellerDesignManager";
 import AddDesignPage from "./pages/seller/AddDesignPage";
+import PrintAreaConfigPage from "./pages/seller/PrintAreaConfigPage";
 
 function App() {
   return (
@@ -90,6 +91,10 @@ function App() {
               <Route path="artworks/edit/:id" element={<AddArtworkPage />} />
               <Route path="designs" element={<SellerDesignManager />} />
               <Route path="designs/add" element={<AddDesignPage />} />
+              <Route
+                path="products/print-area-config"
+                element={<PrintAreaConfigPage />}
+              />
               <Route path="orders" element={<div>Đơn hàng của Shop</div>} />
             </Route>
           </Route>

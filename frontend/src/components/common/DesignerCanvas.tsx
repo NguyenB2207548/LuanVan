@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useMemo } from "react";
+import React, { useRef, useEffect } from "react";
 import {
   Stage,
   Layer,
@@ -32,6 +32,7 @@ interface DesignerCanvasProps {
   maxWidth?: number;
   isUploading?: boolean;
   activeFilter?: string;
+  scale?: number;
 }
 
 const DesignerCanvas: React.FC<DesignerCanvasProps> = ({
@@ -46,6 +47,7 @@ const DesignerCanvas: React.FC<DesignerCanvasProps> = ({
   maxWidth = 550,
   isUploading = false,
   activeFilter = "ALL",
+  scale = 1,
 }) => {
   const [bgImg] = useImage(
     backgroundUrl
@@ -59,55 +61,42 @@ const DesignerCanvas: React.FC<DesignerCanvasProps> = ({
   const trRef = useRef<Konva.Transformer>(null);
   const printAreaRef = useRef<Konva.Rect>(null);
 
-  const { displayRatio, stageWidth, stageHeight } = useMemo(() => {
-    if (!bgImg)
-      return { displayRatio: 1, stageWidth: maxWidth, stageHeight: maxWidth };
-    const ratio = maxWidth / bgImg.naturalWidth;
-    return {
-      displayRatio: ratio,
-      stageWidth: maxWidth,
-      stageHeight: bgImg.naturalHeight * ratio,
-    };
-  }, [bgImg, maxWidth]);
+  const stageWidth = maxWidth * scale;
+  const stageHeight = maxWidth * scale;
 
   useEffect(() => {
     if (!trRef.current) return;
     const nodes: Konva.Node[] = [];
-    // Quan trọng: Gắn Transformer vào Rect bên trong Group
     if (selectedId === "print_area" && printAreaRef.current)
       nodes.push(printAreaRef.current);
     trRef.current.nodes(nodes);
     trRef.current.getLayer()?.batchDraw();
   }, [selectedId, virtualPrintArea]);
 
-  // FIX 1: Tách riêng logic Drag (Chỉ thay đổi X, Y)
   const handlePrintAreaDragEnd = (e: any) => {
     if (!setVirtualPrintArea) return;
-    if (e.target !== e.currentTarget) return; // Ngăn layer con làm nhảy vùng in
-
+    if (e.target !== e.currentTarget) return;
     const node = e.target;
     setVirtualPrintArea({
       ...virtualPrintArea,
-      x: Math.round(node.x() / displayRatio),
-      y: Math.round(node.y() / displayRatio),
+      x: Math.round(node.x() / scale),
+      y: Math.round(node.y() / scale),
     });
   };
 
-  // FIX 2: Logic Transform (Chỉ thay đổi Width, Height)
   const handlePrintAreaTransformEnd = () => {
     if (!setVirtualPrintArea || !printAreaRef.current) return;
     const node = printAreaRef.current;
     const scaleX = node.scaleX();
     const scaleY = node.scaleY();
 
-    // Reset scale và cập nhật size thật vào state
     node.scaleX(1);
     node.scaleY(1);
 
     setVirtualPrintArea({
       ...virtualPrintArea,
-      width: Math.round((node.width() * scaleX) / displayRatio),
-      height: Math.round((node.height() * scaleY) / displayRatio),
+      width: Math.round((node.width() * scaleX) / scale),
+      height: Math.round((node.height() * scaleY) / scale),
     });
   };
 
@@ -117,7 +106,8 @@ const DesignerCanvas: React.FC<DesignerCanvasProps> = ({
   };
 
   return (
-    <div className="flex-1 relative flex items-center justify-center bg-[#e5e7eb] p-10 overflow-hidden border-r border-gray-200">
+    // <div className="flex-1 relative flex items-center justify-center bg-[#e5e7eb] p-10 overflow-hidden border-r border-gray-200">
+    <div className="flex-1 relative flex items-center justify-center bg-transparent p-0 overflow-hidden">
       {isUploading && (
         <div className="absolute inset-0 bg-white/60 z-50 flex items-center justify-center font-bold">
           Processing...
@@ -151,45 +141,50 @@ const DesignerCanvas: React.FC<DesignerCanvasProps> = ({
               <Rect width={stageWidth} height={stageHeight} fill="#ffffff" />
             )}
 
-            {virtualPrintArea.visible && (
+            {(virtualPrintArea.visible ?? true) && (
               <Group
-                x={virtualPrintArea.x * displayRatio}
-                y={virtualPrintArea.y * displayRatio}
+                x={virtualPrintArea.x * scale}
+                y={virtualPrintArea.y * scale}
                 draggable={mode !== "client"}
                 onDragEnd={handlePrintAreaDragEnd}
                 onClick={(e) => {
-                  // Chỉ chọn vùng in nếu click trực tiếp vào vùng in, không phải layer con
                   if (e.target.name() === "print_area_rect") {
                     mode !== "client" && setSelectedId("print_area");
                   }
                 }}
                 clipFunc={(ctx) => {
-                  // Cắt vùng dựa trên kích thước thực tế nhân với tỉ lệ hiển thị
-                  // Bắt đầu từ 0,0 vì clipFunc tính theo tọa độ nội bộ của Group
                   ctx.rect(
                     0,
                     0,
-                    virtualPrintArea.width * displayRatio,
-                    virtualPrintArea.height * displayRatio,
+                    virtualPrintArea.width * scale,
+                    virtualPrintArea.height * scale,
                   );
                 }}
               >
-                {/* RECT LÀM NỀN VÀ KHUNG VIỀN VÙNG IN */}
                 <Rect
                   ref={printAreaRef}
-                  x={0} // Đưa về 0 để khớp tuyệt đối với Group và clipFunc
-                  y={0} // Đưa về 0 để khớp tuyệt đối với Group và clipFunc
-                  width={virtualPrintArea.width * displayRatio}
-                  height={virtualPrintArea.height * displayRatio}
-                  stroke={selectedId === "print_area" ? "#2563eb" : "#3b82f6"}
-                  strokeWidth={2}
+                  x={0}
+                  y={0}
+                  width={virtualPrintArea.width * scale}
+                  height={virtualPrintArea.height * scale}
+                  stroke={
+                    mode === "client"
+                      ? undefined
+                      : selectedId === "print_area"
+                        ? "#2563eb"
+                        : "#3b82f6"
+                  }
+                  strokeWidth={mode === "client" ? 0 : 2}
                   dash={[10, 5]}
-                  fill="rgba(59, 130, 246, 0.05)" // Màu nền xanh nhạt đồng nhất
+                  fill={
+                    mode === "client"
+                      ? "transparent"
+                      : "rgba(59, 130, 246, 0.05)"
+                  }
                   name="print_area_rect"
                   onTransformEnd={handlePrintAreaTransformEnd}
                 />
 
-                {/* RENDER CÁC LAYER BÊN TRONG VÙNG IN */}
                 {mode !== "print-area" &&
                   layers.map((l) => {
                     if (
@@ -201,11 +196,11 @@ const DesignerCanvas: React.FC<DesignerCanvasProps> = ({
 
                     const commonProps = {
                       key: l.id,
-                      x: (l.x || 0) * displayRatio,
-                      y: (l.y || 0) * displayRatio,
+                      x: (l.x || 0) * scale,
+                      y: (l.y || 0) * scale,
                       draggable: mode === "artwork",
                       onClick: (e: any) => {
-                        e.cancelBubble = true; // Ngăn chặn nổi bọt lên Group
+                        e.cancelBubble = true;
                         setSelectedId(l.id);
                       },
                     };
@@ -215,17 +210,17 @@ const DesignerCanvas: React.FC<DesignerCanvasProps> = ({
                         <Text
                           {...commonProps}
                           text={l.text}
-                          fontSize={(l.fontSize || 20) * displayRatio}
+                          fontSize={(l.fontSize || 20) * scale}
                           fill={l.color || "#000"}
                           fontFamily={l.fontFamily}
                           onDragMove={(e) => {
-                            e.cancelBubble = true; // Ngăn vùng in chạy theo khi kéo text
+                            e.cancelBubble = true;
                           }}
                           onDragEnd={(e) => {
                             e.cancelBubble = true;
                             handleLayerChange(l.id, {
-                              x: Math.round(e.target.x() / displayRatio),
-                              y: Math.round(e.target.y() / displayRatio),
+                              x: Math.round(e.target.x() / scale),
+                              y: Math.round(e.target.y() / scale),
                               width: l.width,
                               height: l.height,
                               fontSize: l.fontSize,
@@ -240,8 +235,8 @@ const DesignerCanvas: React.FC<DesignerCanvasProps> = ({
                         {...commonProps}
                         l={{
                           ...l,
-                          width: (l.width || 100) * displayRatio,
-                          height: (l.height || 100) * displayRatio,
+                          width: (l.width || 100) * scale,
+                          height: (l.height || 100) * scale,
                           url: l.image_url || l.url,
                         }}
                         isSelected={selectedId === l.id}
@@ -250,10 +245,10 @@ const DesignerCanvas: React.FC<DesignerCanvasProps> = ({
                         onUploadClick={() => {}}
                         onChange={(newP: any) =>
                           handleLayerChange(l.id, {
-                            x: Math.round(newP.x / displayRatio),
-                            y: Math.round(newP.y / displayRatio),
-                            width: Math.round(newP.width / displayRatio),
-                            height: Math.round(newP.height / displayRatio),
+                            x: Math.round(newP.x / scale),
+                            y: Math.round(newP.y / scale),
+                            width: Math.round(newP.width / scale),
+                            height: Math.round(newP.height / scale),
                           })
                         }
                       />
@@ -268,7 +263,6 @@ const DesignerCanvas: React.FC<DesignerCanvasProps> = ({
                 rotateEnabled={false}
                 keepRatio={false}
                 enabledAnchors={mode === "design" ? [] : undefined}
-                // Quan trọng: Transformer chỉ nên ảnh hưởng đến Rect, không ảnh hưởng Group
               />
             )}
           </Layer>

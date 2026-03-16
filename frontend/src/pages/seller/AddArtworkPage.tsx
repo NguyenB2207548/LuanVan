@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axiosClient from "../../api/axiosClient";
 import DesignerCanvas from "../../components/common/DesignerCanvas";
@@ -11,70 +11,55 @@ const AddArtworkPage = () => {
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(!!id);
-  const [designName, setDesignName] = useState("");
+  const [artworkName, setArtworkName] = useState("");
   const [backgroundUrl, setBackgroundUrl] = useState("");
   const [layers, setLayers] = useState<any[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
   const [virtualPrintArea, setVirtualPrintArea] = useState({
-    x: 0,
-    y: 0,
-    width: 300,
-    height: 300,
+    x: 200,
+    y: 200,
+    width: 250,
+    height: 250,
     visible: true,
   });
 
-  useEffect(() => {
-    if (!id) return;
-    const fetchDesign = async () => {
-      try {
-        const res = await axiosClient.get(`/designs/${id}`);
-        const data = res.data;
-        setDesignName(data.designName || "");
-        if (data.templateJson) {
-          setBackgroundUrl(
-            data.templateJson.internalMockup || data.thumbnailUrl || "",
-          );
-          setLayers(data.templateJson.details || []);
-          if (data.templateJson.printArea)
-            setVirtualPrintArea(data.templateJson.printArea);
-        }
-      } catch (error) {
-        alert("Lỗi tải thiết kế");
-        navigate("/seller/artworks");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchDesign();
-  }, [id]);
+  // useEffect(() => {
+  //   if (!id) return;
+  //   const fetchDesign = async () => {
+  //     try {
+  //       const res = await axiosClient.get(`/designs/${id}`);
+  //       const data = res.data;
+  //       setDesignName(data.designName || "");
+  //       if (data.templateJson) {
+  //         setBackgroundUrl(
+  //           data.templateJson.internalMockup || data.thumbnailUrl || "",
+  //         );
+  //         setLayers(data.templateJson.details || []);
+  //         if (data.templateJson.printArea)
+  //           setVirtualPrintArea(data.templateJson.printArea);
+  //       }
+  //     } catch (error) {
+  //       alert("Lỗi tải thiết kế");
+  //       navigate("/seller/artworks");
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
+  //   fetchDesign();
+  // }, [id]);
 
+  // Xử lý background
   const handleAssetsSelected = (urls: string[]) => {
     if (urls.length > 0) {
       setBackgroundUrl(urls[0]);
-      const img = new Image();
-      img.src = `http://localhost:3000${urls[0]}`;
-      img.onload = () => {
-        setVirtualPrintArea((prev) => ({
-          ...prev,
-          x: Math.round((img.width - prev.width) / 2),
-          y: Math.round((img.height - prev.height) / 2),
-        }));
-      };
     }
     setIsAssetModalOpen(false);
   };
 
-  const handleSaveDesign = async (payload: any) => {
-    const finalPayload = {
-      ...payload,
-      // Nếu backgroundUrl trống, ta có thể gửi null hoặc giá trị mặc định tùy Backend
-      thumbnailUrl: backgroundUrl || "",
-    };
-
+  const handleSaveArtwork = async (payload: any) => {
     try {
-      if (id) await axiosClient.patch(`/designs/${id}`, finalPayload);
-      else await axiosClient.post(`/artworks`, finalPayload);
+      await axiosClient.post(`designs/seller/artworks`, payload);
       alert("Lưu Artwork thành công!");
       navigate("/seller/artworks");
     } catch (err) {
@@ -103,8 +88,8 @@ const AddArtworkPage = () => {
         maxWidth={650}
       />
       <DesignerControlPanel
-        designName={designName}
-        setDesignName={setDesignName}
+        artworkName={artworkName}
+        setArtworkName={setArtworkName}
         backgroundUrl={backgroundUrl}
         setBackgroundUrl={setBackgroundUrl}
         layers={layers}
@@ -118,7 +103,7 @@ const AddArtworkPage = () => {
         }
         activeFilter="ALL"
         setActiveFilter={() => {}}
-        onSave={handleSaveDesign}
+        onSave={handleSaveArtwork}
         isExtractingPsd={false}
         virtualPrintArea={virtualPrintArea}
         setVirtualPrintArea={setVirtualPrintArea}

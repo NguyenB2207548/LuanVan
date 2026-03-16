@@ -74,7 +74,7 @@ export class Product {
   @OneToOne(() => Design, (design) => design.product)
   design: Design;
 
-  @OneToOne(() => Mockup, (mockup) => mockup.variant)
+  @OneToOne(() => Mockup, (mockup) => mockup.product)
   mockup: Mockup;
 
   @CreateDateColumn({ name: 'created_at' })
