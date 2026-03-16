@@ -10,7 +10,7 @@ import {
 import axiosClient from "../../api/axiosClient";
 import type { Product } from "../../types/product";
 
-import ProductRow from "../../components/ProductRow";
+import ProductRow from "../../components/user/ProductRow";
 import { Button } from "@/components/ui/button";
 
 const HomePage = () => {

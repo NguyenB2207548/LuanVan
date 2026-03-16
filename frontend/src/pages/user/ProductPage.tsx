@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import axiosClient from "../../api/axiosClient";
 import type { Product } from "../../types/product";
-import ProductCard from "../../components/ProductCard";
+import ProductCard from "../../components/user/ProductCard";
 import { Search, Filter, SlidersHorizontal, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 

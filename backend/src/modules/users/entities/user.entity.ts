@@ -13,6 +13,7 @@ import {
 } from 'typeorm';
 import { ShipperProfile } from './shipper-profile.entity';
 import { SellerProfile } from './seller-profile.entity';
+import { Artwork } from 'src/modules/designs/entities/artwork.entity';
 
 export enum UserRole {
   USER = 'user',
@@ -65,6 +66,9 @@ export class User {
 
   @OneToOne(() => SellerProfile, (sellerProfile) => sellerProfile.user)
   sellerProfile: SellerProfile;
+
+  @OneToMany(() => Artwork, (artwork) => artwork.seller)
+  artworks: Artwork[];
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

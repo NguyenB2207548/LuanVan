@@ -12,6 +12,23 @@ export interface LayerOption {
   image_url?: string;
 }
 
+// export interface DesignLayer {
+//   id: string;
+//   type: LayerType;
+//   label: string;
+//   zIndex: number;
+//   x: number;
+//   y: number;
+//   width?: number;
+//   height?: number;
+//   url?: string; // <--- Đảm bảo có dòng này
+//   text?: string;
+//   fontSize?: number;
+//   fill?: string;
+//   show_condition?: string;
+//   options?: any[];
+// }
+
 export interface DesignLayer {
   id: string;
   type: LayerType;
@@ -39,4 +56,14 @@ export interface DesignLayer {
 export interface ModalTarget {
   type: "background" | "dynamic_image" | "group_option" | "static_image";
   index?: number;
+}
+
+export interface CreateDesignPayload {
+  name: string;
+  productId: number;
+  artworks: {
+    templateId: number; // ID của Artwork mẫu mà bạn đã tạo ở các bước trước
+    templateJson: any; // Chứa details (layers), printArea, internalMockup
+    thumbnailUrl: string;
+  }[];
 }

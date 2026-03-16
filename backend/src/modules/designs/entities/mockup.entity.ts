@@ -15,9 +15,8 @@ export class Mockup {
   id: number;
 
   @Column()
-  url: string; // Đảm bảo có dòng này
+  url: string;
 
-  // Liên kết với Product
   @OneToOne(() => Product, (product) => product.design, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'product_id' })
   product: Product;
@@ -25,7 +24,6 @@ export class Mockup {
   @Column({ name: 'product_id', nullable: true })
   productId: number;
 
-  // Liên kết với Variant
   @OneToOne(() => Variant, (variant) => variant.mockup, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'variant_id' })
   variant: Variant;

@@ -30,13 +30,19 @@ import ApprovalManagementPage from "./pages/admin/ApprovalManagementPage";
 import RegisterShipperPage from "./pages/user/RegisterShipperPage";
 import RegisterSellerPage from "./pages/user/RegisterSellerPage";
 import OrderHistoryPage from "./pages/user/OrderHistoryPage";
+import SellerProductManager from "./pages/seller/SellerProductManager";
+import AddProductPage from "./pages/seller/AddProductPage";
+import SellerArtworkManager from "./pages/seller/SellerArtworkManager";
+import AddArtworkPage from "./pages/seller/AddArtworkPage";
+import SellerDesignManager from "./pages/seller/SellerDesignManager";
+import AddDesignPage from "./pages/seller/AddDesignPage";
 
 function App() {
   return (
     <TooltipProvider>
       <Router>
         <Routes>
-          {/* --- 1. CLIENT / CUSTOMER --- */}
+          {/* --- CUSTOMER --- */}
           <Route element={<ClientLayout />}>
             <Route path="/" element={<HomePage />} />
             <Route path="/products" element={<ProductPage />} />
@@ -63,7 +69,7 @@ function App() {
             </Route>
           </Route>
 
-          {/* --- 2. ADMIN --- */}
+          {/* --- ADMIN --- */}
           <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<Dashboard />} />
@@ -72,20 +78,23 @@ function App() {
             </Route>
           </Route>
 
-          {/* --- 3. SELLER --- */}
+          {/* --- SELLER --- */}
           <Route element={<ProtectedRoute allowedRoles={["seller"]} />}>
             <Route path="/seller" element={<SellerLayout />}>
               <Route index element={<Navigate to="dashboard" replace />} />
               <Route path="dashboard" element={<div>Dashboard Seller</div>} />
-              <Route
-                path="products"
-                element={<div>Quản lý sản phẩm Shop</div>}
-              />
+              <Route path="products" element={<SellerProductManager />} />
+              <Route path="products/add" element={<AddProductPage />} />
+              <Route path="artworks" element={<SellerArtworkManager />} />
+              <Route path="artworks/add" element={<AddArtworkPage />} />
+              <Route path="artworks/edit/:id" element={<AddArtworkPage />} />
+              <Route path="designs" element={<SellerDesignManager />} />
+              <Route path="designs/add" element={<AddDesignPage />} />
               <Route path="orders" element={<div>Đơn hàng của Shop</div>} />
             </Route>
           </Route>
 
-          {/* --- 4. SHIPPER --- */}
+          {/* --- SHIPPER --- */}
           <Route element={<ProtectedRoute allowedRoles={["shipper"]} />}>
             <Route path="/shipper" element={<ShipperLayout />}>
               <Route index element={<Navigate to="available" replace />} />

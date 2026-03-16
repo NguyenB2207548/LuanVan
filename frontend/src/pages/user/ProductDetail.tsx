@@ -3,9 +3,9 @@ import { useParams } from "react-router-dom";
 import axiosClient from "../../api/axiosClient";
 import type { Product, Variant } from "../../types/product";
 import { Loader2 } from "lucide-react";
-import ImageOptionSelector from "../../components/ImageOptionSelector";
-import DesignControls from "../../components/DesignControls";
-import LivePreviewCanvas from "../../components/LivePreviewCanvas";
+import ImageOptionSelector from "../../components/user/ImageOptionSelector";
+import DesignControls from "../../components/user/DesignControls";
+import LivePreviewCanvas from "../../components/common/DesignerCanvas";
 
 const BASE_URL = "http://localhost:3000";
 

@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
-import type { Product } from "../types/product";
+import type { Product } from "../../types/product";
 import ProductCard from "./ProductCard";
 import { Skeleton } from "@/components/ui/skeleton";
 

@@ -1,7 +1,16 @@
 import React, { useState, useMemo } from "react";
-import { Upload, Save, Layers, UploadCloud, Loader2 } from "lucide-react";
-import axiosClient from "../../api/axiosClient";
-import AssetManagerModal from "./AssetManagerModal";
+import {
+  Upload,
+  Save,
+  Layers,
+  UploadCloud,
+  Loader2,
+  ImageIcon,
+  Eye,
+  EyeOff,
+  Move,
+} from "lucide-react";
+import AssetManagerModal from "../admin/AssetManagerModal";
 import AddLayerButtons from "./AddLayerButtons";
 import LayerListManager from "./LayerListManager";
 import LayerPropertiesPanel from "./LayerPropertiesPanel";
@@ -23,6 +32,10 @@ interface DesignerControlPanelProps {
   setActiveFilter: (filter: string) => void;
   onSave: (templateData: any) => Promise<void>;
   isExtractingPsd: boolean;
+  // Bổ sung props để khớp với trang cha
+  virtualPrintArea: any;
+  setVirtualPrintArea: (area: any) => void;
+  onOpenBgSelect: () => void;
 }
 
 const DesignerControlPanel: React.FC<DesignerControlPanelProps> = ({
@@ -39,8 +52,16 @@ const DesignerControlPanel: React.FC<DesignerControlPanelProps> = ({
   setActiveFilter,
   onSave,
   isExtractingPsd,
+  virtualPrintArea,
+  setVirtualPrintArea,
+  onOpenBgSelect,
 }) => {
   const selectedLayer = layers.find((l) => l.id === selectedId);
+
+  // Khôi phục hàm bị thiếu
+  const updatePrintArea = (field: string, value: any) => {
+    setVirtualPrintArea({ ...virtualPrintArea, [field]: value });
+  };
 
   // --- STATE QUẢN LÝ MODAL ---
   const [modalConfig, setModalConfig] = useState<{
@@ -79,19 +100,26 @@ const DesignerControlPanel: React.FC<DesignerControlPanelProps> = ({
     } else if (type === "static_image" && selectedLayer) {
       updateSelectedLayer("image_url", urls[0]);
     }
+    setModalConfig({ isOpen: false, multiple: false, target: null });
   };
-
   const handleSaveDesign = async () => {
-    if (!designName || !backgroundUrl)
-      return alert("Please enter design name and background.");
+    // CHỈ kiểm tra designName, KHÔNG kiểm tra backgroundUrl nữa
+    if (!designName) {
+      return alert("Vui lòng nhập tên thiết kế.");
+    }
 
     const templateData = {
-      type: "F",
-      background: backgroundUrl,
       details: layers,
+      internalMockup: backgroundUrl || "", // Cho phép rỗng
+      printArea: virtualPrintArea,
     };
 
-    await onSave({ designName, templateJson: templateData });
+    // Gọi hàm onSave được truyền từ cha
+    await onSave({
+      designName,
+      templateJson: templateData,
+      thumbnailUrl: backgroundUrl || "", // Thumbnail cũng trở thành optional
+    });
   };
 
   // Tự động tính toán các option để làm Condition
@@ -109,26 +137,51 @@ const DesignerControlPanel: React.FC<DesignerControlPanelProps> = ({
   }, [layers]);
 
   return (
-    <div className="w-[350px] bg-white flex flex-col shadow-sm z-10 border-l border-gray-200 overflow-hidden relative">
+    <div className="w-[350px] bg-white h-full flex flex-col shadow-sm z-10 border-l border-gray-200 overflow-hidden relative">
       <div className="p-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
         <h1 className="text-sm font-bold uppercase tracking-wider text-gray-700 flex items-center gap-2">
-          <Layers size={18} /> Design Builder
+          <Layers size={18} className="text-blue-600" /> Artwork Studio
         </h1>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-6">
+      <div className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar pb-24">
         {/* BASIC INFO */}
         <section className="space-y-3">
-          <label className="text-xs font-semibold text-gray-600 block">
-            Design Name <span className="text-red-500">*</span>
+          <label className="text-[10px] font-black text-gray-400 uppercase">
+            Tên thiết kế
           </label>
           <input
-            className="w-full px-3 py-2 bg-white border border-gray-300 rounded text-sm focus:outline-none focus:border-blue-500"
+            className="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-xl text-sm font-bold outline-none focus:border-blue-500"
             value={designName}
             onChange={(e) => setDesignName(e.target.value)}
           />
 
-          {/* === NÚT IMPORT PSD ĐƯỢC THÊM VÀO ĐÂY === */}
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={onOpenBgSelect}
+              className="flex items-center justify-center gap-2 p-2 bg-gray-900 text-white rounded-xl text-[11px] font-bold hover:bg-blue-600 transition-all"
+            >
+              <ImageIcon size={14} /> Mockup Phôi
+            </button>
+            <button
+              onClick={() =>
+                updatePrintArea("visible", !virtualPrintArea.visible)
+              }
+              className={`flex items-center justify-center gap-2 p-2 rounded-xl text-[11px] font-bold border transition-all ${
+                virtualPrintArea.visible
+                  ? "bg-blue-50 border-blue-200 text-blue-600"
+                  : "bg-white border-gray-200 text-gray-400"
+              }`}
+            >
+              {virtualPrintArea.visible ? (
+                <Eye size={14} />
+              ) : (
+                <EyeOff size={14} />
+              )}{" "}
+              Vùng in
+            </button>
+          </div>
+
           <button
             onClick={() => document.getElementById("hidden-psd-input")?.click()}
             disabled={isExtractingPsd}
@@ -144,57 +197,24 @@ const DesignerControlPanel: React.FC<DesignerControlPanelProps> = ({
               </>
             )}
           </button>
-
-          <label className="text-xs font-semibold text-gray-600 block mt-4">
-            Background Image <span className="text-red-500">*</span>
-          </label>
-          <div
-            onClick={() =>
-              setModalConfig({
-                isOpen: true,
-                multiple: false,
-                target: { type: "background" },
-              })
-            }
-            className="flex flex-col items-center justify-center p-4 border border-dashed border-gray-300 rounded cursor-pointer hover:bg-gray-50 transition-colors bg-white relative overflow-hidden group"
-          >
-            {backgroundUrl ? (
-              <>
-                <img
-                  src={`${BASE_URL}${backgroundUrl}`}
-                  className="w-full h-24 object-cover rounded"
-                  alt="bg"
-                />
-                <div className="absolute inset-0 bg-black/40 hidden group-hover:flex items-center justify-center text-white text-xs font-bold gap-1">
-                  <UploadCloud size={16} /> Change
-                </div>
-              </>
-            ) : (
-              <>
-                <Upload size={20} className="text-gray-400 mb-2" />
-                <span className="text-xs text-gray-500">
-                  Choose from Assets
-                </span>
-              </>
-            )}
-          </div>
         </section>
+
         <hr className="border-gray-200" />
 
-        {/* CÁC THÀNH PHẦN ĐÃ ĐƯỢC TÁCH COMPONENT */}
         <AddLayerButtons
           onAddLayer={(layer) => {
             setLayers([...layers, layer]);
             setSelectedId(layer.id);
           }}
+          currentLayerCount={layers.length}
         />
+
         <hr className="border-gray-200" />
 
         <LayerListManager
           layers={layers}
           selectedId={selectedId}
           onSelect={setSelectedId}
-          // Truyền 3 props mới này vào
           activeFilter={activeFilter}
           setActiveFilter={setActiveFilter}
           allGroupOptions={allGroupOptions}
@@ -213,20 +233,29 @@ const DesignerControlPanel: React.FC<DesignerControlPanelProps> = ({
               setModalConfig({ isOpen: true, multiple, target })
             }
           />
+        ) : selectedId === "print_area" ? (
+          <div className="p-6 bg-blue-50 border border-blue-100 rounded-2xl text-center">
+            <Move size={24} className="mx-auto text-blue-400 mb-2" />
+            <p className="text-[10px] font-black text-blue-700 uppercase">
+              Đang điều chỉnh vùng in
+            </p>
+          </div>
         ) : (
-          <div className="text-center py-10">
-            <p className="text-sm text-gray-400">Select a layer</p>
+          <div className="text-center py-10 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-100">
+            <p className="text-[10px] font-bold text-gray-300 uppercase">
+              Chọn Layer để cấu hình
+            </p>
           </div>
         )}
       </div>
 
       {/* SAVE BUTTON */}
-      <div className="p-4 border-t border-gray-200 bg-gray-50">
+      <div className="p-4 border-t border-gray-200 bg-gray-50 absolute bottom-0 w-full shadow-lg">
         <button
           onClick={handleSaveDesign}
-          className="w-full bg-blue-600 text-white py-2.5 rounded-md font-medium text-sm hover:bg-blue-700 flex items-center justify-center gap-2"
+          className="w-full bg-blue-600 text-white py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-blue-700 transition-all"
         >
-          <Save size={18} /> Save Design
+          <Save size={18} className="inline mr-2" /> Lưu Artwork
         </button>
       </div>
 

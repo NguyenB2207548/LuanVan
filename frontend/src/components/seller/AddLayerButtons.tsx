@@ -11,9 +11,13 @@ import type { DesignLayer } from "../../types/designer";
 
 interface AddLayerButtonsProps {
   onAddLayer: (layer: DesignLayer) => void;
+  currentLayerCount: number;
 }
 
-const AddLayerButtons: React.FC<AddLayerButtonsProps> = ({ onAddLayer }) => {
+const AddLayerButtons: React.FC<AddLayerButtonsProps> = ({
+  onAddLayer,
+  currentLayerCount,
+}) => {
   const generateLayerId = () => `layer_${Date.now()}`;
 
   const handleAddText = () => {
@@ -27,7 +31,7 @@ const AddLayerButtons: React.FC<AddLayerButtonsProps> = ({ onAddLayer }) => {
       fontSize: 24,
       fontFamily: "Roboto",
       color: "#000000",
-      zIndex: 0,
+      zIndex: currentLayerCount,
     });
   };
 
@@ -41,7 +45,7 @@ const AddLayerButtons: React.FC<AddLayerButtonsProps> = ({ onAddLayer }) => {
       y: 100,
       width: 60,
       height: 60,
-      zIndex: 0,
+      zIndex: currentLayerCount,
     });
   };
 
@@ -56,7 +60,7 @@ const AddLayerButtons: React.FC<AddLayerButtonsProps> = ({ onAddLayer }) => {
       y: 150,
       width: 100,
       height: 100,
-      zIndex: 0,
+      zIndex: currentLayerCount,
     });
   };
 
@@ -66,7 +70,7 @@ const AddLayerButtons: React.FC<AddLayerButtonsProps> = ({ onAddLayer }) => {
       type: "group",
       label: "Group Selector",
       options: [],
-      zIndex: 0,
+      zIndex: currentLayerCount,
     });
   };
 
@@ -80,7 +84,7 @@ const AddLayerButtons: React.FC<AddLayerButtonsProps> = ({ onAddLayer }) => {
       y: 150,
       width: 60,
       height: 60,
-      zIndex: 0,
+      zIndex: currentLayerCount,
       show_condition: "",
     });
   };
@@ -96,7 +100,7 @@ const AddLayerButtons: React.FC<AddLayerButtonsProps> = ({ onAddLayer }) => {
       fontSize: 24,
       fontFamily: "Roboto",
       color: "#000000",
-      zIndex: 0,
+      zIndex: currentLayerCount,
       show_condition: "",
     });
   };

@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { DataSource, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -11,48 +12,25 @@ import { Mockup } from './entities/mockup.entity';
 import { PrintArea } from './entities/print_area.entity';
 import { Product } from '../products/entities/product.entity';
 import { Variant } from '../products/entities/variant.entity';
-import { CreateDesignDto, UpdateMockupDto } from './dto/create-design.dto';
+import { CreateDesignDto } from './dto/create-design.dto';
+import { UpdateMockupDto } from './dto/update-mockup.dto';
 import { CreatePrintAreaDto } from './dto/create-print-area.dto';
-import { UserRole } from '../users/entities/user.entity';
+import { User, UserRole } from '../users/entities/user.entity';
+import { CreateArtworkDto } from './dto/create-artwork.dto';
 
 @Injectable()
 export class DesignService {
+  productRepository: any;
+  mockupRepository: any;
+  artworkRepo: any;
   constructor(
     private dataSource: DataSource,
     @InjectRepository(Product) private productRepo: Repository<Product>,
     @InjectRepository(Variant) private variantRepo: Repository<Variant>,
+    @InjectRepository(Design) private designRepo: Repository<Design>,
   ) {}
 
-  // 1. Tạo Design gốc cho Product
-  async createDesign(sellerId: number, dto: CreateDesignDto) {
-    const product = await this.productRepo.findOne({
-      where: { id: dto.productId, seller: { id: sellerId } },
-    });
-
-    if (!product)
-      throw new ForbiddenException('Sản phẩm không thuộc quyền sở hữu của bạn');
-
-    return await this.dataSource.transaction(async (manager) => {
-      const design = manager.create(Design, {
-        name: dto.name,
-        product: product,
-      });
-      const savedDesign = await manager.save(design);
-
-      if (dto.artworks?.length) {
-        const artworks = dto.artworks.map((art) =>
-          manager.create(Artwork, {
-            ...art,
-            design: savedDesign,
-          }),
-        );
-        await manager.save(artworks);
-      }
-      return savedDesign;
-    });
-  }
-
-  // 2. Cấu hình Mockup và PrintArea cho từng Variant
+  // ======================= MOCKUP =========================
   async updateVariantMockup(
     sellerId: number,
     variantId: number,
@@ -69,50 +47,31 @@ export class DesignService {
       );
 
     return await this.dataSource.transaction(async (manager) => {
-      // Xử lý Mockup
       let mockup = variant.mockup;
       if (!mockup) {
         mockup = manager.create(Mockup, { variant });
       }
-      mockup.url = dto.url;
+      mockup.url = dto.url ?? mockup.url ?? '';
       const savedMockup = await manager.save(mockup);
 
-      // Xử lý PrintArea
       let printArea = savedMockup.printArea;
       if (!printArea) {
         printArea = manager.create(PrintArea, { mockup: savedMockup });
       }
-      printArea.x = dto.x;
-      printArea.y = dto.y;
-      printArea.width = dto.width;
-      printArea.height = dto.height;
-      printArea.realWidthInch = dto.realWidthInch;
-      printArea.realHeightInch = dto.realHeightInch;
+      printArea.x = dto.x ?? 0;
+      printArea.y = dto.y ?? 0;
+      printArea.width = dto.width ?? 0;
+      printArea.height = dto.height ?? 0;
+      printArea.realWidthInch = dto.realWidthInch ?? 0;
+      printArea.realHeightInch = dto.realHeightInch ?? 0;
 
       await manager.save(printArea);
       return { message: 'Cập nhật Mockup và Vùng in thành công' };
     });
   }
 
-  // 3. Lấy chi tiết thiết kế để Seller chỉnh sửa
-  async getDesignForSeller(sellerId: number, productId: number) {
-    const design = await this.dataSource.getRepository(Design).findOne({
-      where: { product: { id: productId, seller: { id: sellerId } } },
-      relations: [
-        'artworks',
-        'product.variants',
-        'product.variants.mockup',
-        'product.variants.mockup.printArea',
-      ],
-    });
-
-    if (!design) throw new NotFoundException('Thiết kế chưa được khởi tạo');
-    return design;
-  }
-
   async addMockupToVariant(sellerId: number, variantId: number, dto: any) {
     return await this.dataSource.transaction(async (manager) => {
-      // Kiểm tra quyền sở hữu
       const variant = await manager.findOne(Variant, {
         where: { id: variantId, product: { seller: { id: sellerId } } },
         relations: ['mockup', 'mockup.printArea'],
@@ -123,49 +82,75 @@ export class DesignService {
           'Bạn không có quyền chỉnh sửa biến thể này',
         );
 
-      // Tạo hoặc cập nhật Mockup
       let mockup = variant.mockup;
       if (!mockup) {
         mockup = manager.create(Mockup, { variant });
       }
-      mockup.url = dto.url;
+
+      if (dto.url) {
+        mockup.url = dto.url;
+      }
+
       const savedMockup = await manager.save(mockup);
 
-      // Tạo hoặc cập nhật PrintArea (Vùng in)
       let printArea = savedMockup.printArea;
       if (!printArea) {
         printArea = manager.create(PrintArea, { mockup: savedMockup });
       }
-      printArea.x = dto.x;
-      printArea.y = dto.y;
-      printArea.width = dto.width;
-      printArea.height = dto.height;
-      printArea.realWidthInch = dto.realWidthInch;
-      printArea.realHeightInch = dto.realHeightInch;
+
+      printArea.x = dto.x ?? 0;
+      printArea.y = dto.y ?? 0;
+      printArea.width = dto.width ?? 0;
+      printArea.height = dto.height ?? 0;
+      printArea.realWidthInch = dto.realWidthInch ?? 0;
+      printArea.realHeightInch = dto.realHeightInch ?? 0;
 
       await manager.save(printArea);
-      return {
-        message: 'Thêm Mockup cho Variant thành công',
-        mockupId: savedMockup.id,
-      };
+
+      return { message: 'Thành công', mockupId: savedMockup.id };
+    });
+  }
+  async addMockupToProduct(
+    sellerId: number,
+    productId: number,
+    dto: UpdateMockupDto,
+  ) {
+    return await this.dataSource.transaction(async (manager) => {
+      const product = await manager.findOne(Product, {
+        where: { id: productId, seller: { id: sellerId } },
+        relations: ['mockup', 'mockup.printArea'],
+      });
+
+      if (!product) throw new ForbiddenException('Sản phẩm không thuộc về bạn');
+
+      let mockup = product.mockup;
+      if (!mockup) {
+        mockup = manager.create(Mockup, { product });
+      }
+
+      // SỬ DỤNG URL TỪ ASSET MANAGER
+      mockup.url = dto.url ?? mockup.url ?? '';
+      const savedMockup = await manager.save(mockup);
+
+      let printArea = savedMockup.printArea;
+      if (!printArea) {
+        printArea = manager.create(PrintArea, { mockup: savedMockup });
+      }
+
+      // Gán các thông số tọa độ mặc định là 0 nếu không có
+      printArea.x = dto.x ?? 0;
+      printArea.y = dto.y ?? 0;
+      printArea.width = dto.width ?? 0;
+      printArea.height = dto.height ?? 0;
+      printArea.realWidthInch = dto.realWidthInch ?? 0;
+      printArea.realHeightInch = dto.realHeightInch ?? 0;
+
+      await manager.save(printArea);
+      return { message: 'Thành công', mockupId: savedMockup.id };
     });
   }
 
-  // 2. Thêm Mockup cho Product (Dùng làm ảnh hiển thị mặc định cho Design)
-  async addMockupToProduct(sellerId: number, productId: number, dto: any) {
-    const product = await this.dataSource.getRepository(Product).findOne({
-      where: { id: productId, seller: { id: sellerId } },
-    });
-
-    if (!product) throw new ForbiddenException('Sản phẩm không thuộc về bạn');
-
-    const mockup = this.dataSource.getRepository(Mockup).create({
-      url: dto.url,
-      product: product,
-    });
-
-    return await this.dataSource.getRepository(Mockup).save(mockup);
-  }
+  // ======================= PRINT AREA =========================
 
   async addPrintArea(
     sellerId: number,
@@ -173,7 +158,6 @@ export class DesignService {
     dto: CreatePrintAreaDto,
   ) {
     return await this.dataSource.transaction(async (manager) => {
-      // 1. Tìm Mockup và kiểm tra quyền sở hữu (thông qua Product hoặc Variant)
       const mockup = await manager.findOne(Mockup, {
         where: [
           { id: mockupId, variant: { product: { seller: { id: sellerId } } } },
@@ -188,17 +172,14 @@ export class DesignService {
         );
       }
 
-      // 2. Xử lý PrintArea (Upsert logic)
       let printArea = mockup.printArea;
 
       if (!printArea) {
-        // Nếu chưa có vùng in thì khởi tạo mới
         printArea = manager.create(PrintArea, {
           mockup: mockup,
         });
       }
 
-      // 3. Cập nhật các thông số
       printArea.x = dto.x;
       printArea.y = dto.y;
       printArea.width = dto.width;
@@ -216,66 +197,84 @@ export class DesignService {
     });
   }
 
-  async getDesignPreview(userId: number, userRole: string, productId: number) {
-    // 1. Khởi tạo query options
-    const whereCondition: any = {
-      product: { id: productId },
-    };
+  // ======================= ARTWORK =========================
 
-    // Nếu KHÔNG PHẢI ADMIN, thì bắt buộc phải kiểm tra đúng seller sở hữu sản phẩm
-    if (userRole !== UserRole.ADMIN) {
-      whereCondition.product.seller = { id: userId };
+  async getSellerArtworks(sellerId: number) {
+    return await this.artworkRepo.find({
+      where: {
+        seller: { id: sellerId },
+      },
+      order: {
+        createdAt: 'DESC',
+      },
+      select: {
+        id: true,
+        name: true,
+        thumbnailUrl: true,
+        createdAt: true,
+      },
+    });
+  }
+
+  async createArtwork(sellerId: number, dto: CreateArtworkDto) {
+    const artwork = this.artworkRepo.create({
+      artworkName: dto.artworkName,
+      layersJson: dto.layersJson,
+      seller: { id: sellerId } as User,
+    });
+
+    try {
+      const savedArtwork = await this.artworkRepo.save(artwork);
+      return savedArtwork;
+    } catch (error) {
+      throw new InternalServerErrorException('Không thể lưu artwork');
     }
+  }
 
+  // ======================= DESIGN =========================
+
+  async createDesign(sellerId: number, dto: CreateDesignDto) {
+    const product = await this.productRepo.findOne({
+      where: { id: dto.productId, seller: { id: sellerId } },
+      select: { id: true },
+    });
+
+    const artwork = await this.artworkRepo.findOne({
+      where: { id: dto.artworkId, seller: { id: sellerId } },
+      select: { id: true },
+    });
+
+    if (!product)
+      throw new ForbiddenException('Sản phẩm không thuộc quyền sở hữu của bạn');
+
+    if (!artwork)
+      throw new ForbiddenException('Bản vẽ không thuộc quyền sở hữu của bạn');
+
+    return await this.dataSource.transaction(async (manager) => {
+      const design = manager.create(Design, {
+        designName: dto.designName,
+        product: product,
+        artwork: artwork,
+      });
+      const savedDesign = await manager.save(design);
+
+      return savedDesign;
+    });
+  }
+
+  async getDesignForSeller(sellerId: number, productId: number) {
     const design = await this.dataSource.getRepository(Design).findOne({
-      where: whereCondition,
+      where: { product: { id: productId, seller: { id: sellerId } } },
       relations: [
         'artworks',
-        'product',
         'product.variants',
         'product.variants.mockup',
         'product.variants.mockup.printArea',
       ],
-      order: {
-        artworks: { order: 'ASC' },
-      },
     });
 
-    if (!design) {
-      throw new NotFoundException(
-        userRole === UserRole.ADMIN
-          ? 'Không tìm thấy thiết kế cho sản phẩm này'
-          : 'Sản phẩm không tồn tại hoặc bạn không có quyền truy cập',
-      );
-    }
-
-    // 2. Format lại dữ liệu (giữ nguyên logic mapping của bạn)
-    return {
-      id: design.id,
-      designName: design.name,
-      productId: design.product.id,
-      layers: design.artworks.map((art) => ({
-        id: art.id,
-        content: JSON.parse(art.layersJson),
-        order: art.order,
-      })),
-      previews: design.product.variants.map((variant) => ({
-        variantId: variant.id,
-        variantName: variant.sku,
-        mockupUrl: variant.mockup?.url || null,
-        printArea: variant.mockup?.printArea
-          ? {
-              x: variant.mockup.printArea.x,
-              y: variant.mockup.printArea.y,
-              width: variant.mockup.printArea.width,
-              height: variant.mockup.printArea.height,
-              aspectRatio:
-                variant.mockup.printArea.width /
-                variant.mockup.printArea.height,
-            }
-          : null,
-      })),
-    };
+    if (!design) throw new NotFoundException('Thiết kế chưa được khởi tạo');
+    return design;
   }
 
   async adminGetAllDesigns(page: number = 1, limit: number = 10) {
@@ -305,7 +304,7 @@ export class DesignService {
 
       return {
         id: design.id,
-        designName: design.name,
+        designName: design.designName,
         createdAt: design.createdAt,
         seller: {
           id: design.product.seller?.id,

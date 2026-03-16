@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { ImageIcon } from "lucide-react";
-import type { Product } from "../types/product";
+import type { Product } from "../../types/product";
 
 const BASE_URL = "http://localhost:3000";
 

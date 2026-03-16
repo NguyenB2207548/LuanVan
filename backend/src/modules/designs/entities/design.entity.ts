@@ -4,6 +4,7 @@ import {
   CreateDateColumn,
   Entity,
   JoinColumn,
+  ManyToOne,
   OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
@@ -16,16 +17,18 @@ export class Design {
   id: number;
 
   @Column()
-  name: string;
+  @JoinColumn({ name: 'design_name' })
+  designName: string;
 
-  // 1-1 với Product: Mỗi sản phẩm có một cấu trúc thiết kế mẫu
   @OneToOne(() => Product)
   @JoinColumn({ name: 'product_id' })
   product: Product;
 
-  // 1-N với Artworks: Chứa các layer mặc định do Seller thiết lập
-  @OneToMany(() => Artwork, (artwork) => artwork.design, { cascade: true })
-  artworks: Artwork[];
+  @ManyToOne(() => Artwork, (artwork) => artwork.designs, {
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({ name: 'artwork_id' })
+  artwork: Artwork;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

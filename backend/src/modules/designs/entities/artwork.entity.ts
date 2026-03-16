@@ -4,21 +4,34 @@ import {
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+  OneToMany,
 } from 'typeorm';
 import { Design } from './design.entity';
+import { User } from '../../users/entities/user.entity';
 
 @Entity('artworks')
 export class Artwork {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => Design, (design) => design.artworks, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'design_id' })
-  design: Design;
+  @Column({ name: 'artwork_name', length: 255, nullable: true })
+  artworkName: string;
 
   @Column({ type: 'text', comment: 'Lưu trữ JSON chi tiết các layer' })
   layersJson: string;
 
-  @Column({ default: 1, comment: 'Thứ tự hiển thị của artwork' })
-  order: number;
+  @ManyToOne(() => User, (user) => user.artworks, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'seller_id' })
+  seller: User;
+
+  @OneToMany(() => Design, (design) => design.artwork)
+  designs: Design[];
+
+  @CreateDateColumn({ name: 'created_at' })
+  createdAt: Date;
+
+  @UpdateDateColumn({ name: 'updated_at' })
+  updatedAt: Date;
 }

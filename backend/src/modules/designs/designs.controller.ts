@@ -9,14 +9,21 @@ import {
   Get,
   ParseIntPipe,
   Query,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
 import { DesignService } from './designs.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/entities/user.entity';
-import { CreateDesignDto, UpdateMockupDto } from './dto/create-design.dto';
+import { CreateDesignDto } from './dto/create-design.dto';
+import { UpdateMockupDto } from './dto/update-mockup.dto';
 import { CreatePrintAreaDto } from './dto/create-print-area.dto';
+import { FileInterceptor } from '@nestjs/platform-express/multer/interceptors/file.interceptor';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
+import { CreateArtworkDto } from './dto/create-artwork.dto';
 
 @Controller('designs')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -24,10 +31,7 @@ import { CreatePrintAreaDto } from './dto/create-print-area.dto';
 export class DesignController {
   constructor(private readonly designService: DesignService) {}
 
-  @Post()
-  async create(@Req() req: any, @Body() dto: CreateDesignDto) {
-    return this.designService.createDesign(req.user.id, dto);
-  }
+  // ======================= MOCKUP =========================
 
   @Patch('variant/:id/mockup')
   async updateMockup(
@@ -38,21 +42,14 @@ export class DesignController {
     return this.designService.updateVariantMockup(req.user.id, variantId, dto);
   }
 
-  @Get('product/:productId')
-  async getByProduct(
-    @Req() req: any,
-    @Param('productId', ParseIntPipe) productId: number,
-  ) {
-    return this.designService.getDesignForSeller(req.user.id, productId);
-  }
-
-  // API thêm Mockup cho Variant
+  // API thêm Mockup cho Variant (Nhận URL từ Asset Manager)
   @Post('variant/:variantId/mockup')
   async addVariantMockup(
     @Req() req: any,
     @Param('variantId', ParseIntPipe) variantId: number,
-    @Body() dto: UpdateMockupDto,
+    @Body() dto: UpdateMockupDto, // dto này bây giờ chứa trường url
   ) {
+    // Không cần 'file' nữa vì ảnh đã có trên server
     return this.designService.addMockupToVariant(req.user.id, variantId, dto);
   }
 
@@ -66,6 +63,8 @@ export class DesignController {
     return this.designService.addMockupToProduct(req.user.id, productId, dto);
   }
 
+  // ======================= PRINT AREA =========================
+
   // API thêm PrintArea cho Mockup (Dùng chung cho cả Mockup của Product và Variant)
   @Patch('mockup/:mockupId/print-area')
   @Roles(UserRole.SELLER)
@@ -78,18 +77,45 @@ export class DesignController {
     return this.designService.addPrintArea(sellerId, mockupId, dto);
   }
 
-  @Get('product/:productId/preview')
-  @Roles(UserRole.SELLER, UserRole.ADMIN)
-  async getPreview(
+  // ======================= ARTWORK =========================
+
+  @Get('seller/artworks')
+  async getSellerArtworks(@Req() req: any) {
+    return this.designService.getSellerArtworks(req.user.id);
+  }
+
+  @Post('seller/artworks')
+  async createArtworks(@Req() req: any, @Body() dto: CreateArtworkDto) {
+    return this.designService.createArtwork(req.user.id, dto);
+  }
+
+  // ======================= DESIGN =========================
+
+  @Post()
+  async create(@Req() req: any, @Body() dto: CreateDesignDto) {
+    return this.designService.createDesign(req.user.id, dto);
+  }
+
+  @Get('product/:productId')
+  async getByProduct(
     @Req() req: any,
     @Param('productId', ParseIntPipe) productId: number,
   ) {
-    return this.designService.getDesignPreview(
-      req.user.id,
-      req.user.role,
-      productId,
-    );
+    return this.designService.getDesignForSeller(req.user.id, productId);
   }
+
+  // @Get('product/:productId/preview')
+  // @Roles(UserRole.SELLER, UserRole.ADMIN)
+  // async getPreview(
+  //   @Req() req: any,
+  //   @Param('productId', ParseIntPipe) productId: number,
+  // ) {
+  //   return this.designService.getDesignPreview(
+  //     req.user.id,
+  //     req.user.role,
+  //     productId,
+  //   );
+  // }
 
   @Get('admin/all')
   @Roles(UserRole.ADMIN)

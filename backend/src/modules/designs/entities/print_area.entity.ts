@@ -16,7 +16,6 @@ export class PrintArea {
   @JoinColumn({ name: 'mockup_id' })
   mockup: Mockup;
 
-  // Vị trí vùng in trên Mockup (tính theo pixel hoặc % trên Canvas)
   @Column({ type: 'float' })
   x: number;
 

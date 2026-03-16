@@ -9,6 +9,7 @@ import {
   UseGuards,
   Request,
   Query,
+  Req,
 } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -55,10 +56,15 @@ export class ProductsController {
     return this.productsService.searchProducts(query);
   }
 
-  @Get(':productId/pod-config')
-  async getPodConfig(@Param('productId', ParseIntPipe) productId: number) {
-    return this.productsService.getPodDesignByProductId(productId);
+  @Get('designer/list')
+  async getListForDesigner(@Req() req: any) {
+    return this.productsService.findAllForDesigner(req.user.id);
   }
+
+  // @Get(':productId/pod-config')
+  // async getPodConfig(@Param('productId', ParseIntPipe) productId: number) {
+  //   return this.productsService.getPodDesignByProductId(productId);
+  // }
 
   @Get(':id')
   async findOne(@Param('id', ParseIntPipe) id: number) {

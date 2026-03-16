@@ -27,71 +27,6 @@ export class ProductsService {
     private productRepository: Repository<Product>,
   ) {}
 
-  async getPodDesignByProductId(productId: number) {
-    // 1. Kiểm tra sản phẩm có tồn tại không
-    const product = await this.dataSource.getRepository(Product).findOne({
-      where: { id: productId },
-    });
-
-    if (!product) throw new NotFoundException('Sản phẩm không tồn tại');
-
-    // 2. Lấy Design cùng các quan hệ liên quan
-    const designData = await this.dataSource.getRepository(Design).findOne({
-      where: { product: { id: productId } },
-      relations: [
-        'artworks', // Các layer JSON mặc định
-        'product',
-        'product.variants', // Lấy variants để map với mockups
-        'product.variants.mockup', // Lấy phôi ảnh
-        'product.variants.mockup.printArea', // Lấy tọa độ vùng in
-      ],
-      order: {
-        artworks: { order: 'ASC' }, // Sắp xếp layer theo thứ tự hiển thị
-      },
-    });
-
-    if (!designData) {
-      throw new NotFoundException(
-        'Sản phẩm này chưa được cấu hình thiết kế POD',
-      );
-    }
-
-    // 3. Chuẩn hóa dữ liệu trả về cho Frontend
-    return {
-      designId: designData.id,
-      productName: designData.product.productName,
-      // Danh sách các layer mặc định để vẽ lên Canvas
-      defaultArtworks: designData.artworks.map((art) => ({
-        id: art.id,
-        layers: JSON.parse(art.layersJson), // Parse string thành Object JSON
-        order: art.order,
-      })),
-      // Danh sách các tùy chọn phôi (Mockups) cho từng Variant
-      variantsMockups: designData.product.variants.map((variant) => ({
-        variantId: variant.id,
-        sku: variant.sku,
-        price: variant.price,
-        mockup: variant.mockup
-          ? {
-              url: variant.mockup.url,
-              printArea: variant.mockup.printArea
-                ? {
-                    x: variant.mockup.printArea.x,
-                    y: variant.mockup.printArea.y,
-                    width: variant.mockup.printArea.width,
-                    height: variant.mockup.printArea.height,
-                    // Thông số thực tế để tính toán file in sau này
-                    realWidthInch: variant.mockup.printArea.realWidthInch,
-                    realHeightInch: variant.mockup.printArea.realHeightInch,
-                    targetDpi: variant.mockup.printArea.targetDpi,
-                  }
-                : null,
-            }
-          : null,
-      })),
-    };
-  }
-
   async findAll(page: number = 1, limit: number = 10) {
     const skip = (page - 1) * limit;
 
@@ -137,16 +72,57 @@ export class ProductsService {
         'categories',
         'seller',
         'images',
+        'attributes',
+        // 1. Lấy Mockups và PrintAreas trực tiếp của Product (Phôi chung)
+        'mockup',
+        'mockup.printAreas',
+
+        // 2. Lấy chi tiết các Variant
         'variants',
         'variants.images',
         'variants.attributeValues',
         'variants.attributeValues.attribute',
-        'attributes',
+
+        // 3. Lấy Mockups và PrintAreas riêng của từng Variant (nếu có)
+        'variants',
+        'variants.mockup.printAreas',
+
+        // 4. Lấy các Design đã được tạo cho sản phẩm này
+        'designs',
+
+        // 5. Lấy các Artwork thuộc về Design đó
+
+        'designs.artworks',
       ],
     });
 
-    if (!product) throw new NotFoundException(`Không tìm thấy sản phẩm #${id}`);
+    if (!product) {
+      throw new NotFoundException(`Không tìm thấy sản phẩm #${id}`);
+    }
+
     return product;
+  }
+
+  // API cho gộp design
+  async findAllForDesigner(sellerId: number) {
+    return await this.productRepository
+      .createQueryBuilder('product')
+
+      .select(['product.id', 'product.name', 'product.description'])
+
+      .leftJoinAndSelect('product.mockup', 'productMockup')
+      .leftJoinAndSelect('productMockup.printAreas', 'productPrintArea')
+
+      .leftJoinAndSelect('product.variants', 'variant')
+
+      .leftJoinAndSelect('variant.attributeValues', 'attributeValue')
+      .leftJoinAndSelect('attributeValue.attribute', 'attribute')
+
+      .leftJoinAndSelect('variant.mockup', 'variantMockup')
+      .leftJoinAndSelect('variantMockup.printAreas', 'variantPrintArea')
+
+      .where('product.sellerId = :sellerId', { sellerId })
+      .getMany();
   }
 
   async findAllBySeller(
@@ -317,7 +293,6 @@ export class ProductsService {
       take: limit,
     });
   }
-
   async create(createProductDto: CreateProductDto, sellerId: number) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -327,7 +302,7 @@ export class ProductsService {
       const { productName, description, categoryId, variants, productImages } =
         createProductDto;
 
-      // Kiểm tra category và seller
+      // 1. Kiểm tra category và seller
       const category = await queryRunner.manager.findOne(Category, {
         where: { id: categoryId },
       });
@@ -338,6 +313,7 @@ export class ProductsService {
       if (!category) throw new BadRequestException('Danh mục không tồn tại');
       if (!seller) throw new BadRequestException('Seller không hợp lệ');
 
+      // 2. Tạo Product
       const newProduct = queryRunner.manager.create(Product, {
         productName,
         description,
@@ -346,7 +322,7 @@ export class ProductsService {
       });
       const savedProduct = await queryRunner.manager.save(newProduct);
 
-      // ảnh sản phẩm
+      // 3. Xử lý ảnh sản phẩm
       if (productImages?.length) {
         const productImgs = productImages.map((url, i) =>
           queryRunner.manager.create(Image, {
@@ -359,15 +335,16 @@ export class ProductsService {
       }
 
       const productAttributesMap = new Map<string, Attribute>();
+      const savedVariantsResult: Variant[] = [];
 
+      // 4. Xử lý Variants
       if (variants?.length) {
         for (const variantDto of variants) {
-          // Tìm các AttributeValue object dựa trên mảng ID gửi lên
           const variantAttributeValues = await queryRunner.manager.find(
             AttributeValue,
             {
               where: { id: In(variantDto.attributeValueIds) },
-              relations: ['attribute'], // Lấy luôn attribute cha để thống kê
+              relations: ['attribute'],
             },
           );
 
@@ -380,12 +357,10 @@ export class ProductsService {
             );
           }
 
-          // Lưu các attribute vào map để cập nhật cho Product sau này
           variantAttributeValues.forEach((av) => {
             productAttributesMap.set(av.attribute.attributeName, av.attribute);
           });
 
-          // Tạo Variant
           const newVariant = queryRunner.manager.create(Variant, {
             product: savedProduct,
             stock: variantDto.stock,
@@ -398,7 +373,9 @@ export class ProductsService {
 
           const savedVariant = await queryRunner.manager.save(newVariant);
 
-          // Lưu ảnh cho Variant
+          // Đưa variant đã lưu vào mảng kết quả
+          savedVariantsResult.push(savedVariant);
+
           if (variantDto.images?.length) {
             const variantImgs = variantDto.images.map((url, i) =>
               queryRunner.manager.create(Image, {
@@ -412,11 +389,18 @@ export class ProductsService {
         }
       }
 
+      // 5. Cập nhật Attribute cho Product
       savedProduct.attributes = Array.from(productAttributesMap.values());
       await queryRunner.manager.save(savedProduct);
 
       await queryRunner.commitTransaction();
-      return { message: 'Tạo sản phẩm thành công', id: savedProduct.id };
+
+      // 6. TRẢ VỀ ĐẦY ĐỦ DỮ LIỆU ĐỂ FRONTEND KHÔNG BỊ LỖI
+      return {
+        message: 'Tạo sản phẩm thành công',
+        id: savedProduct.id,
+        variants: savedVariantsResult, // Trả về mảng variants có chứa ID
+      };
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw error;
