@@ -46,7 +46,7 @@ const ProductDetail = () => {
     }
   };
 
-  // 1. Khởi tạo dữ liệu
+  // 1. Khởi tạo dữ liệu (Chỉ chạy 1 lần duy nhất khi load trang)
   useEffect(() => {
     const fetchProductAndDesign = async () => {
       try {
@@ -59,7 +59,6 @@ const ProductDetail = () => {
           const firstVariant = data.variants[0];
           setSelectedVariant(firstVariant);
 
-          // Mặc định hiện ảnh chính (Primary)
           const primaryImg =
             data.images?.find((img: any) => img.isPrimary)?.url ||
             data.images?.[0]?.url ||
@@ -77,12 +76,14 @@ const ProductDetail = () => {
 
           layers.forEach((layer: any) => {
             if (layer.type === "text") {
+              // Ưu tiên text đã gán sẵn trong layersJson
               initialChoices[layer.id] = layer.text;
             }
             if (
               (layer.type === "dynamic_image" || layer.type === "group") &&
               layer.options?.length > 0
             ) {
+              // Tìm option nào đang có image_url trùng với image_url mặc định của layer
               const defaultOpt =
                 layer.options.find(
                   (o: any) => o.image_url === layer.image_url,
@@ -101,26 +102,27 @@ const ProductDetail = () => {
     fetchProductAndDesign();
   }, [id]);
 
-  // 2. Logic khi click chọn Variant (Hiện ảnh mockup/variant, tắt Preview)
+  // 2. Logic khi click chọn Variant (Giữ nguyên layer khi đổi variant)
   const handleVariantSelect = (variantId: any) => {
     const variant = product.variants.find((v: any) => v.id === variantId);
     if (variant) {
       setSelectedVariant(variant);
-      setShowPreview(false); // Tắt preview để quay về chế độ xem ảnh tĩnh
-      const variantImg =
-        variant.mockup?.url ||
-        (variant.images?.length > 0 ? variant.images[0].url : activeImage);
-      setActiveImage(variantImg);
+      if (!showPreview) {
+        const variantImg =
+          variant.mockup?.url ||
+          (variant.images?.length > 0 ? variant.images[0].url : activeImage);
+        setActiveImage(variantImg);
+      }
     }
   };
 
   // Logic khi click vào ảnh nhỏ bên trái
   const handleThumbnailClick = (imgUrl: string) => {
     setActiveImage(imgUrl);
-    setShowPreview(false); // Tắt preview để hiện ảnh vừa chọn
+    setShowPreview(false);
   };
 
-  // 3. Tự động bật Canvas khi tương tác thiết kế
+  // 3. Tự động bật Canvas khi người dùng tương tác với thiết kế
   const handleDesignChoicesChange = (newChoices: any) => {
     setDesignChoices(newChoices);
     if (!showPreview) setShowPreview(true);
@@ -164,7 +166,7 @@ const ProductDetail = () => {
               {displayImages.map((img: any, idx: number) => (
                 <div
                   key={idx}
-                  onClick={() => handleThumbnailClick(img.url)} // SỬA TẠI ĐÂY: Dùng hàm tập trung
+                  onClick={() => handleThumbnailClick(img.url)}
                   className={`border rounded p-1 cursor-pointer transition-all ${!showPreview && activeImage === img.url ? "border-red-400 ring-1 ring-red-400" : "border-gray-200"}`}
                 >
                   <img
@@ -176,13 +178,12 @@ const ProductDetail = () => {
               ))}
             </div>
 
-            {/* MAIN DISPLAY AREA */}
             <div className="flex-1 bg-white border border-gray-100 relative rounded-lg overflow-hidden flex items-center justify-center min-h-[500px]">
               {/* Ảnh sản phẩm thông thường */}
               {!showPreview && activeImage && (
                 <img
                   src={`${BASE_URL}${activeImage}`}
-                  className="w-full h-auto object-contain"
+                  className="w-full h-auto object-contain transition-all duration-300"
                   alt="Product"
                 />
               )}
@@ -203,7 +204,8 @@ const ProductDetail = () => {
                         if (layer.type === "text") {
                           return {
                             ...layer,
-                            text: designChoices[layer.id] || layer.text,
+                            // LUÔN HIỆN: Lấy lựa chọn mới OR text mặc định gốc
+                            text: designChoices[layer.id] || layer.text || "",
                           };
                         }
                         if (
@@ -218,6 +220,7 @@ const ProductDetail = () => {
 
                           return {
                             ...layer,
+                            // LUÔN HIỆN: Lấy ảnh của option mới OR ảnh mặc định gốc
                             image_url: selectedOpt
                               ? selectedOpt.image_url
                               : layer.image_url,
@@ -237,7 +240,8 @@ const ProductDetail = () => {
                     selectedId={null}
                     setSelectedId={() => {}}
                     mode="client"
-                    maxWidth={500}
+                    scale={0.7}
+                    maxWidth={650}
                   />
                 </div>
               )}
