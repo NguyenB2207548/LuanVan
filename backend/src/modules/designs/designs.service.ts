@@ -330,4 +330,34 @@ export class DesignService {
       },
     };
   }
+
+  async deleteDesign(id: number, sellerId: number) {
+    const design = await this.designRepo.findOne({
+      where: {
+        id: id,
+      },
+      relations: ['product', 'product.seller'],
+    });
+
+    if (!design) {
+      throw new NotFoundException(
+        `Không tìm thấy thiết kế với ID ${id} hoặc bạn không có quyền xóa.`,
+      );
+    }
+
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      await queryRunner.manager.delete(Design, id);
+      await queryRunner.commitTransaction();
+      return { message: 'Xóa thiết kế thành công' };
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+      throw new InternalServerErrorException('Có lỗi xảy ra khi xóa thiết kế.');
+    } finally {
+      await queryRunner.release();
+    }
+  }
 }

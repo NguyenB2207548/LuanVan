@@ -31,13 +31,14 @@ export interface Variant {
   id: number;
   stock: number;
   attributeValues: AttributeValue[];
-  prices: Price[];
+  price: number;
   images: Image[]; // Ảnh riêng của từng biến thể
   createdAt: string;
   updatedAt: string;
 }
 
 export interface Category {
+  some(arg0: (cat: any) => boolean): boolean;
   id: number;
   categoryName: string;
   status: string;
@@ -52,7 +53,7 @@ export interface Product {
   stock: number;
   status: string;
   description: string | null;
-  category: Category;
+  categories: Category[];
   variants: Variant[];
   attributes: Attribute[];
   images: Image[]; // Ảnh chung của sản phẩm

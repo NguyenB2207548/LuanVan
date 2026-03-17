@@ -15,5 +15,5 @@ export class CreateOrderDto {
 
   @IsString()
   @IsNotEmpty({ message: 'Vui lòng chọn phương thức thanh toán' })
-  paymentMethod: string; // 'COD' hoặc 'VNPAY'
+  paymentMethod: string;
 }

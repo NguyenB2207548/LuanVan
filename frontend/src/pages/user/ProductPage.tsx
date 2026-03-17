@@ -13,26 +13,28 @@ interface Category {
 
 const ProductPage = () => {
   const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]); // State lưu danh mục từ API
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [searchQuery, setSearchQuery] = useState("");
-  // activeCategory có thể là "all" (chuỗi) hoặc id của danh mục (số)
   const [activeCategory, setActiveCategory] = useState<string | number>("all");
-
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Dùng Promise.all để gọi 2 API cùng lúc giúp tăng tốc độ tải trang
         const [productsRes, categoriesRes] = await Promise.all([
           axiosClient.get("/products"),
           axiosClient.get("/categories"),
         ]);
 
-        setProducts(productsRes.data);
-        setCategories(categoriesRes.data);
+        // SỬA TẠI ĐÂY:
+        // Vì backend trả về { data: [], meta: {} }, bạn cần lấy .data.data
+        setProducts(productsRes.data.data || []);
+
+        // Kiểm tra lại categoriesRes, nếu nó cũng có cấu trúc tương tự thì:
+        setCategories(categoriesRes.data.data || categoriesRes.data);
       } catch (error) {
         console.error("Lỗi khi lấy dữ liệu:", error);
+        setProducts([]); // Fallback về mảng rỗng để không bị crash
       } finally {
         setLoading(false);
       }
@@ -40,19 +42,20 @@ const ProductPage = () => {
     fetchData();
   }, []);
 
-  // Lọc sản phẩm dựa trên tìm kiếm và danh mục
-  const filteredProducts = products.filter((product) => {
-    // 1. Lọc theo tên
-    const matchesSearch = product.productName
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase());
+  const filteredProducts = Array.isArray(products)
+    ? products.filter((product) => {
+        const matchesSearch = product.productName
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase());
 
-    // 2. Lọc theo Danh mục (dựa vào id thực tế từ API)
-    const matchesCategory =
-      activeCategory === "all" || product.category?.id === activeCategory;
+        // Vì product.categories là một mảng, chúng ta dùng .some để kiểm tra
+        const matchesCategory =
+          activeCategory === "all" ||
+          product.categories?.some((cat: any) => cat.id === activeCategory);
 
-    return matchesSearch && matchesCategory;
-  });
+        return matchesSearch && matchesCategory;
+      })
+    : [];
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans pb-20">

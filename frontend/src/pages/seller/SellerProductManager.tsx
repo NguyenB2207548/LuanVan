@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Package,
   Search,
@@ -268,12 +268,13 @@ const SellerProductManager = () => {
                         >
                           <Copy size={18} />
                         </button>
-                        <button
-                          className="text-gray-600 hover:text-gray-900 transition-colors"
+                        <Link
+                          to={`/seller/products/edit/${product.id}`}
+                          className="text-gray-600 hover:text-blue-600 transition-colors p-1"
                           title="Chỉnh sửa"
                         >
                           <Edit size={18} />
-                        </button>
+                        </Link>
                         <button
                           onClick={() =>
                             handleDeleteProduct(product.id, product.productName)

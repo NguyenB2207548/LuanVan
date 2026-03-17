@@ -33,10 +33,10 @@ const CartPage = () => {
     fetchCart();
   }, []);
 
-  // Tính tổng tiền dựa trên data thật
+  // SỬA TẠI ĐÂY: Tính tổng tiền dựa trên item.variant.price
   const subtotal = cartItems.reduce((acc, item) => {
-    const price = item.variant?.prices?.[0]?.amount || 0;
-    return acc + parseFloat(price) * item.quantity;
+    const price = item.variant?.price || 0;
+    return acc + price * item.quantity;
   }, 0);
 
   const updateQuantity = async (
@@ -60,7 +60,6 @@ const CartPage = () => {
     }
   };
 
-  // Logic gọi API Xóa sản phẩm khỏi giỏ
   const removeItem = async (cartItemId: number) => {
     if (
       !window.confirm("Bạn có chắc chắn muốn xóa sản phẩm này khỏi giỏ hàng?")
@@ -78,7 +77,6 @@ const CartPage = () => {
     }
   };
 
-  // Helper function: Lấy ảnh hiển thị
   const getDisplayImage = (item: any) => {
     const variantImg = item.variant?.images?.[0]?.url;
     const productImg = item.variant?.product?.images?.[0]?.url;
@@ -86,7 +84,6 @@ const CartPage = () => {
     return finalUrl ? `${BASE_URL}${finalUrl}` : "";
   };
 
-  // Trạng thái Loading ban đầu
   if (loading) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
@@ -95,7 +92,6 @@ const CartPage = () => {
     );
   }
 
-  // Trạng thái Giỏ hàng trống
   if (cartItems.length === 0) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center px-4">
@@ -129,7 +125,6 @@ const CartPage = () => {
       </div>
 
       <div className="flex flex-col lg:flex-row gap-10">
-        {/* CỘT TRÁI: DANH SÁCH SẢN PHẨM */}
         <div className="lg:w-2/3">
           <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
             <div className="hidden sm:grid grid-cols-12 gap-4 p-4 border-b border-gray-200 bg-gray-50 text-sm font-semibold text-gray-600 uppercase tracking-wider">
@@ -140,9 +135,8 @@ const CartPage = () => {
 
             <ul className="divide-y divide-gray-200">
               {cartItems.map((item) => {
-                const price = parseFloat(
-                  item.variant?.prices?.[0]?.amount || 0,
-                );
+                // SỬA TẠI ĐÂY: Lấy giá từ item.variant.price
+                const price = item.variant?.price || 0;
                 const displayImage = getDisplayImage(item);
                 const isItemUpdating = updatingId === item.id;
 
@@ -151,7 +145,6 @@ const CartPage = () => {
                     key={item.id}
                     className={`p-4 sm:p-6 grid grid-cols-1 sm:grid-cols-12 gap-4 sm:gap-6 items-center transition-opacity ${isItemUpdating ? "opacity-50 pointer-events-none" : ""}`}
                   >
-                    {/* Cột Info */}
                     <div className="col-span-1 sm:col-span-6 flex gap-4">
                       <div className="w-24 h-24 sm:w-28 sm:h-28 flex-shrink-0 bg-gray-100 rounded-md border border-gray-200 overflow-hidden">
                         {displayImage ? (
@@ -173,15 +166,20 @@ const CartPage = () => {
                         >
                           {item.variant?.product?.productName || "Sản phẩm"}
                         </Link>
-                        <p className="text-sm font-semibold text-gray-900 mt-1 sm:hidden">
+                        {/* Hiển thị Option (Màu sắc, Size) */}
+                        <p className="text-xs text-gray-500 mt-1 uppercase font-semibold">
+                          {item.variant?.attributeValues
+                            ?.map((av: any) => av.valueName)
+                            .join(" / ")}
+                        </p>
+                        <p className="text-sm font-semibold text-gray-900 mt-1">
                           {price.toLocaleString()}đ
                         </p>
 
-                        {/* Hiển thị Tùy chọn thiết kế */}
                         {item.customizedDesignJson &&
                           Object.keys(item.customizedDesignJson).length > 0 && (
                             <div className="mt-2 flex flex-wrap gap-1">
-                              <span className="text-xs bg-indigo-50 text-indigo-600 px-2 py-1 rounded border border-indigo-100">
+                              <span className="text-[10px] bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded border border-indigo-100 font-bold uppercase italic">
                                 Có thiết kế riêng
                               </span>
                             </div>
@@ -189,7 +187,6 @@ const CartPage = () => {
                       </div>
                     </div>
 
-                    {/* Cột Quantity */}
                     <div className="col-span-1 sm:col-span-3 flex sm:justify-center items-center mt-2 sm:mt-0">
                       <div className="flex items-center border border-gray-300 rounded-md bg-white">
                         <button
@@ -215,7 +212,6 @@ const CartPage = () => {
                         </button>
                       </div>
 
-                      {/* Nút xóa trên Mobile */}
                       <button
                         onClick={() => removeItem(item.id)}
                         className="ml-auto sm:hidden text-red-500 hover:text-red-700 p-2"
@@ -224,12 +220,10 @@ const CartPage = () => {
                       </button>
                     </div>
 
-                    {/* Cột Total */}
                     <div className="col-span-1 sm:col-span-3 flex justify-between sm:justify-end items-center mt-2 sm:mt-0">
                       <span className="hidden sm:block text-base font-bold text-gray-900">
                         {(price * item.quantity).toLocaleString()}đ
                       </span>
-                      {/* Nút xóa trên Desktop */}
                       <button
                         onClick={() => removeItem(item.id)}
                         className="hidden sm:block ml-4 text-gray-400 hover:text-red-500 transition-colors"
@@ -254,14 +248,12 @@ const CartPage = () => {
           </div>
         </div>
 
-        {/* CỘT PHẢI: ORDER SUMMARY */}
         <div className="lg:w-1/3">
           <div className="bg-gray-50 border border-gray-200 rounded-lg shadow-sm p-6 sticky top-24">
             <h2 className="text-lg font-bold text-gray-900 mb-6">
               Tổng đơn hàng
             </h2>
 
-            {/* Đã xóa Phí vận chuyển, chỉ giữ Tạm tính kèm số lượng */}
             <div className="text-sm text-gray-600 mb-6">
               <div className="flex justify-between items-center">
                 <span>Tạm tính ({cartItems.length} sản phẩm)</span>
@@ -288,25 +280,6 @@ const CartPage = () => {
             >
               Tiến hành thanh toán
             </Link>
-
-            <div className="mt-6 flex flex-col items-center gap-3">
-              <p className="text-xs text-gray-500 flex items-center gap-1">
-                <svg
-                  className="w-4 h-4 text-green-500"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8V7a4 4 0 00-8 0v4h8z"
-                  />
-                </svg>
-                Thanh toán bảo mật & an toàn
-              </p>
-            </div>
           </div>
         </div>
       </div>

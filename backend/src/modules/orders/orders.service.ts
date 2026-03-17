@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { DataSource, IsNull } from 'typeorm';
+import { DataSource, IsNull, Repository } from 'typeorm';
 import { Order } from './entities/order.entity';
 import { OrderItem } from './entities/order-item.entity';
 import { Cart } from '../carts/entities/cart.entity';
@@ -13,15 +13,21 @@ import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { CartItem } from '../carts/entities/cart-item.entity';
 import { MomoService } from './momo.service';
+import { InjectRepository } from '@nestjs/typeorm';
 
 @Injectable()
 export class OrdersService {
-  orderRepository: any;
-  // findByOrderNumber(orderNumber: any) {
-  //   throw new Error('Method not implemented.');
-  // }
-  dataSource: any;
-  momoService: any;
+  constructor(
+    // 1. Phải có DataSource ở đây để dùng transaction
+    private readonly dataSource: DataSource,
+
+    @InjectRepository(Order)
+    private readonly orderRepository: Repository<Order>,
+
+    // 2. Inject MomoService
+    private readonly momoService: MomoService,
+  ) {}
+
   async getOrderItemWithDesign(orderItemId: number) {
     const orderItem = await this.dataSource.getRepository(OrderItem).findOne({
       where: { id: orderItemId },
@@ -175,39 +181,48 @@ export class OrdersService {
 
   async sellerConfirmOrder(orderId: number, sellerId: number) {
     return await this.dataSource.transaction(async (manager) => {
+      // 1. Tìm đơn hàng kèm theo quan hệ seller để kiểm tra quyền sở hữu
       const order = await manager.findOne(Order, {
-        where: { id: orderId, seller: { id: sellerId } },
-        relations: ['items'],
+        where: {
+          id: orderId,
+          seller: { id: sellerId }, // Đảm bảo Entity Order có @ManyToOne tới Seller
+        },
+        relations: ['items', 'user'], // Load thêm user nếu muốn gửi email sau này
       });
 
       if (!order) {
-        throw new NotFoundException('Không tìm thấy đơn hàng của bạn');
+        throw new NotFoundException(
+          'Không tìm thấy đơn hàng hoặc bạn không có quyền xử lý đơn này.',
+        );
       }
 
-      //  Kiểm tra trạng thái hiện tại
+      // 2. Chặn nếu đơn hàng không ở trạng thái chờ (pending)
       if (order.status !== 'pending') {
         throw new BadRequestException(
-          `Đơn hàng đã ở trạng thái: ${order.status}`,
+          `Không thể xác nhận vì đơn hàng đang ở trạng thái: ${order.status}`,
         );
       }
 
-      // CHẶN XÁC NHẬN nếu là MOMO nhưng chưa thanh toán thành công
-      if (order.paymentMethod === 'MOMO' && order.paymentStatus !== 'paid') {
+      // 3. Logic chặn xác nhận nếu chưa thanh toán (MOMO / VNPAY / Chuyển khoản)
+      const onlinePaymentMethods = ['MOMO', 'VNPAY', 'BANK_TRANSFER'];
+      if (
+        onlinePaymentMethods.includes(order.paymentMethod) &&
+        order.paymentStatus !== 'paid'
+      ) {
         throw new BadRequestException(
-          'Đơn hàng thanh toán qua MoMo chưa được xác nhận tiền về, không thể xác nhận đơn.',
+          'Đơn hàng thanh toán online chưa được xác nhận thanh toán thành công.',
         );
       }
 
-      //  Cập nhật trạng thái
+      // 4. Cập nhật trạng thái
       order.status = 'confirmed';
+      // Cập nhật ngày xác nhận nếu bạn có trường này (ví dụ: confirmedAt)
+      // order.confirmedAt = new Date();
+
       const savedOrder = await manager.save(Order, order);
 
-      // (Tùy chọn) Gửi thông báo/Email cho khách hàng tại đây
-      // this.notificationService.send(order.user.id, 'Đơn hàng của bạn đã được xác nhận!');
-
       return {
-        message:
-          'Xác nhận đơn hàng thành công, hãy chuẩn bị hàng để giao cho Shipper.',
+        message: 'Xác nhận đơn hàng thành công!',
         data: savedOrder,
       };
     });

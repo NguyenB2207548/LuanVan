@@ -50,8 +50,8 @@ const CheckoutPage = () => {
   }, [navigate]);
 
   const subtotal = cartItems.reduce((acc, item) => {
-    const price = item.variant?.prices?.[0]?.amount || 0;
-    return acc + parseFloat(price) * item.quantity;
+    const price = item.variant?.price || 0;
+    return acc + price * item.quantity;
   }, 0);
 
   // Xử lý thay đổi input
@@ -69,23 +69,22 @@ const CheckoutPage = () => {
 
     try {
       const response = await axiosClient.post("/orders/checkout", formData);
-
-      const { order, payUrl } = response.data;
+      const { orders, payUrl, message } = response.data; // Dùng orders (có s)
 
       if (
         formData.paymentMethod === "MOMO" ||
         formData.paymentMethod === "VNPAY"
       ) {
-        if (payUrl && payUrl.startsWith("http")) {
+        if (payUrl) {
           window.location.href = payUrl;
         } else {
-          alert(
-            "Lỗi: Không lấy được link thanh toán từ MoMo. Vui lòng thử lại!",
-          );
+          alert("Lỗi: Không lấy được link thanh toán.");
           setIsSubmitting(false);
         }
       } else {
-        navigate(`/order-success?orderId=${order.id}`);
+        // Chuyển hướng sang trang thành công với ID của đơn hàng đầu tiên trong mảng
+        const firstOrderId = orders[0]?.id;
+        navigate(`/order-success?orderId=${firstOrderId}`);
       }
     } catch (error: any) {
       alert(
@@ -265,28 +264,25 @@ const CheckoutPage = () => {
             {/* Danh sách mini item */}
             <div className="space-y-4 mb-6 max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar">
               {cartItems.map((item) => {
-                const price = parseFloat(
-                  item.variant?.prices?.[0]?.amount || 0,
-                );
+                // Lấy trực tiếp trường price từ variant
+                const itemPrice = item.variant?.price || 0;
                 const displayImage = getDisplayImage(item);
+
                 return (
                   <div key={item.id} className="flex gap-4">
-                    <div className="w-16 h-16 bg-gray-50 border border-gray-200 rounded-md overflow-hidden relative flex-shrink-0">
-                      <img
-                        src={displayImage}
-                        alt=""
-                        className="w-full h-full object-cover"
-                      />
-                      <span className="absolute -top-2 -right-2 bg-gray-500 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold border-2 border-white">
-                        {item.quantity}
-                      </span>
-                    </div>
+                    {/* ... giữ nguyên phần ảnh ... */}
                     <div className="flex-1 flex flex-col justify-center">
                       <p className="text-sm font-medium text-gray-900 line-clamp-2 leading-snug">
                         {item.variant?.product?.productName}
                       </p>
+                      {/* Hiển thị thuộc tính (Màu sắc, kích thước) nếu có để khách dễ kiểm tra */}
+                      <p className="text-[11px] text-gray-400 uppercase font-semibold">
+                        {item.variant?.attributeValues
+                          ?.map((v: any) => v.valueName)
+                          .join(" / ")}
+                      </p>
                       <p className="text-sm text-gray-500 mt-1">
-                        {price.toLocaleString()}đ
+                        {itemPrice.toLocaleString()}đ x {item.quantity}
                       </p>
                     </div>
                   </div>

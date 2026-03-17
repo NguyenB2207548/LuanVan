@@ -10,6 +10,7 @@ import {
   Request,
   Query,
   Req,
+  Patch,
 } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -18,6 +19,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/entities/user.entity';
 import { ProductSearchDto } from './dto/search-product.dto';
+import { UpdateProductDto } from './dto/update-product.dto';
 
 @Controller('products')
 export class ProductsController {
@@ -81,6 +83,19 @@ export class ProductsController {
   create(@Body() createProductDto: CreateProductDto, @Request() req) {
     const sellerId = req.user.id;
     return this.productsService.create(createProductDto, sellerId);
+  }
+
+  @Patch(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.SELLER, UserRole.ADMIN)
+  async update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateProductDto: UpdateProductDto,
+    @Request() req,
+  ) {
+    // Đảm bảo lấy đúng id của seller từ token
+    const sellerId = req.user.id;
+    return this.productsService.update(id, updateProductDto, sellerId);
   }
 
   @Delete(':id')

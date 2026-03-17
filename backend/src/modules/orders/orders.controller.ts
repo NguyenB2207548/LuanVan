@@ -32,7 +32,11 @@ export class OrdersController {
   @Post('checkout')
   @Roles(UserRole.USER)
   checkout(@Request() req, @Body() createOrderDto: CreateOrderDto) {
-    return this.ordersService.createOrderFromCart(req.user.id, createOrderDto);
+    console.log('ID truyền vào service:', req.user.userId);
+    return this.ordersService.createOrderFromCart(
+      req.user.userId,
+      createOrderDto,
+    );
   }
 
   @Get('my-orders')
@@ -46,7 +50,7 @@ export class OrdersController {
   @Get('seller')
   @Roles(UserRole.SELLER)
   getSellerOrders(@Request() req) {
-    return this.ordersService.getOrdersByRole('seller', req.user.id);
+    return this.ordersService.getOrdersByRole('seller', req.user.userId);
   }
 
   @Patch(':id/seller-confirm')
@@ -91,7 +95,10 @@ export class OrdersController {
   @Get(':id')
   @UseGuards(JwtAuthGuard)
   async findOne(@Param('id') id: number, @Req() req: any) {
-    return this.ordersService.getOrderDetails(id, req.user);
+    return this.ordersService.getOrderDetails(id, {
+      id: req.user.userId,
+      role: req.user.role,
+    });
   }
 
   @Patch(':id/cancel')

@@ -13,6 +13,14 @@ import type { Product } from "../../types/product";
 import ProductRow from "../../components/user/ProductRow";
 import { Button } from "@/components/ui/button";
 
+import mugImg from "../../assets/ly-su.jpg";
+import fashionImg from "../../assets/photo-1521572267360-ee0c2909d518.avif";
+import crochetImg from "../../assets/crochet.jpg";
+import ornamentImg from "../../assets/qua-tang.jpg";
+
+import giftBanner from "../../assets/photo-1513201099705-a9746e1e201f.avif";
+import cubes from "../../assets/cubes.png";
+
 const HomePage = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -36,7 +44,10 @@ const HomePage = () => {
     <div className="min-h-screen bg-[#fcfcfd]">
       {/* SECTION 1: HERO - Giảm padding dưới */}
       <section className="relative overflow-hidden bg-slate-900 pt-12 pb-16 lg:pt-24 lg:pb-24">
-        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20"></div>
+        <div
+          className="absolute inset-0 opacity-20"
+          style={{ backgroundImage: `url(${cubes})` }}
+        ></div>
         <div className="max-w-7xl mx-auto px-6 lg:px-8 flex flex-col lg:flex-row items-center gap-10 relative z-10">
           <div className="flex-1 text-center lg:text-left space-y-6">
             <h1 className="text-5xl lg:text-7xl font-black text-white leading-[1.1] tracking-tight">
@@ -63,14 +74,10 @@ const HomePage = () => {
           <div className="flex-1 relative">
             <div className="relative z-10 rounded-[2rem] overflow-hidden shadow-2xl border-8 border-slate-800/50 transform lg:rotate-3 transition-transform hover:rotate-0 duration-500 bg-slate-800">
               <img
-                src="https://images.unsplash.com/photo-1513201099705-a9746e1e201f?q=80&w=1974&auto=format&fit=crop"
+                src={giftBanner}
                 alt="Personalized Gifts"
                 className="w-full h-full object-cover aspect-4/3 block"
                 loading="lazy"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src =
-                    "https://images.unsplash.com/photo-1549465220-1d8c9d9c6703?q=80&w=2070&auto=format&fit=crop";
-                }}
               />
             </div>
             {/* Badge đơn hàng */}
@@ -145,68 +152,66 @@ const HomePage = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 h-130">
-          <Link
-            to="/products?cat=mug"
-            className="md:col-span-2 md:row-span-2 relative group overflow-hidden rounded-[1.5rem] bg-slate-100"
-          >
+          {/* Cốc sứ thiết kế - Chiếm 2x2 */}
+          <div className="md:col-span-2 md:row-span-2 relative group overflow-hidden rounded-[1.5rem] bg-slate-100">
             <img
-              src="https://images.unsplash.com/photo-1514228742587-6b1558fbed20?q=80&w=2070&auto=format&fit=crop"
+              src={mugImg}
               className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-              alt="Cốc sứ"
+              alt="Cốc sứ thiết kế"
             />
-            <div className="absolute inset-0 bg-linear-to-t from-black/60 to-transparent flex flex-col justify-end p-6 text-white">
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex flex-col justify-end p-6 text-white">
               <h3 className="text-xl font-bold">Cốc sứ thiết kế</h3>
               <p className="text-xs opacity-80">
                 Khởi đầu ngày mới đầy năng lượng
               </p>
             </div>
-          </Link>
-          <Link
-            to="/products?cat=shirt"
-            className="md:col-span-2 relative group overflow-hidden rounded-[1.5rem] bg-slate-100"
-          >
+          </div>
+
+          {/* Thời trang - Chiếm 2 cột trên */}
+          <div className="md:col-span-2 relative group overflow-hidden rounded-[1.5rem] bg-slate-100">
             <img
-              src="https://images.unsplash.com/photo-1521572267360-ee0c2909d518?q=80&w=2070&auto=format&fit=crop"
+              src={fashionImg}
               className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-              alt="Áo thun"
+              alt="Thời trang thiết kế"
             />
             <div className="absolute inset-0 bg-linear-to-t from-black/60 to-transparent flex flex-col justify-end p-6 text-white">
-              <h3 className="text-xl font-bold">Thời trang POD</h3>
+              <h3 className="text-xl font-bold">Thời trang</h3>
+              <p className="text-xs opacity-80">Phong cách cá nhân hóa</p>
             </div>
-          </Link>
-          <Link
-            to="/products?cat=decor"
-            className="relative group overflow-hidden rounded-[1.5rem] bg-slate-100"
-          >
+          </div>
+
+          {/* Crochet - Ô nhỏ dưới */}
+          <div className="relative group overflow-hidden rounded-[1.5rem] bg-slate-100">
             <img
-              src="https://images.unsplash.com/photo-1513519245088-0e12902e35ca?q=80&w=2070&auto=format&fit=crop"
+              src={crochetImg}
               className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-              alt="Tranh"
+              alt="Đồ len thủ công"
             />
-            <div className="absolute inset-0 bg-linear-to-t from-black/60 to-transparent p-4 flex items-end">
-              <h3 className="text-lg font-bold text-white">Tranh treo tường</h3>
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent p-4 flex flex-col justify-end text-white">
+              <h3 className="text-lg font-bold">Đồ len thủ công</h3>
+              <p className="text-[10px] opacity-80">Tỉ mỉ từng mũi đan</p>
             </div>
-          </Link>
-          <Link
-            to="/products?cat=keychain"
-            className="relative group overflow-hidden rounded-[1.5rem] bg-slate-100"
-          >
+          </div>
+
+          {/* Quà tặng */}
+          <div className="relative group overflow-hidden rounded-[1.5rem] bg-slate-100">
             <img
-              src="https://images.unsplash.com/photo-1629131726692-1accd0c53ce0?q=80&w=2070&auto=format&fit=crop"
+              src={ornamentImg}
               className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-              alt="Móc khóa"
+              alt="Đồ trang trí"
             />
-            <div className="absolute inset-0 bg-linear-to-t from-black/60 to-transparent p-4 flex items-end">
-              <h3 className="text-lg font-bold text-white">Phụ kiện nhỏ</h3>
+            <div className="absolute inset-0 bg-linear-to-t from-black/60 to-transparent p-4 flex flex-col justify-end text-white">
+              <h3 className="text-lg font-bold">Đồ trang trí</h3>
+              <p className="text-[10px] opacity-80">Làm đẹp không gian</p>
             </div>
-          </Link>
+          </div>
         </div>
       </section>
 
       {/* SECTION 4 */}
       <div className="space-y-8 pb-16">
         <ProductRow
-          title="🔥 Đang thịnh hành"
+          title="Đang thịnh hành"
           linkTo="/products"
           products={products.slice(0, 5)}
           loading={loading}
@@ -247,7 +252,7 @@ const HomePage = () => {
         </div>
 
         <ProductRow
-          title="🆕 Sản phẩm mới nhất"
+          title="Sản phẩm mới nhất"
           linkTo="/products?sort=new"
           products={[...products].reverse().slice(0, 5)}
           loading={loading}

@@ -131,7 +131,12 @@ const ProductDetail = () => {
   const getPrice = () =>
     selectedVariant?.price || product?.variants?.[0]?.price || 0;
 
-  const displayImages = product?.images || [];
+  // const displayImages = product?.images || [];
+  const displayImages = showPreview
+    ? []
+    : selectedVariant?.images?.length > 0
+      ? selectedVariant.images // ảnh của variant nếu có
+      : product?.images || [];
 
   if (loading)
     return (
@@ -163,19 +168,45 @@ const ProductDetail = () => {
                   </span>
                 </div>
               )}
-              {displayImages.map((img: any, idx: number) => (
+
+              {/* Ảnh product (luôn hiện) */}
+              {product.images?.map((img: any, idx: number) => (
                 <div
-                  key={idx}
+                  key={`product-${idx}`}
                   onClick={() => handleThumbnailClick(img.url)}
-                  className={`border rounded p-1 cursor-pointer transition-all ${!showPreview && activeImage === img.url ? "border-red-400 ring-1 ring-red-400" : "border-gray-200"}`}
+                  className={`border rounded p-1 cursor-pointer transition-all ${
+                    !showPreview && activeImage === img.url
+                      ? "border-red-400 ring-1 ring-red-400"
+                      : "border-gray-200"
+                  }`}
                 >
                   <img
-                    src={img.url ? `${BASE_URL}${img.url}` : undefined}
+                    src={`${BASE_URL}${img.url}`}
                     className="w-full object-cover aspect-square rounded-sm"
                     alt="thumb"
                   />
                 </div>
               ))}
+
+              {/* Ảnh variant (chỉ hiện khi variant có ảnh riêng) */}
+              {selectedVariant?.images?.length > 0 &&
+                selectedVariant.images.map((img: any, idx: number) => (
+                  <div
+                    key={`variant-${idx}`}
+                    onClick={() => handleThumbnailClick(img.url)}
+                    className={`border-2 rounded p-1 cursor-pointer transition-all ${
+                      !showPreview && activeImage === img.url
+                        ? "border-red-400 ring-1 ring-red-400"
+                        : "border-blue-200" // viền xanh để phân biệt ảnh variant
+                    }`}
+                  >
+                    <img
+                      src={`${BASE_URL}${img.url}`}
+                      className="w-full object-cover aspect-square rounded-sm"
+                      alt="variant thumb"
+                    />
+                  </div>
+                ))}
             </div>
 
             <div className="flex-1 bg-white border border-gray-100 relative rounded-lg overflow-hidden flex items-center justify-center min-h-[500px]">
@@ -204,7 +235,6 @@ const ProductDetail = () => {
                         if (layer.type === "text") {
                           return {
                             ...layer,
-                            // LUÔN HIỆN: Lấy lựa chọn mới OR text mặc định gốc
                             text: designChoices[layer.id] || layer.text || "",
                           };
                         }
@@ -220,7 +250,6 @@ const ProductDetail = () => {
 
                           return {
                             ...layer,
-                            // LUÔN HIỆN: Lấy ảnh của option mới OR ảnh mặc định gốc
                             image_url: selectedOpt
                               ? selectedOpt.image_url
                               : layer.image_url,

@@ -159,7 +159,6 @@ const AddProductPage = () => {
     setAssetTarget(target);
     setAssetModalOpen(true);
   };
-
   const handleAssetSelect = (urls: string[]) => {
     if (!assetTarget) return;
     if (assetTarget === "productGallery") {
@@ -168,11 +167,17 @@ const AddProductPage = () => {
       setProductMockup(urls[0]);
     } else if (typeof assetTarget === "object") {
       const newVariants = [...variants];
-      newVariants[assetTarget.index].mockup = urls[0];
+      if (assetTarget.type === "variantMockup") {
+        newVariants[assetTarget.index].mockup = urls[0];
+      } else if (assetTarget.type === "variantGallery") {
+        newVariants[assetTarget.index].images = [
+          ...(newVariants[assetTarget.index].images || []),
+          ...urls,
+        ];
+      }
       setVariants(newVariants);
     }
   };
-
   const toggleAttribute = (id: number) => {
     setSelectedAttributeIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
@@ -238,6 +243,7 @@ const AddProductPage = () => {
           attributeValueIds: Object.values(v.attributeValueIds)
             .filter((val) => val !== "")
             .map(Number),
+          images: v.images || [],
         })),
       };
 
@@ -528,7 +534,7 @@ const AddProductPage = () => {
                               <button
                                 onClick={() =>
                                   openAssetModal({
-                                    type: "variant",
+                                    type: "variantMockup",
                                     index: vIdx,
                                   })
                                 }
@@ -541,7 +547,10 @@ const AddProductPage = () => {
                         ) : (
                           <button
                             onClick={() =>
-                              openAssetModal({ type: "variant", index: vIdx })
+                              openAssetModal({
+                                type: "variantMockup",
+                                index: vIdx,
+                              })
                             }
                             className="flex flex-col items-center"
                           >
@@ -552,7 +561,54 @@ const AddProductPage = () => {
                           </button>
                         )}
                       </div>
+
+                      {/* GALLERY ẢNH VARIANT */}
+                      <div className="mt-3">
+                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-2">
+                          Ảnh biến thể
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                          {(v.images || []).map((img: string, iIdx: number) => (
+                            <div
+                              key={iIdx}
+                              className="w-12 h-12 rounded border border-gray-200 overflow-hidden relative group/img"
+                            >
+                              <img
+                                src={`http://localhost:3000${img}`}
+                                className="w-full h-full object-cover"
+                                alt=""
+                              />
+                              <button
+                                onClick={() => {
+                                  const newVariants = [...variants];
+                                  newVariants[vIdx].images = newVariants[
+                                    vIdx
+                                  ].images.filter(
+                                    (_: any, i: number) => i !== iIdx,
+                                  );
+                                  setVariants(newVariants);
+                                }}
+                                className="absolute top-0 right-0 bg-white p-0.5 rounded-bl opacity-0 group-hover/img:opacity-100 transition-opacity"
+                              >
+                                <Trash2 size={10} className="text-red-500" />
+                              </button>
+                            </div>
+                          ))}
+                          <button
+                            onClick={() =>
+                              openAssetModal({
+                                type: "variantGallery",
+                                index: vIdx,
+                              })
+                            }
+                            className="w-12 h-12 border-2 border-dashed border-gray-200 rounded flex items-center justify-center hover:bg-gray-50"
+                          >
+                            <Plus size={14} className="text-gray-300" />
+                          </button>
+                        </div>
+                      </div>
                     </div>
+
                     <div className="md:col-span-9 grid grid-cols-2 md:grid-cols-3 gap-4">
                       {selectedAttributeIds.map((attrId) => (
                         <div key={attrId}>
@@ -594,6 +650,20 @@ const AddProductPage = () => {
                           value={v.price}
                           onChange={(e) =>
                             updateVariantData(vIdx, "price", e.target.value)
+                          }
+                        />
+                      </div>
+                      {/* THÊM Ô SỐ LƯỢNG */}
+                      <div>
+                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">
+                          Số lượng
+                        </label>
+                        <input
+                          type="number"
+                          className="w-full p-2 border border-gray-200 rounded-lg text-xs"
+                          value={v.stock}
+                          onChange={(e) =>
+                            updateVariantData(vIdx, "stock", e.target.value)
                           }
                         />
                       </div>
@@ -672,7 +742,12 @@ const AddProductPage = () => {
         isOpen={assetModalOpen}
         onClose={() => setAssetModalOpen(false)}
         onSelect={handleAssetSelect}
-        multiple={assetTarget === "productGallery"}
+        multiple={
+          assetTarget === "productGallery" ||
+          (assetTarget !== null &&
+            typeof assetTarget === "object" &&
+            assetTarget.type === "variantGallery")
+        }
       />
     </div>
   );

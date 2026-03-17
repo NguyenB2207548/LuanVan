@@ -200,7 +200,7 @@ const AddDesignPage = () => {
             onClick={handleSave}
             className="w-full py-3 bg-blue-600 text-white rounded-lg font-bold text-xs uppercase tracking-widest hover:bg-blue-700 disabled:bg-gray-300 transition-all flex items-center justify-center gap-2 shadow-sm"
           >
-            Tạo Sản Phẩm Gộp <Save size={16} />
+            Tạo thiết kế <Save size={16} />
           </button>
         </div>
       </div>

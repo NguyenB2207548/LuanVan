@@ -11,6 +11,7 @@ import {
   Query,
   UseInterceptors,
   UploadedFile,
+  Delete,
 } from '@nestjs/common';
 import { DesignService } from './designs.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -109,5 +110,12 @@ export class DesignController {
     @Query('limit') limit: number = 10,
   ) {
     return this.designService.adminGetAllDesigns(page, limit);
+  }
+
+  @Delete(':id')
+  @Roles(UserRole.ADMIN, UserRole.SELLER)
+  async deleteDesign(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+    const sellerId = req.user.userId;
+    return this.designService.deleteDesign(id, sellerId);
   }
 }

@@ -37,6 +37,8 @@ import AddArtworkPage from "./pages/seller/AddArtworkPage";
 import SellerDesignManager from "./pages/seller/SellerDesignManager";
 import AddDesignPage from "./pages/seller/AddDesignPage";
 import PrintAreaConfigPage from "./pages/seller/PrintAreaConfigPage";
+import EditProductPage from "./pages/seller/EditProductPage";
+import SellerOrderManager from "./pages/seller/SellerOrderManager";
 
 function App() {
   return (
@@ -86,11 +88,13 @@ function App() {
               <Route path="dashboard" element={<div>Dashboard Seller</div>} />
               <Route path="products" element={<SellerProductManager />} />
               <Route path="products/add" element={<AddProductPage />} />
+              <Route path="products/edit/:id" element={<EditProductPage />} />
               <Route path="artworks" element={<SellerArtworkManager />} />
               <Route path="artworks/add" element={<AddArtworkPage />} />
               <Route path="artworks/edit/:id" element={<AddArtworkPage />} />
               <Route path="designs" element={<SellerDesignManager />} />
               <Route path="designs/add" element={<AddDesignPage />} />
+              <Route path="orders" element={<SellerOrderManager />} />
               <Route
                 path="products/print-area-config"
                 element={<PrintAreaConfigPage />}
@@ -103,6 +107,7 @@ function App() {
           <Route element={<ProtectedRoute allowedRoles={["shipper"]} />}>
             <Route path="/shipper" element={<ShipperLayout />}>
               <Route index element={<Navigate to="available" replace />} />
+              <Route path="dashboard" element={<div>Dashboard Shipper</div>} />
               <Route path="available" element={<div>Đơn hàng sẵn sàng</div>} />
               <Route path="my-orders" element={<div>Đơn đang giao</div>} />
               <Route path="history" element={<div>Lịch sử giao hàng</div>} />

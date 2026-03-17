@@ -131,9 +131,6 @@ const SellerLayout = () => {
                 <p className="text-sm font-bold text-gray-900 truncate">
                   {user.fullName || "Seller Name"}
                 </p>
-                <p className="text-[11px] text-gray-500 truncate uppercase tracking-tighter font-semibold">
-                  Cấp độ: Nhà bán mới
-                </p>
               </div>
 
               <ChevronUp

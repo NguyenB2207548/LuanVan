@@ -10,9 +10,16 @@ select * from approval_requests;
 select * from attributes;
 select * from attribute_values;
 select * from images;
+select * from designs;
 select * from mockups;
 select * from print_areas;
 select * from artworks;
+select * from carts;
+select * from cart_items;
+select * from orders;
+select * from order_items;
+
+SELECT * FROM mockups WHERE product_id = 46;
 
 -- delete from products where id in (32,33,34,35,36,37,38,39,40,41,42,43,44,45);
 -- delete from variants where id in (49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72);
