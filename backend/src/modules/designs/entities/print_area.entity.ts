@@ -12,7 +12,9 @@ export class PrintArea {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @OneToOne(() => Mockup, (mockup) => mockup.printArea)
+  @OneToOne(() => Mockup, (mockup) => mockup.printArea, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'mockup_id' })
   mockup: Mockup;
 

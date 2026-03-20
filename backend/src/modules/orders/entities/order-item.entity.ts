@@ -32,7 +32,10 @@ export class OrderItem {
   @JoinColumn({ name: 'order_id' })
   order: Order;
 
-  @ManyToOne(() => Variant, { nullable: true }) // Cho phép null nếu sản phẩm bị xóa cứng
+  @ManyToOne(() => Variant, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
   @JoinColumn({ name: 'variant_id' })
   variant: Variant;
 

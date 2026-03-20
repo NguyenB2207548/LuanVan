@@ -6,26 +6,33 @@ import {
   FolderPlus,
   FolderEdit,
   AlertCircle,
+  Image as ImageIcon,
+  Plus,
+  Trash2,
 } from "lucide-react";
 import axiosClient from "../../api/axiosClient";
+import AssetManagerModal from "../../components/admin/AssetManagerModal"; // Import Modal quản lý ảnh
 
 const CategoryEditorPage = () => {
-  const { id } = useParams(); // Nếu có id -> Chế độ Edit, nếu không -> Chế độ Add
+  const { id } = useParams();
   const navigate = useNavigate();
   const isEditMode = Boolean(id);
+  const BaseURL = "http://localhost:3000"; // Đảm bảo khớp với server của bạn
 
-  // Quản lý trạng thái
   const [loading, setLoading] = useState(isEditMode);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Thêm state cho modal ảnh
+  const [assetModalOpen, setAssetModalOpen] = useState(false);
 
   // Dữ liệu Form
   const [formData, setFormData] = useState({
     categoryName: "",
     description: "",
+    imageUrl: "",
   });
 
-  // GỌI API LẤY DỮ LIỆU CŨ (Nếu đang ở chế độ Edit)
   useEffect(() => {
     const fetchCategory = async () => {
       try {
@@ -34,9 +41,9 @@ const CategoryEditorPage = () => {
         const category = res.data.data || res.data;
 
         setFormData({
-          // Bắt cả 2 case camelCase và snake_case từ Backend
           categoryName: category.categoryName || category.category_name || "",
           description: category.description || "",
+          imageUrl: category.imageUrl || "", // Lấy ảnh cũ từ backend
         });
       } catch (err: any) {
         console.error("Error fetching category", err);
@@ -51,20 +58,25 @@ const CategoryEditorPage = () => {
     }
   }, [id, isEditMode]);
 
-  // Xử lý khi người dùng nhập liệu
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    if (error) setError(null); // Tắt thông báo lỗi khi bắt đầu gõ lại
+    if (error) setError(null);
   };
 
-  // XỬ LÝ LƯU (THÊM MỚI HOẶC CẬP NHẬT)
+  // Xử lý khi chọn ảnh từ Modal
+  const handleAssetSelect = (urls: string[]) => {
+    if (urls.length > 0) {
+      setFormData((prev) => ({ ...prev, imageUrl: urls[0] }));
+    }
+    setAssetModalOpen(false);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate cơ bản
     if (!formData.categoryName.trim()) {
       setError("Category Name is required.");
       return;
@@ -74,29 +86,22 @@ const CategoryEditorPage = () => {
       setIsSubmitting(true);
       setError(null);
 
-      // Định dạng payload gửi lên Backend
       const payload = {
         categoryName: formData.categoryName,
         description: formData.description,
+        imageUrl: formData.imageUrl, // Gửi URL ảnh lên backend
       };
 
       if (isEditMode) {
-        // CẬP NHẬT (PUT)
         await axiosClient.put(`/categories/${id}`, payload);
-        alert("Category updated successfully!");
       } else {
-        // THÊM MỚI (POST)
         await axiosClient.post("/categories", payload);
-        alert("Category created successfully!");
       }
 
-      navigate("/admin/categories"); // Quay lại trang danh sách
+      navigate("/admin/categories");
     } catch (err: any) {
       console.error("Error saving category", err);
-      setError(
-        err.response?.data?.message ||
-          "Failed to save category. The name might already exist.",
-      );
+      setError(err.response?.data?.message || "Failed to save category.");
     } finally {
       setIsSubmitting(false);
     }
@@ -119,7 +124,6 @@ const CategoryEditorPage = () => {
           <button
             onClick={() => navigate(-1)}
             className="p-2 text-gray-400 hover:text-gray-800 bg-white border border-gray-200 rounded-md shadow-sm transition-colors"
-            title="Go back"
             type="button"
           >
             <ArrowLeft size={18} />
@@ -133,11 +137,6 @@ const CategoryEditorPage = () => {
               )}
               {isEditMode ? "Edit Category" : "Add New Category"}
             </h1>
-            <p className="text-sm text-gray-500 mt-1">
-              {isEditMode
-                ? "Update the details of this category."
-                : "Create a new category to group your products."}
-            </p>
           </div>
         </div>
       </div>
@@ -146,7 +145,6 @@ const CategoryEditorPage = () => {
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         <form onSubmit={handleSubmit}>
           <div className="p-6 space-y-6">
-            {/* Hiển thị lỗi nếu có */}
             {error && (
               <div className="flex items-center gap-2 p-4 mb-4 text-sm text-red-800 border border-red-200 rounded-lg bg-red-50">
                 <AlertCircle size={16} />
@@ -154,37 +152,78 @@ const CategoryEditorPage = () => {
               </div>
             )}
 
-            <div className="grid grid-cols-1 gap-6">
-              {/* Category Name */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Category Name <span className="text-red-500">*</span>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {/* Cột trái: Chọn ảnh */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700 uppercase tracking-wider text-[11px]">
+                  Category Image
                 </label>
-                <input
-                  type="text"
-                  name="categoryName"
-                  value={formData.categoryName}
-                  onChange={handleInputChange}
-                  placeholder="e.g. Mugs, T-Shirts, Posters..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 sm:text-sm transition-colors"
-                  required
-                />
+                <div
+                  className="relative aspect-square rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 flex flex-col items-center justify-center overflow-hidden group hover:border-blue-400 transition-colors cursor-pointer"
+                  onClick={() => setAssetModalOpen(true)}
+                >
+                  {formData.imageUrl ? (
+                    <>
+                      <img
+                        src={`${BaseURL}${formData.imageUrl}`}
+                        className="w-full h-full object-cover"
+                        alt="Preview"
+                      />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <Plus className="text-white" size={24} />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setFormData({ ...formData, imageUrl: "" });
+                        }}
+                        className="absolute top-2 right-2 p-1.5 bg-white rounded-full text-red-500 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center text-gray-400">
+                      <ImageIcon size={32} strokeWidth={1.5} />
+                      <span className="text-[10px] font-bold uppercase mt-2">
+                        Upload Image
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              {/* Description */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Description{" "}
-                  <span className="text-gray-400 font-normal">(Optional)</span>
-                </label>
-                <textarea
-                  name="description"
-                  rows={4}
-                  value={formData.description}
-                  onChange={handleInputChange}
-                  placeholder="Brief description about what kind of products go into this category..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 sm:text-sm transition-colors"
-                />
+              {/* Cột phải: Thông tin chữ */}
+              <div className="md:col-span-2 space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Category Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="categoryName"
+                    value={formData.categoryName}
+                    onChange={handleInputChange}
+                    placeholder="e.g. Mugs, T-Shirts, Posters..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 sm:text-sm"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Description
+                  </label>
+                  <textarea
+                    name="description"
+                    rows={5}
+                    value={formData.description}
+                    onChange={handleInputChange}
+                    placeholder="Brief description about this category..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 sm:text-sm"
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -194,7 +233,7 @@ const CategoryEditorPage = () => {
             <button
               type="button"
               onClick={() => navigate(-1)}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors shadow-sm"
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
               disabled={isSubmitting}
             >
               Cancel
@@ -218,6 +257,14 @@ const CategoryEditorPage = () => {
           </div>
         </form>
       </div>
+
+      {/* ASSET MANAGER MODAL */}
+      <AssetManagerModal
+        isOpen={assetModalOpen}
+        onClose={() => setAssetModalOpen(false)}
+        onSelect={handleAssetSelect}
+        multiple={false} // Chỉ chọn 1 ảnh duy nhất cho Category
+      />
     </div>
   );
 };

@@ -27,7 +27,7 @@ export class OrdersController {
   exportService: any;
   constructor(private readonly ordersService: OrdersService) {}
 
-  // --- CUSTOMER (Người mua) ---
+  // --- CUSTOMER ---
 
   @Post('checkout')
   @Roles(UserRole.USER)
@@ -45,7 +45,7 @@ export class OrdersController {
     return this.ordersService.getOrdersByRole('user', req.user.id);
   }
 
-  // --- SELLER (Người bán) ---
+  // --- SELLER ---
 
   @Get('seller')
   @Roles(UserRole.SELLER)
@@ -59,7 +59,7 @@ export class OrdersController {
     return this.ordersService.sellerConfirmOrder(orderId, req.user.id);
   }
 
-  // --- SHIPPER (Người giao hàng) ---
+  // --- SHIPPER ---
 
   @Get('shipper-available')
   @Roles(UserRole.SHIPPER)
@@ -85,7 +85,7 @@ export class OrdersController {
     return this.ordersService.shipperCompleteOrder(orderId, req.user.id);
   }
 
-  // --- CHUNG / ADMIN ---
+  // ---  ADMIN ---
 
   // @Get(':id')
   // getOrderById(@Param('id', ParseIntPipe) orderId: number) {

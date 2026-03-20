@@ -3,7 +3,7 @@ import {
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
-import { Repository, DataSource, In, IsNull, Not } from 'typeorm';
+import { Repository, DataSource, In, IsNull, Not, Raw } from 'typeorm';
 import { CreateProductDto } from './dto/create-product.dto';
 import { Product } from './entities/product.entity';
 import { Variant } from './entities/variant.entity';
@@ -25,7 +25,7 @@ export class ProductsService {
 
     @InjectRepository(Product)
     private productRepository: Repository<Product>,
-  ) {}
+  ) { }
 
   async findAll(page: number = 1, limit: number = 10) {
     const skip = (page - 1) * limit;
@@ -412,128 +412,6 @@ export class ProductsService {
     }
   }
 
-  // EDIT PRODUCT
-  //   async update(id: number, updateProductDto: UpdateProductDto, sellerId: number) {
-  //   const queryRunner = this.dataSource.createQueryRunner();
-  //   await queryRunner.connect();
-  //   await queryRunner.startTransaction();
-
-  //   try {
-  //     const { productName, description, categoryId, variants, productImages } = updateProductDto;
-
-  //     // 1. Tìm sản phẩm cũ và kiểm tra quyền sở hữu
-  //     const product = await queryRunner.manager.findOne(Product, {
-  //       where: { id, seller: { id: sellerId } },
-  //       relations: ['categories', 'images', 'variants', 'attributes'],
-  //     });
-
-  //     if (!product) throw new NotFoundException('Không tìm thấy sản phẩm hoặc bạn không có quyền sửa');
-
-  //     // 2. Cập nhật thông tin cơ bản
-  //     if (categoryId) {
-  //       const category = await queryRunner.manager.findOne(Category, { where: { id: categoryId } });
-  //       if (!category) throw new BadRequestException('Danh mục không tồn tại');
-  //       product.categories = [category];
-  //     }
-  //     product.productName = productName ?? product.productName;
-  //     product.description = description ?? product.description;
-  //     const savedProduct = await queryRunner.manager.save(product);
-
-  //     // 3. Xử lý ảnh sản phẩm (Xóa cũ, ghi mới)
-  //     if (productImages) {
-  //       await queryRunner.manager.delete(Image, { product: { id: savedProduct.id } });
-  //       const newProductImgs = productImages.map((url, i) =>
-  //         queryRunner.manager.create(Image, {
-  //           url,
-  //           product: savedProduct,
-  //           isPrimary: i === 0,
-  //         }),
-  //       );
-  //       await queryRunner.manager.save(newProductImgs);
-  //     }
-
-  //     const productAttributesMap = new Map<string, Attribute>();
-  //     const updatedVariantsResult: Variant[] = [];
-
-  //     // 4. Xử lý Variants (Update hoặc Create)
-  //     if (variants) {
-  //       // Lấy danh sách ID variant gửi lên để biết cái nào cần giữ lại
-  //       const incomingVariantIds = variants.filter(v => v.id).map(v => v.id);
-
-  //       // Xóa các variant cũ không có trong danh sách gửi lên (Sync)
-  //       await queryRunner.manager.delete(Variant, {
-  //          product: { id: savedProduct.id },
-  //          id: Not(In(incomingVariantIds.length ? incomingVariantIds : [-1]))
-  //       });
-
-  //       for (const vDto of variants) {
-  //         const variantAttributeValues = await queryRunner.manager.find(AttributeValue, {
-  //           where: { id: In(vDto.attributeValueIds) },
-  //           relations: ['attribute'],
-  //         });
-
-  //         variantAttributeValues.forEach((av) => {
-  //           productAttributesMap.set(av.attribute.attributeName, av.attribute);
-  //         });
-
-  //         let variant: Variant;
-  //         if (vDto.id) {
-  //           // Update variant hiện có
-  //           variant = await queryRunner.manager.preload(Variant, {
-  //             id: vDto.id,
-  //             stock: vDto.stock,
-  //             price: vDto.price,
-  //             sku: vDto.sku,
-  //             attributeValues: variantAttributeValues,
-  //           });
-  //         } else {
-  //           // Tạo variant mới
-  //           variant = queryRunner.manager.create(Variant, {
-  //             product: savedProduct,
-  //             stock: vDto.stock,
-  //             price: vDto.price,
-  //             sku: vDto.sku || `SKU-${Date.now()}`,
-  //             attributeValues: variantAttributeValues,
-  //           });
-  //         }
-
-  //         const savedVariant = await queryRunner.manager.save(variant);
-  //         updatedVariantsResult.push(savedVariant);
-
-  //         // Cập nhật ảnh cho Variant
-  //         if (vDto.images) {
-  //           await queryRunner.manager.delete(Image, { variant: { id: savedVariant.id } });
-  //           const vImgs = vDto.images.map((url, i) =>
-  //             queryRunner.manager.create(Image, {
-  //               url,
-  //               variant: savedVariant,
-  //               isPrimary: i === 0,
-  //             }),
-  //           );
-  //           await queryRunner.manager.save(vImgs);
-  //         }
-  //       }
-  //     }
-
-  //     // 5. Cập nhật lại danh sách Attributes của Product
-  //     savedProduct.attributes = Array.from(productAttributesMap.values());
-  //     await queryRunner.manager.save(savedProduct);
-
-  //     await queryRunner.commitTransaction();
-
-  //     return {
-  //       message: 'Cập nhật sản phẩm thành công',
-  //       id: savedProduct.id,
-  //       variants: updatedVariantsResult,
-  //     };
-  //   } catch (error) {
-  //     await queryRunner.rollbackTransaction();
-  //     throw error;
-  //   } finally {
-  //     await queryRunner.release();
-  //   }
-  // }
-
   async remove(id: number) {
     const product = await this.productRepository.findOne({ where: { id } });
 
@@ -546,7 +424,6 @@ export class ProductsService {
     return { message: `Sản phẩm #${id} đã được chuyển vào thùng rác.` };
   }
 
-  // products.service.ts
   async update(
     id: number,
     updateProductDto: UpdateProductDto,
@@ -559,104 +436,139 @@ export class ProductsService {
     try {
       const product = await queryRunner.manager.findOne(Product, {
         where: { id, seller: { id: sellerId } },
-        relations: ['variants', 'images', 'categories', 'attributes'],
+        relations: [
+          'variants',
+          'images',
+          'categories',
+          'attributes',
+          'variants.attributeValues',
+          'variants.attributeValues.attribute',
+        ],
       });
 
-      if (!product) throw new NotFoundException('Sản phẩm không tồn tại');
+      if (!product)
+        throw new NotFoundException(`Sản phẩm #${id} không tồn tại hoặc bạn không có quyền sửa`);
 
-      const { productName, description, categoryId, variants, productImages } =
-        updateProductDto;
+      const { productName, description, categoryId, variants, productImages } = updateProductDto;
 
-      // ... (Giữ nguyên logic update cơ bản và ảnh sản phẩm) ...
+      if (productName) product.productName = productName;
+      if (description !== undefined) product.description = description;
+
+      if (categoryId) {
+        const category = await queryRunner.manager.findOne(Category, { where: { id: categoryId } });
+        if (category) product.categories = [category];
+      }
+
+      // 4. XỬ LÝ ẢNH SẢN PHẨM CHÍNH
+      if (productImages !== undefined) {
+        await queryRunner.manager.delete(Image, {
+          product: { id: product.id },
+          variant: IsNull(),
+        });
+
+        if (productImages.length > 0) {
+          const newImgs = productImages.map((url, index) =>
+            queryRunner.manager.create(Image, {
+              url,
+              product: product,
+              isPrimary: index === 0,
+            }),
+          );
+          // Gán ngược lại để tránh bị null khi save product ở cuối
+          product.images = await queryRunner.manager.save(Image, newImgs);
+        } else {
+          product.images = [];
+        }
+      }
+
+      // 5. Xử lý Variants
+      const currentAttributeIds = new Set<number>();
+      const updatedVariantsResult: Variant[] = [];
 
       if (variants) {
-        // 1. Xác định variant nào cần giữ lại, variant nào cần xóa
-        const incomingVariantIds = variants
-          .filter((v) => v.id)
-          .map((v) => v.id);
-        const variantsToDelete = product.variants.filter(
-          (ov) => !incomingVariantIds.includes(ov.id),
-        );
+        const incomingVariantIds = variants.filter((v) => v.id).map((v) => v.id as number);
+        const variantsToDelete = product.variants.filter((ov) => !incomingVariantIds.includes(ov.id));
 
         if (variantsToDelete.length > 0) {
           await queryRunner.manager.delete(Image, {
-            variant: { id: In(variantsToDelete.map((v) => v.id)) },
+            variantId: In(variantsToDelete.map((v) => v.id)),
           });
           await queryRunner.manager.softRemove(variantsToDelete);
         }
 
-        // 2. Lặp qua danh sách gửi lên
         for (const vDto of variants) {
-          // Đảm bảo lấy đúng AttributeValue thực thể
-          const variantAttrValues = await queryRunner.manager.find(
-            AttributeValue,
-            {
-              where: { id: In(vDto.attributeValueIds) },
-              relations: ['attribute'],
-            },
-          );
+          const variantAttrValues = await queryRunner.manager.find(AttributeValue, {
+            where: { id: In(vDto.attributeValueIds) },
+            relations: ['attribute'],
+          });
 
-          let variant: Variant; // TypeScript bắt buộc biến này phải được gán giá trị
+          variantAttrValues.forEach((av) => currentAttributeIds.add(av.attribute.id));
 
+          let variant: Variant;
           if (vDto.id) {
-            // 1. Sử dụng biến tạm để nhận kết quả từ preload
-            const preloadedVariant = await queryRunner.manager.preload(
-              Variant,
-              {
-                id: vDto.id,
-                stock: Number(vDto.stock),
-                price: Number(vDto.price),
-                sku: vDto.sku,
-                attributeValues: variantAttrValues,
-              },
-            );
-
-            // 2. Kiểm tra nếu không tìm thấy variant (Type Guard)
-            if (!preloadedVariant) {
-              throw new NotFoundException(
-                `Không tìm thấy biến thể với ID #${vDto.id}`,
-              );
-            }
-
-            // 3. Bây giờ gán biến tạm vào biến variant chính, TypeScript sẽ không báo lỗi nữa
-            variant = preloadedVariant;
+            const preloadedVariant = await queryRunner.manager.preload(Variant, {
+              id: vDto.id,
+              stock: Number(vDto.stock),
+              price: Number(vDto.price),
+              sku: vDto.sku,
+              attributeValues: variantAttrValues,
+            });
+            if (!preloadedVariant) throw new NotFoundException(`Biến thể #${vDto.id} không tồn tại`);
+            variant = preloadedVariant as Variant;
           } else {
-            // TRƯỜNG HỢP TẠO MỚI:
             variant = queryRunner.manager.create(Variant, {
               product: product,
               stock: Number(vDto.stock),
               price: Number(vDto.price),
-              sku:
-                vDto.sku ||
-                `SKU-${id}-${Date.now()}-${Math.floor(Math.random() * 100)}`,
+              sku: vDto.sku || `SKU-${id}-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
               attributeValues: variantAttrValues,
             });
           }
 
-          // Giờ bạn có thể save an toàn
           const savedVariant = await queryRunner.manager.save(Variant, variant);
-          // Lưu ảnh cho variant (Xóa cũ lưu mới cho đơn giản)
+
+          // Xử lý ảnh cho Variant
           if (vDto.images) {
-            await queryRunner.manager.delete(Image, {
-              variant: { id: savedVariant.id },
-            });
-            const vImgs = vDto.images.map((url, i) =>
-              queryRunner.manager.create(Image, {
-                url,
-                variant: savedVariant,
-                isPrimary: i === 0,
-              }),
-            );
-            await queryRunner.manager.save(Image, vImgs);
+            await queryRunner.manager.delete(Image, { variantId: savedVariant.id });
+            if (vDto.images.length > 0) {
+              const vImgs = vDto.images.map((url, i) =>
+                queryRunner.manager.create(Image, {
+                  url,
+                  variant: savedVariant,
+                  productId: product.id,
+                  isPrimary: i === 0,
+                }),
+              );
+              await queryRunner.manager.save(Image, vImgs);
+            }
           }
+          updatedVariantsResult.push(savedVariant);
         }
+
+        // QUAN TRỌNG: Cập nhật lại mảng variants của object product 
+        // để lệnh save cuối cùng không set product_id = null
+        product.variants = updatedVariantsResult;
       }
 
-      // Cập nhật lại mảng attributes chung của Product (để lọc filter nhanh)
-      // ... (Logic map attributes giữ nguyên) ...
+      // 6. Cập nhật mảng Attributes tổng hợp
+      if (currentAttributeIds.size > 0) {
+        const productAttributes = await queryRunner.manager.find(Attribute, {
+          where: { id: In(Array.from(currentAttributeIds)) },
+        });
+        product.attributes = productAttributes;
+      } else {
+        product.attributes = [];
+      }
+
+      // Lệnh save này sẽ lưu cả Product, Attributes và giữ nguyên liên kết Variants/Images
+      await queryRunner.manager.save(Product, product);
 
       await queryRunner.commitTransaction();
-      return { message: 'Cập nhật thành công', id: product.id };
+      return {
+        message: 'Cập nhật sản phẩm thành công',
+        id: product.id,
+        variants: updatedVariantsResult,
+      };
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw error;

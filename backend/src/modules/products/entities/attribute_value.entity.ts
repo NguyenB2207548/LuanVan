@@ -26,6 +26,8 @@ export class AttributeValue {
   @JoinColumn({ name: 'attribute_id' })
   attribute: Attribute;
 
-  @ManyToMany(() => Variant, (variant) => variant.attributeValues)
+  @ManyToMany(() => Variant, (variant) => variant.attributeValues, {
+    onDelete: 'CASCADE',
+  })
   variants: Variant[];
 }

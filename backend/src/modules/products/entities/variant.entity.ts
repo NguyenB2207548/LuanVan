@@ -50,11 +50,20 @@ export class Variant {
   @JoinColumn({ name: 'product_id' })
   product: Product;
 
-  @ManyToMany(() => AttributeValue, (attrValue) => attrValue.variants)
+  @ManyToMany(
+    () => AttributeValue,
+    (attributeValue) => attributeValue.variants,
+    {
+      onDelete: 'CASCADE',
+    },
+  )
   @JoinTable({
     name: 'variant_attribute_values',
-    joinColumn: { name: 'variant_id' },
-    inverseJoinColumn: { name: 'attribute_value_id' },
+    joinColumn: { name: 'variant_id', referencedColumnName: 'id' },
+    inverseJoinColumn: {
+      name: 'attribute_value_id',
+      referencedColumnName: 'id',
+    },
   })
   attributeValues: AttributeValue[];
 

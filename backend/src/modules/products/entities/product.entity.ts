@@ -46,18 +46,31 @@ export class Product {
   @JoinColumn({ name: 'seller_id' })
   seller: User;
 
-  @ManyToMany(() => Category, (category) => category.products)
+  @ManyToMany(() => Category, (category) => category.products, {
+    onDelete: 'CASCADE',
+  })
   @JoinTable({
-    name: 'product_categories',
-    joinColumn: { name: 'product_id', referencedColumnName: 'id' },
-    inverseJoinColumn: { name: 'category_id', referencedColumnName: 'id' },
+    name: 'products_categories',
+    joinColumn: {
+      name: 'product_id',
+      referencedColumnName: 'id',
+    },
+    inverseJoinColumn: {
+      name: 'category_id',
+      referencedColumnName: 'id',
+    },
   })
   categories: Category[];
 
-  @OneToMany(() => Variant, (variant) => variant.product)
+  @OneToMany(() => Variant, (variant) => variant.product, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
   variants: Variant[];
 
-  @ManyToMany(() => Attribute, (attribute) => attribute.products)
+  @ManyToMany(() => Attribute, (attribute) => attribute.products, {
+    onDelete: 'CASCADE',
+  })
   @JoinTable({
     name: 'product_attributes',
     joinColumn: { name: 'product_id', referencedColumnName: 'id' },
@@ -65,7 +78,9 @@ export class Product {
   })
   attributes: Attribute[];
 
-  @OneToMany(() => Image, (image) => image.product)
+  @OneToMany(() => Image, (image) => image.product, {
+    onDelete: 'CASCADE',
+  })
   images: Image[];
 
   @OneToMany(() => Review, (review) => review.product)
@@ -74,7 +89,9 @@ export class Product {
   @OneToOne(() => Design, (design) => design.product)
   design: Design;
 
-  @OneToOne(() => Mockup, (mockup) => mockup.product)
+  @OneToOne(() => Mockup, (mockup) => mockup.product, {
+    onDelete: 'CASCADE',
+  })
   mockup: Mockup;
 
   @CreateDateColumn({ name: 'created_at' })

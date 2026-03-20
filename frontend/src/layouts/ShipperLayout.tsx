@@ -68,8 +68,8 @@ const ShipperLayout = () => {
             Quản lý đơn hàng
           </p>
 
-          <NavLink to="/shipper/available" className={getLinkClass}>
-            <ClipboardList size={18} /> <span>Đơn hàng sẵn sàng</span>
+          <NavLink to="/shipper/orders" className={getLinkClass}>
+            <ClipboardList size={18} /> <span>Đơn hàng</span>
           </NavLink>
 
           <NavLink to="/shipper/my-orders" className={getLinkClass}>

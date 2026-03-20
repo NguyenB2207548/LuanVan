@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import {
   ArrowLeft,
@@ -16,7 +16,14 @@ import toast, { Toaster } from "react-hot-toast";
 import axiosClient from "@/api/axiosClient";
 import AssetManagerModal from "../../components/admin/AssetManagerModal";
 
-// --- INTERFACES ---
+const DEFAULT_PRINT_AREA = {
+  x: 250,
+  y: 200,
+  width: 250,
+  height: 250,
+  visible: true,
+};
+
 interface Attribute {
   id: number;
   attributeName: string;
@@ -50,15 +57,72 @@ const EditProductPage = () => {
   });
   const [productImages, setProductImages] = useState<string[]>([]);
   const [productMockup, setProductMockup] = useState<string | null>(null);
-  const [selectedAttributeIds, setSelectedAttributeIds] = useState<number[]>(
-    [],
-  );
+  const [selectedAttributeIds, setSelectedAttributeIds] = useState<number[]>([]);
   const [variants, setVariants] = useState<any[]>([]);
   const [assetModalOpen, setAssetModalOpen] = useState(false);
   const [assetTarget, setAssetTarget] = useState<any>(null);
 
-  // 1. Fetch dữ liệu sản phẩm hiện tại
+  // Flag để biết có đang quay về từ trang config hay không
+  // Nếu có, bỏ qua toàn bộ fetch DB để tránh ghi đè state đã restore
+  const isReturningFromConfig = useRef(false);
+
   useEffect(() => {
+    // Trường hợp 1: Đang quay về từ PrintAreaConfigPage
+    // location.state.updatedPrintArea có nghĩa là vừa confirm từ config page
+    if (location.state?.updatedPrintArea) {
+      isReturningFromConfig.current = true;
+
+      const { type, index, data } = location.state.updatedPrintArea;
+
+      // Restore toàn bộ form state từ snapshot được lưu lúc navigate đi
+      // Snapshot này chứa trạng thái form tại thời điểm người dùng bấm "Cấu hình vùng in"
+      if (location.state.productData) setProductData(location.state.productData);
+      if (location.state.productImages) setProductImages(location.state.productImages);
+      if (location.state.productMockup !== undefined) setProductMockup(location.state.productMockup);
+      if (location.state.variants) setVariants(location.state.variants);
+      if (location.state.selectedAttributeIds) setSelectedAttributeIds(location.state.selectedAttributeIds);
+      // Restore lookup data — không có chúng thì dropdown attributes/categories bị trống
+      if (location.state.attributes) setAttributes(location.state.attributes);
+      if (location.state.categories) setCategories(location.state.categories);
+
+      // Sau đó apply đúng print area mới trả về
+      if (type === "product") {
+        setProductData((prev) => ({
+          ...(location.state.productData || prev),
+          printArea: data,
+        }));
+      } else if (type === "variant" && index !== undefined) {
+        setVariants((prevVariants) => {
+          // Dùng snapshot variants từ state (đã restore ở trên) làm base
+          const base = location.state.variants || prevVariants;
+          const updated = [...base];
+          updated[index] = {
+            ...updated[index],
+            x: data.x,
+            y: data.y,
+            width: data.width,
+            height: data.height,
+          };
+          return updated;
+        });
+      }
+
+      // Xóa updatedPrintArea khỏi history state để tránh re-trigger khi F5
+      const cleanState = { ...location.state };
+      delete cleanState.updatedPrintArea;
+      window.history.replaceState(cleanState, document.title);
+
+      setFetching(false);
+      return; // Không fetch DB
+    }
+
+    // Trường hợp 2: Load trang bình thường — fetch từ DB
+    if (isReturningFromConfig.current) {
+      // Guard phòng trường hợp effect chạy lại sau khi đã xử lý return
+      isReturningFromConfig.current = false;
+      return;
+    }
+
     const fetchProductDetails = async () => {
       try {
         setFetching(true);
@@ -80,9 +144,7 @@ const EditProductPage = () => {
         });
 
         setProductImages(
-          p.images
-            ?.filter((img: any) => !img.variantId)
-            .map((img: any) => img.url) || [],
+          p.images?.filter((img: any) => !img.variantId).map((img: any) => img.url) || []
         );
         setProductMockup(p.mockup?.url || null);
 
@@ -116,23 +178,9 @@ const EditProductPage = () => {
         setFetching(false);
       }
     };
-    fetchProductDetails();
-  }, [id]);
 
-  // 2. Xử lý quay lại từ trang Config
-  useEffect(() => {
-    if (location.state?.updatedPrintArea) {
-      const { type, index, data } = location.state.updatedPrintArea;
-      if (type === "product") {
-        setProductData((prev) => ({ ...prev, printArea: data }));
-      } else if (type === "variant" && index !== undefined) {
-        const newVariants = [...variants];
-        newVariants[index] = { ...newVariants[index], ...data };
-        setVariants(newVariants);
-      }
-      window.history.replaceState({}, document.title);
-    }
-  }, [location.state]);
+    fetchProductDetails();
+  }, [id, location.state]);
 
   // --- HELPERS ---
   const generateSlug = (str: string) =>
@@ -149,15 +197,17 @@ const EditProductPage = () => {
     index: number,
   ) => {
     const prefix = generateSlug(productName || "PROD").slice(0, 4);
-    const suffix = selectedValues
-      .map((v) => generateSlug(v).slice(0, 3))
-      .join("-");
-
-    // Thêm index và một chuỗi ngẫu nhiên 4 ký tự thay vì chỉ dùng timestamp
+    const suffix = selectedValues.map((v) => generateSlug(v).slice(0, 3)).join("-");
     const randomStr = Math.random().toString(36).substring(2, 6).toUpperCase();
-
     return `${prefix}-${suffix}-${index + 1}${randomStr}`;
   };
+
+  const toggleAttribute = (id: number) => {
+    setSelectedAttributeIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  };
+
   const openAssetModal = (target: any) => {
     setAssetTarget(target);
     setAssetModalOpen(true);
@@ -232,58 +282,56 @@ const EditProductPage = () => {
     ]);
   };
 
-  const handleNavigateToConfig = (
-    type: "product" | "variant",
-    index?: number,
-  ) => {
+  const handleNavigateToConfig = (type: "product" | "variant", index?: number) => {
     let url = "";
     let initialData = null;
+
     if (type === "product") {
       if (!productMockup) return alert("Chọn mockup trước!");
       url = `http://localhost:3000${productMockup}`;
       initialData = productData.printArea;
     } else {
-      if (index === undefined || !variants[index].mockup)
-        return alert("Chọn mockup biến thể!");
+      if (index === undefined || !variants[index].mockup) return alert("Chọn mockup biến thể!");
       url = `http://localhost:3000${variants[index].mockup}`;
-      initialData = variants[index].width
-        ? {
-            x: variants[index].x,
-            y: variants[index].y,
-            width: variants[index].width,
-            height: variants[index].height,
-          }
+      const v = variants[index];
+      initialData = v.width
+        ? { x: v.x, y: v.y, width: v.width, height: v.height }
         : null;
     }
 
-    navigate("/seller/products/print-area-config", {
+    navigate(`/seller/products/print-area-config/${type}/${id || "new"}`, {
       state: {
         type,
         index,
         mockupUrl: url,
-        initialData: initialData || { x: 250, y: 200, width: 250, height: 250 },
+        // Truyền initialData hiện tại (hoặc default nếu chưa có)
+        initialData: initialData || DEFAULT_PRINT_AREA,
         returnTo: location.pathname,
+        // Snapshot toàn bộ form state — dùng để restore khi quay về
         productData,
         productImages,
         productMockup,
         variants,
         selectedAttributeIds,
+        // Snapshot lookup data để restore dropdown khi quay về
+        attributes,
+        categories,
         name:
-          type === "product" ? productData.productName : `Biến thể #${index}`,
+          type === "product"
+            ? productData.productName
+            : `Biến thể #${(index ?? 0) + 1}`,
       },
     });
   };
 
   const handleUpdateProduct = async () => {
-    // Tạo một ID cho toast để quản lý trạng thái loading
     const loadingToast = toast.loading("Đang cập nhật sản phẩm...");
-
     try {
       setLoading(true);
       const payload = {
         productName: productData.productName,
         description: productData.description,
-        categoryId: Number(productData.categoryId),
+        categoryId: productData.categoryId ? Number(productData.categoryId) : null,
         productImages: productImages,
         variants: variants.map((v) => ({
           ...(v.id ? { id: v.id } : {}),
@@ -297,18 +345,11 @@ const EditProductPage = () => {
         })),
       };
 
-      // Gọi API update
       const resProduct = await axiosClient.patch(`/products/${id}`, payload);
       const variantResponses = resProduct.data?.variants;
 
-      // Xử lý Mockup chính
       if (productMockup) {
-        const pArea = productData.printArea || {
-          x: 250,
-          y: 200,
-          width: 250,
-          height: 250,
-        };
+        const pArea = productData.printArea || DEFAULT_PRINT_AREA;
         await axiosClient.post(`/designs/product/${id}/mockup`, {
           url: productMockup,
           x: Number(pArea.x),
@@ -320,41 +361,30 @@ const EditProductPage = () => {
         });
       }
 
-      // Xử lý Mockup Variant
       if (variantResponses) {
         await Promise.all(
           variants.map((v, index) => {
-            if (v.mockup && variantResponses[index]) {
-              return axiosClient.post(
-                `/designs/variant/${variantResponses[index].id}/mockup`,
-                {
-                  url: v.mockup,
-                  x: Number(v.x || 250),
-                  y: Number(v.y || 200),
-                  width: Number(v.width || 250),
-                  height: Number(v.height || 250),
-                  realWidthInch: 10,
-                  realHeightInch: 10,
-                },
-              );
+            const vIdInDb = v.id || variantResponses[index]?.id;
+            if (v.mockup && vIdInDb) {
+              return axiosClient.post(`/designs/variant/${vIdInDb}/mockup`, {
+                url: v.mockup,
+                x: Number(v.x || 250),
+                y: Number(v.y || 200),
+                width: Number(v.width || 250),
+                height: Number(v.height || 250),
+                realWidthInch: 10,
+                realHeightInch: 10,
+              });
             }
             return null;
-          }),
+          })
         );
       }
 
-      // --- THÀNH CÔNG ---
-      toast.success("Cập nhật sản phẩm thành công!", { id: loadingToast }); // Cập nhật toast loading thành success
-
-      // Đợi 1 chút để user kịp nhìn thông báo rồi mới chuyển trang
-      setTimeout(() => {
-        navigate("/seller/products");
-      }, 1500);
+      toast.success("Cập nhật thành công!", { id: loadingToast });
+      setTimeout(() => navigate("/seller/products"), 1500);
     } catch (error: any) {
-      console.error("Lỗi:", error);
-      const errorMsg =
-        error.response?.data?.message || "Cập nhật thất bại, vui lòng thử lại.";
-      toast.error(errorMsg, { id: loadingToast });
+      toast.error("Lỗi khi lưu dữ liệu", { id: loadingToast });
     } finally {
       setLoading(false);
     }
@@ -362,15 +392,12 @@ const EditProductPage = () => {
 
   if (fetching)
     return (
-      <div className="p-20 text-center font-bold">
-        Đang tải dữ liệu sản phẩm...
-      </div>
+      <div className="p-20 text-center font-bold">Đang tải dữ liệu sản phẩm...</div>
     );
 
   return (
     <div className="max-w-6xl mx-auto pb-20 px-4">
       <Toaster position="top-right" reverseOrder={false} />
-      {/* HEADER */}
       <div className="flex items-center justify-between mb-8 sticky top-0 bg-gray-50/90 backdrop-blur-sm py-4 z-20 border-b border-gray-200">
         <div className="flex items-center gap-4">
           <button
@@ -379,28 +406,19 @@ const EditProductPage = () => {
           >
             <ArrowLeft size={20} />
           </button>
-          <h1 className="text-xl font-bold text-gray-900">
-            Chỉnh sửa sản phẩm
-          </h1>
+          <h1 className="text-xl font-bold text-gray-900">Chỉnh sửa sản phẩm</h1>
         </div>
         <button
           onClick={handleUpdateProduct}
           disabled={loading}
           className={`flex items-center gap-2 px-6 py-2 bg-green-600 text-white text-sm font-bold rounded-md hover:bg-green-700 shadow-lg transition-all ${loading ? "opacity-70" : ""}`}
         >
-          {loading ? (
-            "Đang lưu..."
-          ) : (
-            <>
-              <Save size={16} /> Cập nhật thay đổi
-            </>
-          )}
+          {loading ? "Đang lưu..." : <><Save size={16} /> Cập nhật thay đổi</>}
         </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
-          {/* Thông tin tổng quan */}
           <section className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
             <div className="p-6 border-b border-gray-100 bg-gray-50/50">
               <h2 className="text-sm font-bold text-gray-700">
@@ -415,13 +433,10 @@ const EditProductPage = () => {
                   </label>
                   <input
                     type="text"
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg outline-none"
                     value={productData.productName}
                     onChange={(e) =>
-                      setProductData({
-                        ...productData,
-                        productName: e.target.value,
-                      })
+                      setProductData({ ...productData, productName: e.target.value })
                     }
                   />
                 </div>
@@ -431,13 +446,10 @@ const EditProductPage = () => {
                   </label>
                   <textarea
                     rows={3}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg outline-none focus:ring-1 focus:ring-blue-500 text-sm"
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg outline-none text-sm"
                     value={productData.description}
                     onChange={(e) =>
-                      setProductData({
-                        ...productData,
-                        description: e.target.value,
-                      })
+                      setProductData({ ...productData, description: e.target.value })
                     }
                   />
                 </div>
@@ -459,9 +471,7 @@ const EditProductPage = () => {
                       />
                       <button
                         onClick={() =>
-                          setProductImages(
-                            productImages.filter((_, idx) => idx !== i),
-                          )
+                          setProductImages(productImages.filter((_, idx) => idx !== i))
                         }
                         className="absolute top-1 right-1 bg-white p-1 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
                       >
@@ -480,152 +490,195 @@ const EditProductPage = () => {
             </div>
           </section>
 
-          {/* Biến thể */}
           <section className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
             <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
-              <h2 className="text-sm font-bold text-gray-700">
-                Biến thể & Thuộc tính
-              </h2>
-              <button
-                type="button"
-                onClick={handleAddVariant}
-                className="text-blue-600 font-bold text-xs hover:underline"
-              >
-                + Thêm biến thể mới
-              </button>
+              <h2 className="text-sm font-bold text-gray-700">Biến thể & Thuộc tính</h2>
             </div>
-            <div className="p-6 space-y-6">
-              {variants.map((v, vIdx) => (
-                <div
-                  key={vIdx}
-                  className="p-4 border border-gray-200 rounded-xl bg-gray-50/50 grid grid-cols-1 md:grid-cols-12 gap-6 relative group"
-                >
+            <div className="p-6 space-y-8">
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-3">
+                  1. Chọn các thuộc tính
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {attributes.map((attr) => (
+                    <button
+                      key={attr.id}
+                      onClick={() => toggleAttribute(attr.id)}
+                      className={`px-4 py-2 rounded-full text-xs font-bold border transition-all flex items-center gap-2 ${selectedAttributeIds.includes(attr.id)
+                          ? "bg-blue-600 text-white border-blue-600"
+                          : "bg-white text-gray-600 border-gray-200"
+                        }`}
+                    >
+                      {selectedAttributeIds.includes(attr.id) && <Check size={14} />}{" "}
+                      {attr.attributeName}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <label className="block text-xs font-bold text-gray-500 uppercase">
+                    2. Danh sách biến thể
+                  </label>
                   <button
-                    type="button"
-                    onClick={() =>
-                      setVariants(variants.filter((_, i) => i !== vIdx))
-                    }
-                    className="absolute -top-2 -right-2 bg-white text-red-500 border border-gray-200 p-1.5 rounded-full shadow-sm hover:bg-red-50 z-30 transition-all"
+                    onClick={handleAddVariant}
+                    disabled={selectedAttributeIds.length === 0}
+                    className="flex items-center gap-1.5 text-blue-600 font-bold text-xs hover:bg-blue-50 px-3 py-1.5 rounded-md disabled:opacity-50"
                   >
-                    <X size={14} />
+                    <Plus size={14} /> Thêm biến thể mới
                   </button>
-                  <div className="md:col-span-3 space-y-3">
-                    <div className="relative aspect-square bg-white border rounded-lg flex items-center justify-center overflow-hidden group/m">
-                      {v.mockup ? (
-                        <>
-                          <img
-                            src={`http://localhost:3000${v.mockup}`}
-                            className="w-full h-full object-contain"
-                            alt=""
-                          />
-                          <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/m:opacity-100 transition-opacity gap-2">
+                </div>
+
+                {variants.map((v, vIdx) => (
+                  <div
+                    key={vIdx}
+                    className="p-4 border border-gray-200 rounded-xl bg-gray-50/50 grid grid-cols-1 md:grid-cols-12 gap-6 relative group"
+                  >
+                    <button
+                      onClick={() =>
+                        setVariants(variants.filter((_, i) => i !== vIdx))
+                      }
+                      className="absolute -top-2 -right-2 bg-white text-red-500 border border-gray-200 p-1.5 rounded-full shadow-sm hover:bg-red-50 z-30 transition-all"
+                    >
+                      <X size={14} />
+                    </button>
+
+                    <div className="md:col-span-3 space-y-3">
+                      <div className="relative aspect-square bg-white border rounded-lg flex items-center justify-center overflow-hidden group/m">
+                        {v.mockup ? (
+                          <>
+                            <img
+                              src={`http://localhost:3000${v.mockup}`}
+                              className="w-full h-full object-contain"
+                              alt=""
+                            />
+                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/m:opacity-100 transition-opacity gap-2">
+                              <button
+                                onClick={() => handleNavigateToConfig("variant", vIdx)}
+                                className="p-1.5 bg-blue-600 text-white rounded"
+                              >
+                                <Edit2 size={14} />
+                              </button>
+                              <button
+                                onClick={() =>
+                                  openAssetModal({ type: "variantMockup", index: vIdx })
+                                }
+                                className="p-1.5 bg-white rounded text-gray-600"
+                              >
+                                <Upload size={14} />
+                              </button>
+                            </div>
+                          </>
+                        ) : (
+                          <button
+                            onClick={() =>
+                              openAssetModal({ type: "variantMockup", index: vIdx })
+                            }
+                            className="flex flex-col items-center gap-1"
+                          >
+                            <Upload size={20} className="text-gray-300" />
+                            <span className="text-[10px] text-gray-400 font-bold uppercase">
+                              Mockup
+                            </span>
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="flex flex-wrap gap-1.5">
+                        {v.images?.map((img: string, iIdx: number) => (
+                          <div
+                            key={iIdx}
+                            className="w-10 h-10 rounded border border-gray-200 overflow-hidden relative group/vimg"
+                          >
+                            <img
+                              src={`http://localhost:3000${img}`}
+                              className="w-full h-full object-cover"
+                              alt=""
+                            />
                             <button
-                              type="button"
-                              onClick={() =>
-                                handleNavigateToConfig("variant", vIdx)
-                              }
-                              className="p-1.5 bg-blue-600 text-white rounded"
+                              onClick={() => {
+                                const newVariants = [...variants];
+                                newVariants[vIdx].images = newVariants[vIdx].images.filter(
+                                  (_: any, i: number) => i !== iIdx
+                                );
+                                setVariants(newVariants);
+                              }}
+                              className="absolute top-0 right-0 bg-white p-0.5 rounded-bl opacity-0 group-hover/vimg:opacity-100 transition-opacity"
                             >
-                              <Edit2 size={14} />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                openAssetModal({
-                                  type: "variantMockup",
-                                  index: vIdx,
-                                })
-                              }
-                              className="p-1.5 bg-white rounded text-gray-600"
-                            >
-                              <Upload size={14} />
+                              <Trash2 size={8} className="text-red-500" />
                             </button>
                           </div>
-                        </>
-                      ) : (
+                        ))}
                         <button
-                          type="button"
                           onClick={() =>
-                            openAssetModal({
-                              type: "variantMockup",
-                              index: vIdx,
-                            })
+                            openAssetModal({ type: "variantGallery", index: vIdx })
                           }
-                          className="flex flex-col items-center gap-1"
+                          className="w-10 h-10 border border-dashed border-gray-300 rounded flex items-center justify-center text-gray-400 hover:bg-white"
                         >
-                          <Upload size={20} className="text-gray-300" />
-                          <span className="text-[10px] text-gray-400 font-bold uppercase">
-                            Mockup
-                          </span>
+                          <Plus size={12} />
                         </button>
-                      )}
-                    </div>
-                  </div>
-                  <div className="md:col-span-9 grid grid-cols-2 md:grid-cols-3 gap-4">
-                    {selectedAttributeIds.map((attrId) => (
-                      <div key={attrId}>
-                        <label className="text-[10px] font-bold text-gray-400 block mb-1 uppercase">
-                          {
-                            attributes.find((a) => a.id === attrId)
-                              ?.attributeName
-                          }
-                        </label>
-                        <select
-                          className="w-full p-2 border border-gray-200 rounded-lg text-xs bg-white outline-none"
-                          value={v.attributeValueIds[attrId] || ""}
-                          onChange={(e) =>
-                            updateVariantData(
-                              vIdx,
-                              `attr_${attrId}`,
-                              e.target.value,
-                            )
-                          }
-                        >
-                          <option value="">Chọn</option>
-                          {attributes
-                            .find((a) => a.id === attrId)
-                            ?.attributeValues.map((val) => (
-                              <option key={val.id} value={val.id}>
-                                {val.valueName}
-                              </option>
-                            ))}
-                        </select>
                       </div>
-                    ))}
-                    <div>
-                      <label className="text-[10px] font-bold text-gray-400 block mb-1 uppercase">
-                        Giá
-                      </label>
-                      <input
-                        type="number"
-                        className="w-full p-2 border border-gray-200 rounded-lg text-xs outline-none"
-                        value={v.price}
-                        onChange={(e) =>
-                          updateVariantData(vIdx, "price", e.target.value)
-                        }
-                      />
                     </div>
-                    <div>
-                      <label className="text-[10px] font-bold text-gray-400 block mb-1 uppercase">
-                        Kho
-                      </label>
-                      <input
-                        type="number"
-                        className="w-full p-2 border border-gray-200 rounded-lg text-xs outline-none"
-                        value={v.stock}
-                        onChange={(e) =>
-                          updateVariantData(vIdx, "stock", e.target.value)
-                        }
-                      />
+
+                    <div className="md:col-span-9 grid grid-cols-2 md:grid-cols-3 gap-4">
+                      {selectedAttributeIds.map((attrId) => (
+                        <div key={attrId}>
+                          <label className="text-[10px] font-bold text-gray-400 block mb-1 uppercase">
+                            {attributes.find((a) => a.id === attrId)?.attributeName}
+                          </label>
+                          <select
+                            className="w-full p-2 border border-gray-200 rounded-lg text-xs bg-white outline-none"
+                            value={v.attributeValueIds[attrId] || ""}
+                            onChange={(e) =>
+                              updateVariantData(vIdx, `attr_${attrId}`, e.target.value)
+                            }
+                          >
+                            <option value="">Chọn</option>
+                            {attributes
+                              .find((a) => a.id === attrId)
+                              ?.attributeValues.map((val) => (
+                                <option key={val.id} value={val.id}>
+                                  {val.valueName}
+                                </option>
+                              ))}
+                          </select>
+                        </div>
+                      ))}
+                      <div>
+                        <label className="text-[10px] font-bold text-gray-400 block mb-1 uppercase">
+                          Giá
+                        </label>
+                        <input
+                          type="number"
+                          className="w-full p-2 border border-gray-200 rounded-lg text-xs"
+                          value={v.price}
+                          onChange={(e) =>
+                            updateVariantData(vIdx, "price", e.target.value)
+                          }
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-gray-400 block mb-1 uppercase">
+                          Kho
+                        </label>
+                        <input
+                          type="number"
+                          className="w-full p-2 border border-gray-200 rounded-lg text-xs"
+                          value={v.stock}
+                          onChange={(e) =>
+                            updateVariantData(vIdx, "stock", e.target.value)
+                          }
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </section>
         </div>
 
-        {/* Sidebar */}
         <div className="space-y-6">
           <section className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
             <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">

@@ -39,6 +39,10 @@ import AddDesignPage from "./pages/seller/AddDesignPage";
 import PrintAreaConfigPage from "./pages/seller/PrintAreaConfigPage";
 import EditProductPage from "./pages/seller/EditProductPage";
 import SellerOrderManager from "./pages/seller/SellerOrderManager";
+import ShipperOrderManager from "./pages/shipper/ShipperOrderManager";
+import CategoryManagementPage from "./pages/admin/CategoryManagementPage";
+import CategoryEditorPage from "./pages/admin/CategoryEditorPage";
+import AttributeManagementPage from "./pages/admin/AttributeManagementPage";
 
 function App() {
   return (
@@ -78,6 +82,13 @@ function App() {
               <Route index element={<Dashboard />} />
               <Route path="users" element={<UserManagementPage />} />
               <Route path="approvals" element={<ApprovalManagementPage />} />
+              <Route path="categories" element={<CategoryManagementPage />} />
+              <Route path="categories/add" element={<CategoryEditorPage />} />
+              <Route
+                path="categories/edit/:id"
+                element={<CategoryEditorPage />}
+              />
+              <Route path="attributes" element={<AttributeManagementPage />} />
             </Route>
           </Route>
 
@@ -99,6 +110,10 @@ function App() {
                 path="products/print-area-config"
                 element={<PrintAreaConfigPage />}
               />
+              <Route
+                path="products/print-area-config/:type/:id"
+                element={<PrintAreaConfigPage />}
+              />
               <Route path="orders" element={<div>Đơn hàng của Shop</div>} />
             </Route>
           </Route>
@@ -108,7 +123,7 @@ function App() {
             <Route path="/shipper" element={<ShipperLayout />}>
               <Route index element={<Navigate to="available" replace />} />
               <Route path="dashboard" element={<div>Dashboard Shipper</div>} />
-              <Route path="available" element={<div>Đơn hàng sẵn sàng</div>} />
+              <Route path="orders" element={<ShipperOrderManager />} />
               <Route path="my-orders" element={<div>Đơn đang giao</div>} />
               <Route path="history" element={<div>Lịch sử giao hàng</div>} />
             </Route>

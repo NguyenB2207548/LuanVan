@@ -31,9 +31,6 @@ export class Category {
   @Column({ type: 'text', nullable: true })
   description: string;
 
-  // @OneToMany(() => Product, (product) => product.category)
-  // products: Product[];
-
   @ManyToMany(() => Product, (product) => product.categories)
   products: Product[];
 

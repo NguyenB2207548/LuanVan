@@ -220,23 +220,39 @@ const SellerOrderManager = () => {
                     {order.items.map((item) => (
                       <div key={item.id} className="flex items-center gap-4">
                         <div className="w-14 h-14 bg-gray-50 rounded-lg border border-gray-100 overflow-hidden flex-shrink-0 shadow-inner">
-                          {item.variant.images?.[0] ? (
+                          {/* Kiểm tra item.variant tồn tại trước khi truy cập images */}
+                          {item.variant?.images?.[0] ? (
                             <img
                               src={`${BASE_URL}${item.variant.images[0].url}`}
                               className="w-full h-full object-cover"
+                              alt="product"
                             />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center text-gray-300">
+                            <div className="w-full h-full flex items-center justify-center text-gray-300 bg-gray-100">
                               <Package size={18} />
                             </div>
                           )}
                         </div>
+
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-bold text-gray-800 line-clamp-1">
                             {item.variantNameSnapshot}
                           </p>
+                          {/* Kiểm tra variant tồn tại trước khi hiển thị SKU */}
                           <p className="text-[10px] text-gray-400 font-mono mt-0.5 uppercase tracking-tighter">
-                            SKU: {item.variant.sku}
+                            SKU: {item.variant?.sku || "N/A"}
+                          </p>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold text-gray-800 line-clamp-1">
+                            {/* Luôn ưu tiên dùng Snapshot vì nó không bao giờ bị null */}
+                            {item.variantNameSnapshot ||
+                              "Sản phẩm không xác định"}
+                          </p>
+
+                          <p className="text-[10px] text-gray-400 font-mono mt-0.5 uppercase tracking-tighter">
+                            {/* Dùng Optional Chaining ?. để tránh crash khi variant bị null */}
+                            SKU: {item.variant?.sku || "N/A"}
                           </p>
                         </div>
                         <div className="text-right min-w-[100px]">
