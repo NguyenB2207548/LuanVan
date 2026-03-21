@@ -18,12 +18,18 @@ import { UpdateCartItemDto } from './dto/update-cart-item.dto';
 
 @Controller('carts')
 export class CartsController {
-  constructor(private readonly cartsService: CartsService) {}
+  constructor(private readonly cartsService: CartsService) { }
 
   @Get()
   @UseGuards(JwtAuthGuard)
   getCart(@GetUser('userId') userId: number) {
     return this.cartsService.getCart(userId);
+  }
+
+  @Get('count')
+  @UseGuards(JwtAuthGuard)
+  getCartCount(@GetUser('userId') userId: number) {
+    return this.cartsService.countCartItems(userId);
   }
 
   @Post()

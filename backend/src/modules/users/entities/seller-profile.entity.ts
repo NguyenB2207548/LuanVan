@@ -12,11 +12,8 @@ export class SellerProfile {
   @Column({ type: 'text' })
   shopAddress: string;
 
-  @Column({ name: 'business_license', nullable: true })
-  businessLicense: string;
-
-  @Column({ name: 'contact_number', length: 20, nullable: true })
-  contactNumber: string;
+  // @Column({ name: 'contact_number', length: 20, nullable: true })
+  // contactNumber: string;
 
   @Column({ type: 'decimal', precision: 3, scale: 2, default: 0 })
   rating: number;

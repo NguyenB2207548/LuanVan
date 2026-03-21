@@ -146,7 +146,7 @@ const SellerOrderManager = () => {
             <Package className="text-blue-600" size={28} />
             Quản lý đơn hàng
           </h1>
-          <p className="text-sm text-gray-500 mt-1 italic">Theo dõi và vận hành đơn hàng của shop</p>
+
         </div>
       </div>
 

@@ -28,12 +28,11 @@ export class ShipperProfile {
   vehiclePlate: string;
 
   @Column({
-    name: 'vehicle_type',
-    type: 'varchar',
-    length: 50,
-    default: 'motorcycle',
+    name: 'shipper_address',
+    type: 'text',
+    nullable: true,
   })
-  vehicleType: string;
+  address: string;
 
   @Column({
     name: 'work_status',

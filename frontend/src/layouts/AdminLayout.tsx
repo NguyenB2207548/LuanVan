@@ -6,22 +6,21 @@ import {
   Package,
   LogOut,
   ChevronUp,
+  UserCheck, // Import icon phù hợp cho phê duyệt
+  Layers,    // Icon cho danh mục
+  Settings2  // Icon cho thuộc tính
 } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
 
 const AdminLayout = () => {
   const navigate = useNavigate();
-  // Lấy user và hàm logout từ store
   const { user, logout } = useAuthStore();
-
-  // State để quản lý việc mở/đóng menu đăng xuất
   const [showUserMenu, setShowUserMenu] = useState(false);
 
   if (!user || user.role !== "admin") {
     return <Navigate to="/" replace />;
   }
 
-  // Hàm tạo style cho Link (Active/Inactive)
   const getLinkClass = ({ isActive }: { isActive: boolean }) => {
     const baseClass =
       "flex items-center gap-3 px-4 py-3 rounded-lg transition-all text-sm font-medium mb-1";
@@ -30,13 +29,11 @@ const AdminLayout = () => {
       : `${baseClass} text-gray-500 hover:bg-gray-50 hover:text-gray-900`;
   };
 
-  // Hàm xử lý đăng xuất
   const handleLogout = () => {
-    logout(); // Xóa token và user khỏi store
-    navigate("/login"); // Chuyển về trang đăng nhập
+    logout();
+    navigate("/login");
   };
 
-  // Lấy chữ cái đầu tiên của tên để làm Avatar (VD: "Nguyen Pham" -> "N")
   const getInitials = (name: string) => {
     if (!name) return "A";
     return name.charAt(0).toUpperCase();
@@ -68,18 +65,22 @@ const AdminLayout = () => {
             <Users size={20} /> Quản lý người dùng
           </NavLink>
 
+          {/* Sửa tên ngắn gọn và icon phù hợp */}
+          <NavLink to="/admin/approvals" className={getLinkClass}>
+            <UserCheck size={20} /> Phê duyệt đối tác
+          </NavLink>
+
           <NavLink to="/admin/categories" className={getLinkClass}>
-            <Package size={20} /> Quản lý danh mục
+            <Layers size={20} /> Quản lý danh mục
           </NavLink>
 
           <NavLink to="/admin/attributes" className={getLinkClass}>
-            <Package size={20} /> Quản lý thuộc tính
+            <Settings2 size={20} /> Quản lý thuộc tính
           </NavLink>
         </nav>
 
         {/* User Profile Area */}
         <div className="p-4 border-t border-gray-100 relative">
-          {/* Popup Menu Đăng xuất (Chỉ hiện khi click vào Profile) */}
           {showUserMenu && (
             <div className="absolute bottom-full left-4 right-4 mb-2 bg-white border border-gray-200 rounded-lg shadow-lg py-1 overflow-hidden z-20">
               <button
@@ -91,12 +92,10 @@ const AdminLayout = () => {
             </div>
           )}
 
-          {/* User Info Bar */}
           <div
             onClick={() => setShowUserMenu(!showUserMenu)}
             className={`flex items-center gap-3 p-2 rounded-lg transition cursor-pointer select-none ${showUserMenu ? "bg-gray-100" : "hover:bg-gray-50"}`}
           >
-            {/* Avatar lấy chữ cái đầu */}
             <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-sm shrink-0">
               {getInitials(user.fullName || user.email)}
             </div>

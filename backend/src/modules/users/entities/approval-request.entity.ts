@@ -48,24 +48,16 @@ export class ApprovalRequest {
   @Column({ name: 'shop_address', type: 'text', nullable: true })
   shopAddress: string;
 
-  @Column({ name: 'business_license', nullable: true })
-  businessLicense: string;
-
   // --- DỮ LIỆU DÀNH CHO SHIPPER ---
   @Column({ name: 'vehicle_plate', length: 20, nullable: true })
   vehiclePlate: string;
 
-  @Column({
-    name: 'vehicle_type',
-    length: 50,
-    nullable: true,
-    default: 'motorcycle',
-  })
-  vehicleType: string;
+  @Column({ name: 'shipper_address', type: 'text', nullable: true })
+  shipperAddress: string; // Thay thế cho vehicleType
 
   // --- PHẢN HỒI TỪ ADMIN ---
   @Column({ name: 'reject_reason', type: 'text', nullable: true })
-  rejectReason: string; // Lý do từ chối nếu status là rejected
+  rejectReason: string;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

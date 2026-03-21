@@ -12,7 +12,7 @@ import { UpdateCartItemDto } from './dto/update-cart-item.dto';
 
 @Injectable()
 export class CartsService {
-  constructor(private readonly dataSource: DataSource) {}
+  constructor(private readonly dataSource: DataSource) { }
 
   // 1. Lấy giỏ hàng: Tận dụng quan hệ mới để lấy ảnh và giá cực nhanh
   async getCart(userId: number) {
@@ -35,6 +35,28 @@ export class CartsService {
     }
 
     return cart;
+  }
+
+  async countCartItems(userId: number) {
+    // Tìm giỏ hàng của user trước
+    const cart = await this.dataSource.manager.findOne(Cart, {
+      where: { user: { id: userId } },
+    });
+
+    if (!cart) {
+      return { count: 0 };
+    }
+
+    // Tính tổng quantity của tất cả items trong giỏ hàng đó
+    const result = await this.dataSource.manager
+      .createQueryBuilder(CartItem, 'item')
+      .select('SUM(item.quantity)', 'sum')
+      .where('item.cart_id = :cartId', { cartId: cart.id })
+      .getRawOne();
+
+    return {
+      count: parseInt(result.sum) || 0,
+    };
   }
 
   // 2. Thêm vào giỏ hàng: Xử lý logic cá nhân hóa thiết kế AI

@@ -21,7 +21,7 @@ import { GetUser } from '../auth/decorators/get-user.decorator';
 @Controller('approvals')
 @UseGuards(JwtAuthGuard)
 export class ApprovalController {
-  constructor(private readonly approvalService: ApprovalService) {}
+  constructor(private readonly approvalService: ApprovalService) { }
 
   @UseGuards(JwtAuthGuard)
   @Post('request')
@@ -30,6 +30,13 @@ export class ApprovalController {
     @Body() createDto: CreateApprovalRequestDto,
   ) {
     return this.approvalService.create(userId, createDto);
+  }
+
+  @Get()
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  async getAllRequests() {
+    return this.approvalService.findAll();
   }
 
   @Get('pending')

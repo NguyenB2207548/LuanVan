@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import axiosClient from "../../api/axiosClient";
-import type { Product, Variant } from "../../types/product";
+// import type { Product, Variant } from "../../types/product";
 import { Loader2 } from "lucide-react";
 import ImageOptionSelector from "../../components/user/ImageOptionSelector";
 import DesignControls from "../../components/user/DesignControls";
 import DesignerCanvas from "../../components/common/DesignerCanvas";
+import { useCartStore } from "../../store/useCartStore";
 
 const BASE_URL = "http://localhost:3000";
 
@@ -38,6 +39,11 @@ const ProductDetail = () => {
           Object.keys(designChoices).length > 0 ? designChoices : null,
       };
       await axiosClient.post("/carts", payload);
+
+      // --- DÒNG CODE DUY NHẤT CẦN THÊM ---
+      useCartStore.getState().fetchCartCount();
+      // ----------------------------------
+
       alert("Thêm vào giỏ hàng thành công!");
     } catch (error: any) {
       alert(error.response?.data?.message || "Có lỗi xảy ra");
@@ -45,6 +51,28 @@ const ProductDetail = () => {
       setIsAddingToCart(false);
     }
   };
+
+  // const handleAddToCart = async () => {
+  //   if (!selectedVariant) {
+  //     alert("Vui lòng chọn phân loại sản phẩm trước khi thêm vào giỏ hàng.");
+  //     return;
+  //   }
+  //   setIsAddingToCart(true);
+  //   try {
+  //     const payload = {
+  //       variantId: selectedVariant.id,
+  //       quantity: quantity,
+  //       customizedDesignJson:
+  //         Object.keys(designChoices).length > 0 ? designChoices : null,
+  //     };
+  //     await axiosClient.post("/carts", payload);
+  //     alert("Thêm vào giỏ hàng thành công!");
+  //   } catch (error: any) {
+  //     alert(error.response?.data?.message || "Có lỗi xảy ra");
+  //   } finally {
+  //     setIsAddingToCart(false);
+  //   }
+  // };
 
   // 1. Khởi tạo dữ liệu (Chỉ chạy 1 lần duy nhất khi load trang)
   useEffect(() => {
@@ -174,11 +202,10 @@ const ProductDetail = () => {
                 <div
                   key={`product-${idx}`}
                   onClick={() => handleThumbnailClick(img.url)}
-                  className={`border rounded p-1 cursor-pointer transition-all ${
-                    !showPreview && activeImage === img.url
-                      ? "border-red-400 ring-1 ring-red-400"
-                      : "border-gray-200"
-                  }`}
+                  className={`border rounded p-1 cursor-pointer transition-all ${!showPreview && activeImage === img.url
+                    ? "border-red-400 ring-1 ring-red-400"
+                    : "border-gray-200"
+                    }`}
                 >
                   <img
                     src={`${BASE_URL}${img.url}`}
@@ -194,11 +221,10 @@ const ProductDetail = () => {
                   <div
                     key={`variant-${idx}`}
                     onClick={() => handleThumbnailClick(img.url)}
-                    className={`border-2 rounded p-1 cursor-pointer transition-all ${
-                      !showPreview && activeImage === img.url
-                        ? "border-red-400 ring-1 ring-red-400"
-                        : "border-blue-200" // viền xanh để phân biệt ảnh variant
-                    }`}
+                    className={`border-2 rounded p-1 cursor-pointer transition-all ${!showPreview && activeImage === img.url
+                      ? "border-red-400 ring-1 ring-red-400"
+                      : "border-blue-200" // viền xanh để phân biệt ảnh variant
+                      }`}
                   >
                     <img
                       src={`${BASE_URL}${img.url}`}
@@ -267,7 +293,7 @@ const ProductDetail = () => {
                       visible: true,
                     }}
                     selectedId={null}
-                    setSelectedId={() => {}}
+                    setSelectedId={() => { }}
                     mode="client"
                     scale={0.7}
                     maxWidth={650}
