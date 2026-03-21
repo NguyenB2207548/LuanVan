@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Store, Loader2 } from "lucide-react";
+import { Store, Loader2, MapPin } from "lucide-react"; // Thêm icon MapPin
 import axiosClient from "@/api/axiosClient";
 import toast, { Toaster } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
@@ -27,10 +27,8 @@ const RegisterSellerPage = () => {
       setLoading(true);
       await axiosClient.post("/approvals/request", formData);
 
-      // Thông báo thành công
-      toast.success("Đăng ký thành công");
+      toast.success("Gửi yêu cầu đăng ký thành công. Vui lòng chờ phê duyệt!");
 
-      // Chuyển hướng về trang chủ sau 1.5 giây để user kịp nhìn thấy toast
       setTimeout(() => {
         navigate("/");
       }, 1500);
@@ -46,47 +44,75 @@ const RegisterSellerPage = () => {
   return (
     <PartnerRegisterLayout
       title="Đăng ký bán hàng"
-      description="Mở gian hàng quà tặng của bạn và tiếp cận hàng triệu khách hàng tiềm năng ngay hôm nay."
+      description="Tham gia cộng đồng GiftShop để bắt đầu kinh doanh các sản phẩm quà tặng cá nhân hóa."
       accentColor="blue"
     >
-      <Toaster position="top-right" /> {/* Đảm bảo Toast hiện ở góc trên bên phải */}
-      <Card className="rounded-[3rem] border-none shadow-2xl bg-white p-2">
-        <CardContent className="p-10 space-y-8">
-          <div className="flex items-center gap-4 mb-2">
-            <div className="bg-blue-600 p-3 rounded-2xl text-white shadow-lg shadow-blue-200">
-              <Store size={24} />
-            </div>
-            <h2 className="text-2xl font-black text-slate-900 tracking-tight">
+      <Toaster position="top-right" />
+
+      <Card className="rounded-lg border border-gray-200 shadow-sm bg-white">
+        <CardContent className="p-8 sm:p-10 space-y-6">
+          {/* Section Header */}
+          <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
+            <Store size={20} className="text-blue-600" />
+            <h2 className="text-lg font-semibold text-gray-900">
               Thông tin cửa hàng
             </h2>
           </div>
 
-          <div className="space-y-5 mt-5">
-            <div className="grid gap-2">
-              <Label className="font-bold ml-1 text-slate-600">Tên Shop của bạn</Label>
-              <Input
-                value={formData.shopName}
-                onChange={(e) => setFormData({ ...formData, shopName: e.target.value })}
-                className="h-14 rounded-2xl border-slate-200 px-5"
-              />
+          <div className="space-y-5">
+            {/* Tên Shop */}
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium text-gray-700">Tên cửa hàng</Label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                  <Store size={18} />
+                </div>
+                <Input
+                  placeholder="Ví dụ: Tiệm Quà Handmade"
+                  value={formData.shopName}
+                  onChange={(e) => setFormData({ ...formData, shopName: e.target.value })}
+                  className="pl-10 h-11 rounded-md border-gray-300 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                />
+              </div>
             </div>
-            <div className="grid gap-2">
-              <Label className="font-bold ml-1 text-slate-600">Địa chỉ lấy hàng</Label>
-              <Input
-                value={formData.shopAddress}
-                onChange={(e) => setFormData({ ...formData, shopAddress: e.target.value })}
-                className="h-14 rounded-2xl border-slate-200 px-5"
-              />
+
+            {/* Địa chỉ */}
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium text-gray-700">Địa chỉ lấy hàng</Label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                  <MapPin size={18} />
+                </div>
+                <Input
+                  placeholder="Số nhà, tên đường, phường/xã..."
+                  value={formData.shopAddress}
+                  onChange={(e) => setFormData({ ...formData, shopAddress: e.target.value })}
+                  className="pl-10 h-11 rounded-md border-gray-300 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                />
+              </div>
             </div>
           </div>
 
-          <Button
-            onClick={handleRegister}
-            disabled={loading}
-            className="w-full h-16 bg-blue-600 hover:bg-blue-700 rounded-2xl text-lg font-black shadow-xl shadow-blue-100 transition-all active:scale-95"
-          >
-            {loading ? <Loader2 className="animate-spin" /> : "Đăng ký ngay"}
-          </Button>
+          {/* Action Button */}
+          <div className="pt-4">
+            <Button
+              onClick={handleRegister}
+              disabled={loading}
+              className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md shadow-sm transition-colors"
+            >
+              {loading ? (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="animate-spin" size={18} />
+                  <span>Đang xử lý...</span>
+                </div>
+              ) : (
+                "Gửi yêu cầu đăng ký"
+              )}
+            </Button>
+            <p className="text-center text-xs text-gray-500 mt-4 italic">
+              * Thông tin của bạn sẽ được quản trị viên xem xét và phê duyệt trong vòng 24h.
+            </p>
+          </div>
         </CardContent>
       </Card>
     </PartnerRegisterLayout>

@@ -20,13 +20,12 @@ const ProductRow: React.FC<ProductRowProps> = ({
 }) => {
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      {/* TIÊU ĐỀ: Chuyển về font đứng, dày, cực kỳ gọn gàng */}
+      {/* TIÊU ĐỀ*/}
       <div className="flex flex-col items-center justify-center mb-10 text-center">
-        <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight uppercase">
+        <h2 className="text-3xl md:text-3xl font-bold text-slate-900 tracking-normal">
           {title}
         </h2>
-        {/* Thanh bar mảnh và sang hơn */}
-        <div className="w-12 h-1 bg-slate-900 mt-4 rounded-full"></div>
+        <div className="w-10 h-0.5 bg-slate-300 mt-3 rounded-full"></div>
       </div>
 
       {/* GRID SẢN PHẨM */}
@@ -52,13 +51,10 @@ const ProductRow: React.FC<ProductRowProps> = ({
       <div className="mt-12 flex justify-center">
         <Link
           to={linkTo}
-          className="group relative inline-flex items-center gap-3 px-8 py-3.5 bg-white border border-slate-200 rounded-full text-sm font-bold text-slate-900 shadow-sm hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all duration-300 active:scale-95"
+          className="group inline-flex items-center gap-2 px-6 py-2.5 bg-white border border-slate-200 rounded-full text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-blue-600 hover:border-blue-200 transition-all duration-300"
         >
           <span>Xem tất cả</span>
-          <ArrowRight
-            size={18}
-            className="transition-transform duration-300 group-hover:translate-x-1"
-          />
+          <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
         </Link>
       </div>
     </section>

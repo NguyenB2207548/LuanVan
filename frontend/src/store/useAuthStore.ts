@@ -4,6 +4,7 @@ interface User {
   id: number;
   email: string;
   fullName: string;
+  phoneNumber: string,
   role: string;
 }
 
@@ -13,6 +14,7 @@ interface AuthState {
   isAuthenticated: boolean; // Thêm thuộc tính này
   login: (user: User, token: string) => void;
   logout: () => void;
+  setUser: (user: User) => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -32,4 +34,8 @@ export const useAuthStore = create<AuthState>((set) => ({
     localStorage.removeItem("user");
     set({ user: null, token: null, isAuthenticated: false });
   },
+  setUser: (user) => set({
+    user,
+    isAuthenticated: !!user
+  }),
 }));

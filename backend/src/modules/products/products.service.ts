@@ -169,7 +169,7 @@ export class ProductsService {
   }
 
   /**
-   * Lấy 10 sản phẩm mới nhất
+   * Lấy 5 sản phẩm mới nhất
    */
   async getLatestProducts() {
     return await this.dataSource.getRepository(Product).find({
@@ -178,12 +178,12 @@ export class ProductsService {
         images: { isPrimary: true },
       },
       order: { createdAt: 'DESC' },
-      take: 10,
+      take: 5,
     });
   }
 
   /**
-   * Lấy 10 sản phẩm thịnh hành (Bán chạy nhất)
+   * Lấy 5 sản phẩm thịnh hành (Bán chạy nhất)
    */
   async getTrendingProducts() {
     return await this.dataSource.manager
@@ -208,7 +208,7 @@ export class ProductsService {
       .groupBy('product.id')
       .addGroupBy('image.id')
       .orderBy('totalSold', 'DESC')
-      .limit(10)
+      .limit(5)
       .getMany();
   }
 

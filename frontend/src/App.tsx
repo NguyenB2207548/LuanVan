@@ -44,6 +44,8 @@ import CategoryManagementPage from "./pages/admin/CategoryManagementPage";
 import CategoryEditorPage from "./pages/admin/CategoryEditorPage";
 import AttributeManagementPage from "./pages/admin/AttributeManagementPage";
 import ShipperMyOrders from "./pages/shipper/ShipperMyOrders";
+import ChangePasswordPage from "./pages/user/ChangePasswordPage";
+import ForgotPasswordPage from "./pages/user/ForgotPasswordPage";
 
 function App() {
   return (
@@ -60,6 +62,7 @@ function App() {
             <Route path="/register-seller" element={<RegisterSellerPage />} />
             <Route path="/register-shipper" element={<RegisterShipperPage />} />
             <Route path="/order-history" element={<OrderHistoryPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
             {/* Routes yêu cầu đăng nhập */}
             <Route
@@ -73,6 +76,7 @@ function App() {
               <Route path="/checkout" element={<CheckoutPage />} />
               <Route path="/order-success" element={<OrderSuccessPage />} />
               <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/change-password" element={<ChangePasswordPage />} />
               <Route path="/designer/:productId" element={<DesignerPage />} />
             </Route>
           </Route>
