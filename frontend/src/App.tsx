@@ -43,6 +43,7 @@ import ShipperOrderManager from "./pages/shipper/ShipperOrderManager";
 import CategoryManagementPage from "./pages/admin/CategoryManagementPage";
 import CategoryEditorPage from "./pages/admin/CategoryEditorPage";
 import AttributeManagementPage from "./pages/admin/AttributeManagementPage";
+import ShipperMyOrders from "./pages/shipper/ShipperMyOrders";
 
 function App() {
   return (
@@ -124,7 +125,7 @@ function App() {
               <Route index element={<Navigate to="available" replace />} />
               <Route path="dashboard" element={<div>Dashboard Shipper</div>} />
               <Route path="orders" element={<ShipperOrderManager />} />
-              <Route path="my-orders" element={<div>Đơn đang giao</div>} />
+              <Route path="my-orders" element={<ShipperMyOrders />} />
               <Route path="history" element={<div>Lịch sử giao hàng</div>} />
             </Route>
           </Route>

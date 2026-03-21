@@ -28,6 +28,7 @@ export class Order {
       'pending', // Khách hàng vừa đặt đơn (Chờ Seller xác nhận)
       'confirmed', // Seller đã xác nhận & đang chuẩn bị hàng (Chờ Shipper nhận đơn)
       'shipping', // Shipper đang đi giao
+      'failed',
       'success', // Đã giao xong (Hoàn thành)
       'cancelled', // Đã hủy (Bởi khách hoặc Seller)
     ],

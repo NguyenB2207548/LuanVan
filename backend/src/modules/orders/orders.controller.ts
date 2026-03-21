@@ -25,7 +25,7 @@ import { UserRole } from '../users/entities/user.entity';
 @UseGuards(JwtAuthGuard, RolesGuard) // Áp dụng bảo vệ cho toàn bộ controller
 export class OrdersController {
   exportService: any;
-  constructor(private readonly ordersService: OrdersService) {}
+  constructor(private readonly ordersService: OrdersService) { }
 
   // --- CUSTOMER ---
 
@@ -45,6 +45,17 @@ export class OrdersController {
     return this.ordersService.getOrdersByRole('user', req.user.id);
   }
 
+  @Patch(':id/cancel')
+  @Roles(UserRole.USER, UserRole.ADMIN)
+  async cancelOrder(
+    @Param('id', ParseIntPipe) orderId: number,
+    @Request() req,
+    @Body('reason') reason: string,
+  ) {
+    return this.ordersService.cancelOrder(orderId, req.user.id, req.user.role);
+  }
+
+
   // --- SELLER ---
 
   @Get('seller')
@@ -61,28 +72,39 @@ export class OrdersController {
 
   // --- SHIPPER ---
 
-  @Get('shipper-available')
+  @Get('shipper/available')
   @Roles(UserRole.SHIPPER)
   getAvailableOrders() {
     return this.ordersService.getAvailableOrdersForShipper();
   }
 
-  @Get('shipper-my-orders')
+  @Get('shipper/my-orders')
   @Roles(UserRole.SHIPPER)
   getShipperOrders(@Request() req) {
     return this.ordersService.getOrdersByRole('shipper', req.user.id);
   }
 
-  @Patch(':id/shipper-pickup')
+  @Patch('shipper/:id/pickup')
   @Roles(UserRole.SHIPPER)
   pickupOrder(@Param('id', ParseIntPipe) orderId: number, @Request() req) {
     return this.ordersService.shipperPickUpOrder(orderId, req.user.id);
   }
 
-  @Patch(':id/shipper-complete')
+  @Patch('shipper/:id/complete')
   @Roles(UserRole.SHIPPER)
   completeOrder(@Param('id', ParseIntPipe) orderId: number, @Request() req) {
     return this.ordersService.shipperCompleteOrder(orderId, req.user.id);
+  }
+
+
+  @Patch('shipper/:id/fail')
+  @Roles(UserRole.SHIPPER)
+  async failOrder(
+    @Param('id', ParseIntPipe) orderId: number,
+    @Request() req,
+    @Body('reason') reason: string,
+  ) {
+    return this.ordersService.shipperFailOrder(orderId, req.user.id, reason);
   }
 
   // ---  ADMIN ---
@@ -101,25 +123,6 @@ export class OrdersController {
     });
   }
 
-  @Patch(':id/cancel')
-  @Roles(UserRole.USER, UserRole.ADMIN)
-  async cancelOrder(
-    @Param('id', ParseIntPipe) orderId: number,
-    @Request() req,
-    @Body('reason') reason: string,
-  ) {
-    return this.ordersService.cancelOrder(orderId, req.user.id, req.user.role);
-  }
-
-  @Patch(':id/shipper-fail')
-  @Roles(UserRole.SHIPPER)
-  async failOrder(
-    @Param('id', ParseIntPipe) orderId: number,
-    @Request() req,
-    @Body('reason') reason: string,
-  ) {
-    return this.ordersService.shipperFailOrder(orderId, req.user.id, reason);
-  }
 
   @Post('momo-ipn')
   async handleMoMoIPN(@Body() body: any, @Res() res: Response) {
