@@ -8,6 +8,8 @@ import { Mockup } from './entities/mockup.entity';
 import { PrintArea } from './entities/print_area.entity';
 import { Product } from '../products/entities/product.entity';
 import { Variant } from '../products/entities/variant.entity';
+import { PsdController } from './psd.controller';
+import { PsdService } from './psd.service';
 
 @Module({
   imports: [
@@ -20,7 +22,7 @@ import { Variant } from '../products/entities/variant.entity';
       Variant,
     ]),
   ],
-  controllers: [DesignController],
-  providers: [DesignService],
+  controllers: [DesignController, PsdController],
+  providers: [DesignService, PsdService],
 })
-export class DesignsModule {}
+export class DesignsModule { }

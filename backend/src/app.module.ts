@@ -14,6 +14,7 @@ import { DesignsModule } from './modules/designs/designs.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
 import { StatisticsModule } from './modules/statistics/statistics.module';
+import { AiDesignModule } from './modules/ai-design/ai-design.module';
 
 @Module({
   imports: [
@@ -32,8 +33,9 @@ import { StatisticsModule } from './modules/statistics/statistics.module';
     AuthModule,
     UploadsModule,
     StatisticsModule,
+    AiDesignModule
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }

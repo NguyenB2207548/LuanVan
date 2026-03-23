@@ -16,6 +16,10 @@ const AddArtworkPage = () => {
   const [layers, setLayers] = useState<any[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
+
+  // Thêm state này để quản lý trạng thái bóc tách PSD
+  const [isExtractingPsd, setIsExtractingPsd] = useState(false);
+
   const [virtualPrintArea, setVirtualPrintArea] = useState({
     x: 200,
     y: 200,
@@ -23,31 +27,6 @@ const AddArtworkPage = () => {
     height: 250,
     visible: true,
   });
-
-  // useEffect(() => {
-  //   if (!id) return;
-  //   const fetchDesign = async () => {
-  //     try {
-  //       const res = await axiosClient.get(`/designs/${id}`);
-  //       const data = res.data;
-  //       setDesignName(data.designName || "");
-  //       if (data.templateJson) {
-  //         setBackgroundUrl(
-  //           data.templateJson.internalMockup || data.thumbnailUrl || "",
-  //         );
-  //         setLayers(data.templateJson.details || []);
-  //         if (data.templateJson.printArea)
-  //           setVirtualPrintArea(data.templateJson.printArea);
-  //       }
-  //     } catch (error) {
-  //       alert("Lỗi tải thiết kế");
-  //       navigate("/seller/artworks");
-  //     } finally {
-  //       setLoading(false);
-  //     }
-  //   };
-  //   fetchDesign();
-  // }, [id]);
 
   // Xử lý background
   const handleAssetsSelected = (urls: string[]) => {
@@ -102,9 +81,11 @@ const AddArtworkPage = () => {
           )
         }
         activeFilter="ALL"
-        setActiveFilter={() => {}}
+        setActiveFilter={() => { }}
         onSave={handleSaveArtwork}
-        isExtractingPsd={false}
+        // Truyền đầy đủ props cho chức năng Import PSD
+        isExtractingPsd={isExtractingPsd}
+        setIsExtractingPsd={setIsExtractingPsd}
         virtualPrintArea={virtualPrintArea}
         setVirtualPrintArea={setVirtualPrintArea}
         onOpenBgSelect={() => setIsAssetModalOpen(true)}

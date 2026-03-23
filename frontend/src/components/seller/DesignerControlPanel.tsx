@@ -1,10 +1,11 @@
 import React, { useState, useMemo } from "react";
-import { Save, Layers, ImageIcon, Eye, EyeOff, Move } from "lucide-react";
+import { Save, Layers, ImageIcon, Eye, EyeOff, Move, FileCode } from "lucide-react";
 import AssetManagerModal from "../admin/AssetManagerModal";
 import AddLayerButtons from "./AddLayerButtons";
 import LayerListManager from "./LayerListManager";
 import LayerPropertiesPanel from "./LayerPropertiesPanel";
 import type { DesignLayer, ModalTarget } from "../../types/designer";
+import axiosClient from "../../api/axiosClient";
 
 const BASE_URL = "http://localhost:3000";
 
@@ -22,6 +23,7 @@ interface DesignerControlPanelProps {
   setActiveFilter: (filter: string) => void;
   onSave: (layersData: any) => Promise<void>;
   isExtractingPsd: boolean;
+  setIsExtractingPsd: (loading: boolean) => void; // Thêm prop này để control loading từ bên ngoài nếu cần
   virtualPrintArea: any;
   setVirtualPrintArea: (area: any) => void;
   onOpenBgSelect: () => void;
@@ -41,6 +43,7 @@ const DesignerControlPanel: React.FC<DesignerControlPanelProps> = ({
   setActiveFilter,
   onSave,
   isExtractingPsd,
+  setIsExtractingPsd,
   virtualPrintArea,
   setVirtualPrintArea,
   onOpenBgSelect,
@@ -56,6 +59,43 @@ const DesignerControlPanel: React.FC<DesignerControlPanelProps> = ({
     multiple: boolean;
     target: ModalTarget | null;
   }>({ isOpen: false, multiple: false, target: null });
+
+  // --- IMPORT PSD ---
+  const handlePsdUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    setIsExtractingPsd(true);
+    try {
+      // Gọi tới endpoint bóc tách PSD của bạn
+      const response = await axiosClient.post("/psd/extract", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      console.log("PSD Data:", response.data);
+
+      const { mockup, details, printArea: psdPrintArea } = response.data;
+
+      // Cập nhật các trạng thái từ file PSD
+      if (mockup) setBackgroundUrl(mockup);
+      if (psdPrintArea) setVirtualPrintArea(psdPrintArea);
+      if (details && details.length > 0) {
+        setLayers(details);
+        setSelectedId(details[details.length - 1].id); // Chọn layer trên cùng
+      }
+
+      alert("Bóc tách PSD thành công!");
+    } catch (error) {
+      console.error("PSD Error:", error);
+      alert("Lỗi khi bóc tách file PSD. Vui lòng kiểm tra định dạng.");
+    } finally {
+      setIsExtractingPsd(false);
+      e.target.value = ""; // Reset input
+    }
+  };
 
   const handleAssetsSelected = (urls: string[]) => {
     if (!modalConfig.target || urls.length === 0) return;
@@ -135,12 +175,29 @@ const DesignerControlPanel: React.FC<DesignerControlPanelProps> = ({
             />
           </div>
 
+          {/* Hidden PSD Input */}
+          <input
+            id="hidden-psd-input"
+            type="file"
+            accept=".psd"
+            className="hidden"
+            onChange={handlePsdUpload}
+          />
+
           <button
             onClick={() => document.getElementById("hidden-psd-input")?.click()}
             disabled={isExtractingPsd}
-            className="w-full py-2 bg-gray-800 text-white text-xs font-bold uppercase rounded-sm hover:bg-black transition-colors disabled:bg-gray-400"
+            className="w-full py-2 bg-gray-800 text-white text-xs font-bold uppercase rounded-sm hover:bg-black transition-colors disabled:bg-gray-400 flex items-center justify-center gap-2"
           >
-            {isExtractingPsd ? "Extracting..." : "Import PSD"}
+            {isExtractingPsd ? (
+              <span className="flex items-center gap-2">
+                <FileCode size={14} className="animate-pulse" /> Extracting...
+              </span>
+            ) : (
+              <>
+                <FileCode size={14} /> Import PSD
+              </>
+            )}
           </button>
 
           {/* MOCKUP AREA - Minimal radius */}

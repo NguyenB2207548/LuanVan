@@ -20,6 +20,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
+    "@fal-ai/client": "^1.9.4",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.3",
     "@nestjs/core": "^11.0.1",
@@ -35,7 +36,7 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.3",
     "exceljs": "^4.4.0",
-    "fs-extra": "^11.3.3",
+    "fs-extra": "^11.3.4",
     "multer": "^2.0.2",
     "mysql2": "^3.16.1",
     "passport": "^0.7.0",
