@@ -1,11 +1,12 @@
 import React, { useState, useMemo } from "react";
-import { Save, Layers, ImageIcon, Eye, EyeOff, Move, FileCode } from "lucide-react";
+import { Save, Layers, ImageIcon, Eye, EyeOff, Move, FileCode, Sparkles } from "lucide-react";
 import AssetManagerModal from "../admin/AssetManagerModal";
 import AddLayerButtons from "./AddLayerButtons";
 import LayerListManager from "./LayerListManager";
 import LayerPropertiesPanel from "./LayerPropertiesPanel";
 import type { DesignLayer, ModalTarget } from "../../types/designer";
 import axiosClient from "../../api/axiosClient";
+import AiLayerModal from "../../modals/AiLayerModal";
 
 const BASE_URL = "http://localhost:3000";
 
@@ -49,6 +50,7 @@ const DesignerControlPanel: React.FC<DesignerControlPanelProps> = ({
   onOpenBgSelect,
 }) => {
   const selectedLayer = layers.find((l) => l.id === selectedId);
+  const [isAiModalOpen, setIsAiModalOpen] = useState(false);
 
   const updatePrintArea = (field: string, value: any) => {
     setVirtualPrintArea({ ...virtualPrintArea, [field]: value });
@@ -94,6 +96,19 @@ const DesignerControlPanel: React.FC<DesignerControlPanelProps> = ({
     } finally {
       setIsExtractingPsd(false);
       e.target.value = ""; // Reset input
+    }
+  };
+
+  const handleApplyAiLayers = (aiLayers: any[]) => {
+    // Option 1: Ghi đè toàn bộ layer cũ
+    // setLayers(aiLayers); 
+
+    // Option 2: Thêm nối tiếp vào layer hiện có
+    setLayers(prev => [...prev, ...aiLayers]);
+
+    // Thông thường layer cuối cùng của AI là background
+    if (aiLayers.length > 0) {
+      setSelectedId(aiLayers[aiLayers.length - 1].id);
     }
   };
 
@@ -184,26 +199,36 @@ const DesignerControlPanel: React.FC<DesignerControlPanelProps> = ({
             onChange={handlePsdUpload}
           />
 
-          <button
-            onClick={() => document.getElementById("hidden-psd-input")?.click()}
-            disabled={isExtractingPsd}
-            className="w-full py-2 bg-gray-800 text-white text-xs font-bold uppercase rounded-sm hover:bg-black transition-colors disabled:bg-gray-400 flex items-center justify-center gap-2"
-          >
-            {isExtractingPsd ? (
-              <span className="flex items-center gap-2">
-                <FileCode size={14} className="animate-pulse" /> Extracting...
-              </span>
-            ) : (
-              <>
-                <FileCode size={14} /> Import PSD
-              </>
-            )}
-          </button>
+          <div className="flex gap-2 w-full">
+            {/* Nút Import PSD */}
+            <button
+              onClick={() => document.getElementById("hidden-psd-input")?.click()}
+              disabled={isExtractingPsd}
+              className="flex-1 py-2 bg-gray-800 text-white text-[10px] font-bold uppercase rounded-sm hover:bg-black transition-colors disabled:bg-gray-400 flex items-center justify-center gap-2"
+            >
+              {isExtractingPsd ? (
+                <span className="flex items-center gap-2">
+                  <FileCode size={14} className="animate-pulse" /> ...
+                </span>
+              ) : (
+                <>
+                  <FileCode size={14} /> PSD
+                </>
+              )}
+            </button>
 
+            {/* Nút AI Layer Tool */}
+            <button
+              onClick={() => setIsAiModalOpen(true)}
+              className="flex-1 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-[10px] font-bold uppercase rounded-sm hover:from-purple-700 hover:to-indigo-700 transition-all flex items-center justify-center gap-2 shadow-sm"
+            >
+              <Sparkles size={14} /> AI Tool
+            </button>
+          </div>
           {/* MOCKUP AREA - Minimal radius */}
           <div className="space-y-1">
             <label className="text-[11px] font-bold text-gray-600 uppercase">
-              Mockup nền
+              Mockup
             </label>
             <div
               onClick={onOpenBgSelect}
@@ -349,6 +374,12 @@ const DesignerControlPanel: React.FC<DesignerControlPanelProps> = ({
           setModalConfig({ isOpen: false, multiple: false, target: null })
         }
         onSelect={handleAssetsSelected}
+      />
+
+      <AiLayerModal
+        isOpen={isAiModalOpen}
+        onClose={() => setIsAiModalOpen(false)}
+        onApply={handleApplyAiLayers}
       />
     </div>
   );

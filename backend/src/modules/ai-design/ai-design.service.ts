@@ -40,8 +40,7 @@ export class AiDesignService {
 
         try {
             // 1. Upload ảnh lên fal storage → lấy URL public
-            // const fileObj = new File([file.buffer], file.originalname, { type: file.mimetype });
-            // const imageUrl = await fal.storage.upload(fileObj);
+
             const arrayBuffer = file.buffer.buffer.slice(
                 file.buffer.byteOffset,
                 file.buffer.byteOffset + file.buffer.byteLength
@@ -63,7 +62,7 @@ export class AiDesignService {
                     acceleration: "regular",
                     enable_safety_checker: false,
                 },
-                pollInterval: 3000,
+                pollInterval: 5000,
                 logs: true,
                 onQueueUpdate: (update: any) => {
                     console.log("Queue status:", update.status);
@@ -93,14 +92,14 @@ export class AiDesignService {
 
                     const response = await axios.get(image.url, {
                         responseType: 'arraybuffer',
-                        timeout: 30000, // ✅ Timeout 30s tránh treo
+                        timeout: 120000,
                     });
                     await fs.writeFile(filePath, response.data);
 
                     return {
                         id: index,
                         fileName: fileName,
-                        publicUrl: `/uploads/layers/${fileName}`,
+                        publicUrl: `/public/uploads/layers/${fileName}`,
                         label: image.file_name || `Layer ${index + 1}`,
                         width: image.width,
                         height: image.height,

@@ -25,7 +25,7 @@ const AddArtworkPage = () => {
     y: 200,
     width: 250,
     height: 250,
-    visible: true,
+    visible: false,
   });
 
   // Xử lý background
