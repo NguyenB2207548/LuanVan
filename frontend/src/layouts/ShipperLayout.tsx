@@ -5,10 +5,8 @@ import {
   LogOut,
   ChevronUp,
   Truck,
-  PackageCheck,
   History,
   ClipboardList,
-  MapPin,
   Bell,
   UserCircle,
 } from "lucide-react";
@@ -19,139 +17,115 @@ const ShipperLayout = () => {
   const { user, logout } = useAuthStore();
   const [showUserMenu, setShowUserMenu] = useState(false);
 
-  // Kiểm tra quyền: Chỉ cho phép shipper vào
   if (!user || user.role !== "shipper") {
     return <Navigate to="/" replace />;
   }
 
-  const getLinkClass = ({ isActive }: { isActive: boolean }) => {
-    const baseClass =
-      "flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 text-sm font-medium mb-1 group";
-    return isActive
-      ? `${baseClass} bg-emerald-600 text-white shadow-md shadow-emerald-200`
-      : `${baseClass} text-gray-600 hover:bg-emerald-50 hover:text-emerald-700`;
-  };
+  const getLinkClass = ({ isActive }: { isActive: boolean }) =>
+    [
+      "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-all duration-150",
+      isActive
+        ? "text-emerald-700 font-semibold bg-emerald-50"
+        : "text-gray-500 font-medium hover:text-gray-800 hover:bg-gray-50",
+    ].join(" ");
 
   const handleLogout = () => {
     logout();
     navigate("/login");
   };
 
-  const getInitials = (name: string) => {
-    return name ? name.charAt(0).toUpperCase() : "S";
-  };
+  const getInitials = (name: string) =>
+    name ? name.charAt(0).toUpperCase() : "S";
+
+  const navItems = [
+    { to: "/shipper/dashboard", icon: LayoutDashboard, label: "Bảng điều khiển" },
+    { to: "/shipper/orders", icon: ClipboardList, label: "Đơn hàng" },
+    { to: "/shipper/my-orders", icon: Truck, label: "Đơn đang giao" },
+    { to: "/shipper/history", icon: History, label: "Lịch sử giao hàng" },
+    { to: "/profile", icon: UserCircle, label: "Hồ sơ cá nhân" },
+  ];
 
   return (
-    <div className="flex min-h-screen bg-[#F4F7F6]">
-      {/* Sidebar dành cho Shipper */}
-      <aside className="w-64 bg-white border-r border-gray-200 flex flex-col fixed left-0 top-0 h-full z-30">
-        <div className="h-16 flex items-center px-6 border-b border-gray-50">
-          <div className="flex items-center gap-2.5">
-            <div className="bg-emerald-600 p-1.5 rounded-lg">
-              <Truck size={20} className="text-white" />
+    <div className="flex min-h-screen bg-gray-100">
+      {/* Sidebar */}
+      <aside className="w-56 bg-white border-r border-gray-200 flex flex-col fixed left-0 top-0 h-full z-30">
+
+        {/* Logo — điểm nhấn emerald */}
+        <div className="h-11 flex items-center px-5 border-b border-gray-200">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 bg-emerald-600 rounded-md flex items-center justify-center shrink-0">
+              <Truck size={15} className="text-white" />
             </div>
-            <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-900 to-emerald-600">
+            <span className="text-sm font-bold text-gray-900 tracking-tight">
               Shipper Center
             </span>
           </div>
         </div>
 
-        <div className="flex-1 px-4 py-6 overflow-y-auto space-y-1 custom-scrollbar">
-          <p className="px-4 text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">
-            Vận hành
-          </p>
-          <NavLink to="/shipper/dashboard" className={getLinkClass}>
-            <LayoutDashboard size={18} /> <span>Bảng điều khiển</span>
-          </NavLink>
+        {/* Nav */}
+        <nav className="flex-1 px-3 py-4 overflow-y-auto space-y-3">
+          {navItems.map(({ to, icon: Icon, label }) => (
+            <NavLink key={to} to={to} className={getLinkClass}>
+              <Icon size={16} className="shrink-0" />
+              <span>{label}</span>
+            </NavLink>
+          ))}
+        </nav>
 
-          <p className="px-4 text-[11px] font-semibold text-gray-400 uppercase tracking-wider mt-6 mb-2">
-            Quản lý đơn hàng
-          </p>
-
-          <NavLink to="/shipper/orders" className={getLinkClass}>
-            <ClipboardList size={18} /> <span>Đơn hàng</span>
-          </NavLink>
-
-          <NavLink to="/shipper/my-orders" className={getLinkClass}>
-            <Truck size={18} /> <span>Đơn đang giao</span>
-          </NavLink>
-
-          <NavLink to="/shipper/history" className={getLinkClass}>
-            <History size={18} /> <span>Lịch sử giao hàng</span>
-          </NavLink>
-
-          <p className="px-4 text-[11px] font-semibold text-gray-400 uppercase tracking-wider mt-6 mb-2">
-            Tài khoản
-          </p>
-          <NavLink to="/profile" className={getLinkClass}>
-            <UserCircle size={18} /> <span>Hồ sơ cá nhân</span>
-          </NavLink>
-        </div>
-
-        {/* User Profile Area */}
-        <div className="p-4 border-t border-gray-100">
+        {/* User area */}
+        <div className="px-3 py-3 border-t border-gray-200">
           <div className="relative">
             {showUserMenu && (
-              <div className="absolute bottom-full left-0 w-full mb-2 bg-white border border-gray-200 rounded-xl shadow-xl py-1 z-50 animate-in fade-in slide-in-from-bottom-2">
+              <div className="absolute bottom-full left-0 w-full mb-1.5 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-50">
                 <button
                   onClick={handleLogout}
-                  className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors font-medium"
+                  className="w-full text-left px-3 py-2 text-sm text-red-500 hover:bg-gray-50 flex items-center gap-2 transition-colors"
                 >
-                  <LogOut size={16} /> Đăng xuất tài khoản
+                  <LogOut size={14} />
+                  Đăng xuất
                 </button>
               </div>
             )}
-
-            <div
+            <button
               onClick={() => setShowUserMenu(!showUserMenu)}
-              className={`flex items-center gap-3 p-2 rounded-xl transition-all cursor-pointer border ${
-                showUserMenu
-                  ? "bg-gray-50 border-gray-200"
-                  : "border-transparent hover:bg-gray-50"
-              }`}
+              className="w-full flex items-center gap-2.5 px-2 py-2 rounded-md hover:bg-gray-50 transition-colors"
             >
-              <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-white font-bold text-sm shadow-sm">
+              {/* Avatar — emerald thay vì gray-900 */}
+              <div className="w-7 h-7 rounded-md bg-emerald-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
                 {getInitials(user.fullName || user.email)}
               </div>
-
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-gray-900 truncate">
+              <div className="flex-1 min-w-0 text-left">
+                <p className="text-xs font-semibold text-gray-800 truncate">
                   {user.fullName || "Shipper"}
                 </p>
-                <p className="text-[10px] text-emerald-600 font-bold uppercase">
-                  Giao hàng
+                <p className="text-[10px] text-emerald-600 font-medium">
+                  Đang sẵn sàng
                 </p>
               </div>
-
               <ChevronUp
-                size={14}
-                className={`text-gray-400 transition-transform duration-300 ${showUserMenu ? "rotate-180" : ""}`}
+                size={13}
+                className={`text-gray-400 transition-transform duration-200 ${showUserMenu ? "" : "rotate-180"
+                  }`}
               />
-            </div>
+            </button>
           </div>
         </div>
       </aside>
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col pl-64">
-        <header className="h-16 bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-20 flex items-center justify-between px-8">
-          <div className="flex items-center gap-2">
-            <h2 className="font-semibold text-gray-800">
-              Chào shipper, {user.fullName?.split(" ")[0] || "Bạn"}!
-            </h2>
-            <span className="animate-bounce">👋</span>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <button className="relative p-2 text-gray-400 hover:bg-gray-100 rounded-full transition-colors">
-              <Bell size={20} />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
-            </button>
-            <div className="text-[12px] py-1 px-3 bg-emerald-100 text-emerald-700 rounded-full font-bold flex items-center gap-1.5">
-              <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
-              Trạng thái: Đang sẵn sàng
-            </div>
-          </div>
+      {/* Main */}
+      <div className="flex-1 flex flex-col pl-56">
+        {/* Header */}
+        <header className="h-11 bg-white border-b border-gray-200 sticky top-0 z-20 flex items-center justify-end px-5 gap-1">
+          <button className="w-8 h-8 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors relative">
+            <Bell size={16} />
+            <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-red-500 rounded-full" />
+          </button>
+          <button
+            onClick={handleLogout}
+            className="w-8 h-8 flex items-center justify-center rounded-md text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+          >
+            <LogOut size={16} />
+          </button>
         </header>
 
         <main className="p-8">

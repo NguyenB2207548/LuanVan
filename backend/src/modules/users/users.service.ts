@@ -11,13 +11,21 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import * as bcrypt from 'bcrypt';
+import { SellerProfile } from './entities/seller-profile.entity';
+import { UpdateSellerProfileDto } from './dto/update-seller-profile.dto';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(SellerProfile)
+    private readonly sellerRepository: Repository<SellerProfile>,
   ) { }
+
+  async getMe(userId: number) {
+    return this.userRepository.findOne({ where: { id: userId } });
+  }
 
   async create(createUserDto: CreateUserDto) {
     const existingUser = await this.userRepository.findOne({
@@ -120,4 +128,29 @@ export class UsersService {
     await this.userRepository.save(user);
     return { message: 'Đặt lại mật khẩu thành công' };
   }
+
+  // SELLER
+
+  async updateSellerProfile(userId: number, updateDto: UpdateSellerProfileDto): Promise<SellerProfile> {
+    // 1. Kiểm tra xem profile có tồn tại không
+    const profile = await this.sellerRepository.findOne({ where: { userId } });
+
+    if (!profile) {
+      throw new NotFoundException(`Không tìm thấy thông tin cửa hàng cho User ID ${userId}`);
+    }
+
+    // 2. Trộn dữ liệu mới vào profile cũ
+    Object.assign(profile, updateDto);
+
+    // 3. Lưu lại (TypeORM sẽ thực hiện lệnh UPDATE)
+    return await this.sellerRepository.save(profile);
+  }
+
+
+  async getSellerProfile(userId: number): Promise<SellerProfile> {
+    const profile = await this.sellerRepository.findOne({ where: { userId } });
+    if (!profile) throw new NotFoundException('Cửa hàng chưa được thiết lập.');
+    return profile;
+  }
+
 }

@@ -9,6 +9,8 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  Request,
+  NotFoundException,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -19,10 +21,34 @@ import { UserRole } from './entities/user.entity';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { UpdateSellerProfileDto } from './dto/update-seller-profile.dto';
 
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) { }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('me')
+  getMe(@Request() req) {
+    return this.usersService.getMe(req.user.id);
+  }
+
+  // SELLER
+  @UseGuards(JwtAuthGuard)
+  @Get('seller/profile')
+  async getMyProfile(@Request() req) {
+    // req.user.id lấy từ JWT Strategy
+    return this.usersService.getSellerProfile(req.user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('seller/profile')
+  async updateProfile(
+    @Request() req,
+    @Body() updateDto: UpdateSellerProfileDto
+  ) {
+    return this.usersService.updateSellerProfile(req.user.id, updateDto);
+  }
 
   @Post()
   create(@Body() createUserDto: CreateUserDto) {
@@ -63,7 +89,6 @@ export class UsersController {
     return this.usersService.activate(+id);
   }
 
-  // 1. API Đổi mật khẩu (Cần đăng nhập)
   @UseGuards(JwtAuthGuard)
   @Patch('change-password/:id')
   @HttpCode(HttpStatus.OK)
@@ -74,12 +99,12 @@ export class UsersController {
     return this.usersService.changePassword(+id, changePasswordDto);
   }
 
-  // 2. API Quên mật khẩu - Đặt lại mật khẩu mới
-  // Endpoint này thường dùng kèm với một mã Token gửi qua Email, 
-  // nhưng ở mức đơn giản bạn có thể nhận email và mật khẩu mới.
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
   async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
     return this.usersService.resetPassword(resetPasswordDto);
   }
+
+
+
 }
