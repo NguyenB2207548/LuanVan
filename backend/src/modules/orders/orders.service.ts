@@ -412,6 +412,7 @@ export class OrdersService {
 
     return await this.dataSource.manager.save(Order, order);
   }
+
   async getOrdersByRole(
     role: string,
     actorId: number,
@@ -430,7 +431,12 @@ export class OrdersService {
       case 'user':
         query
           .where('order.user_id = :actorId', { actorId })
-          .leftJoinAndSelect('order.seller', 'seller')
+          .leftJoin('order.seller', 'seller')
+          .addSelect(['seller.id', 'seller.fullName', 'seller.phoneNumber', 'seller.email'])
+          .leftJoinAndSelect('seller.sellerProfile', 'sellerProfile')
+          .leftJoin('order.shipper', 'shipper')
+          .addSelect(['shipper.id', 'shipper.fullName', 'shipper.phoneNumber'])
+          .leftJoinAndSelect('shipper.shipperProfile', 'shipperProfile')
           .orderBy('order.createdAt', 'DESC');
         break;
 
@@ -438,6 +444,7 @@ export class OrdersService {
         query
           .where('order.seller_id = :actorId', { actorId })
           .leftJoinAndSelect('order.user', 'customer')
+          .leftJoinAndSelect('order.shipper', 'shipper')
           .orderBy('order.createdAt', 'DESC');
         break;
 

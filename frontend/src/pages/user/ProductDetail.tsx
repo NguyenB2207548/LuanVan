@@ -25,7 +25,6 @@ const ProductDetail = () => {
   const [showPreview, setShowPreview] = useState(false);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
 
-  // --- STATE CHO TAB MỚI ---
   const [activeTab, setActiveTab] = useState<"description" | "reviews">("reviews");
 
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
