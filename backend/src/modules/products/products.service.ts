@@ -81,12 +81,13 @@ export class ProductsService {
         'variants.attributeValues',
         'variants.attributeValues.attribute',
 
-        'variants',
         'variants.mockup.printArea',
 
         'design',
-
         'design.artwork',
+
+        'reviews',
+        'reviews.user',
       ],
     });
 
@@ -94,8 +95,50 @@ export class ProductsService {
       throw new NotFoundException(`Không tìm thấy sản phẩm #${id}`);
     }
 
-    return product;
+    const reviews = product.reviews || [];
+    const totalReviews = reviews.length;
+    const averageRating = totalReviews > 0
+      ? reviews.reduce((sum, review) => sum + review.rating, 0) / totalReviews
+      : 0;
+
+    return {
+      ...product,
+      averageRating: Number(averageRating.toFixed(1)),
+      totalReviews,
+    };
   }
+
+  // async findOne(id: number) {
+  //   const product = await this.productRepository.findOne({
+  //     where: { id },
+  //     relations: [
+  //       'categories',
+  //       'seller',
+  //       'images',
+  //       'attributes',
+  //       'mockup',
+  //       'mockup.printArea',
+
+  //       'variants',
+  //       'variants.images',
+  //       'variants.attributeValues',
+  //       'variants.attributeValues.attribute',
+
+  //       'variants',
+  //       'variants.mockup.printArea',
+
+  //       'design',
+
+  //       'design.artwork',
+  //     ],
+  //   });
+
+  //   if (!product) {
+  //     throw new NotFoundException(`Không tìm thấy sản phẩm #${id}`);
+  //   }
+
+  //   return product;
+  // }
 
   // API cho gộp design
   async findAllForDesigner(sellerId: number) {
@@ -186,28 +229,20 @@ export class ProductsService {
    * Lấy 5 sản phẩm thịnh hành (Bán chạy nhất)
    */
   async getTrendingProducts() {
-    return await this.dataSource.manager
-      .createQueryBuilder(Product, 'product')
-      .leftJoinAndSelect(
-        'product.images',
-        'image',
-        'image.isPrimary = :isPrimary',
-        { isPrimary: true },
-      )
+    return await this.dataSource.getRepository(Product)
+      .createQueryBuilder('product')
+      // 1. Join lấy ảnh chính
+      .leftJoinAndSelect('product.images', 'image', 'image.isPrimary = :isPrimary', { isPrimary: true })
+      // 2. Join lấy variants để có giá (Sử dụng JoinAndSelect thay vì select thủ công)
       .leftJoinAndSelect('product.variants', 'variant')
-      // Join với OrderItem để đếm số lượng bán
+      // 3. Join ẩn với OrderItem để tính toán
       .leftJoin('variant.orderItems', 'orderItem')
-      .select([
-        'product.id',
-        'product.productName',
-        'product.description',
-        'image.url',
-      ])
-      // Tính tổng số lượng bán ra
-      .addSelect('SUM(COALESCE(orderItem.quantity, 0))', 'totalSold')
+      // 4. Thêm cột tính toán nhưng vẫn giữ nguyên cơ chế map Entity của getMany
+      .addSelect('SUM(COALESCE(orderItem.quantity, 0))', 'total_sold')
       .groupBy('product.id')
       .addGroupBy('image.id')
-      .orderBy('totalSold', 'DESC')
+      .addGroupBy('variant.id')
+      .orderBy('SUM(COALESCE(orderItem.quantity, 0))', 'DESC')
       .limit(5)
       .getMany();
   }

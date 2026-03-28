@@ -1,34 +1,21 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, UseGuards, Request } from '@nestjs/common';
 import { ReviewsService } from './reviews.service';
 import { CreateReviewDto } from './dto/create-review.dto';
-import { UpdateReviewDto } from './dto/update-review.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('reviews')
 export class ReviewsController {
-  constructor(private readonly reviewsService: ReviewsService) {}
+  constructor(private readonly reviewsService: ReviewsService) { }
 
+  @UseGuards(JwtAuthGuard)
   @Post()
-  create(@Body() createReviewDto: CreateReviewDto) {
-    return this.reviewsService.create(createReviewDto);
+  async createReview(@Request() req, @Body() dto: CreateReviewDto) {
+    // req.user.id lấy từ token sau khi đăng nhập
+    return this.reviewsService.create(req.user.id, dto);
   }
 
-  @Get()
-  findAll() {
-    return this.reviewsService.findAll();
-  }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.reviewsService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateReviewDto: UpdateReviewDto) {
-    return this.reviewsService.update(+id, updateReviewDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.reviewsService.remove(+id);
+  @Get('product/:productId')
+  async getProductReviews(@Param('productId') productId: string) {
+    return this.reviewsService.findByProduct(+productId);
   }
 }

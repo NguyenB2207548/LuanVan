@@ -21,9 +21,6 @@ export class Review {
   @Column({ type: 'text', nullable: true })
   comment: string;
 
-  @Column({ default: false, name: 'is_verified_purchase' })
-  isVerifiedPurchase: boolean; // Đánh giá này có phải từ người đã mua hàng thật không
-
   @ManyToOne(() => User, (user) => user.reviews, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   user: User;

@@ -71,7 +71,7 @@ const ProductPage = () => {
   return (
     <div className="min-h-screen bg-gray-50 pb-20 font-sans">
       {/* BREADCRUMB */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <nav className="flex text-xs sm:text-sm text-gray-500 items-center gap-2">
           <Link to="/" className="hover:text-blue-600 transition-colors">Trang chủ</Link>
           <ChevronRight size={14} className="text-gray-400" />
@@ -79,9 +79,11 @@ const ProductPage = () => {
         </nav>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col lg:flex-row gap-8">
-        {/* SIDEBAR - TẤT CẢ FILTER NẰM Ở ĐÂY */}
-        <aside className="lg:w-72 flex-shrink-0 space-y-5">
+      {/* CONTAINER CHÍNH - Tăng gap để thoáng hơn */}
+      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 flex flex-col lg:flex-row gap-6">
+
+        {/* SIDEBAR - Giảm chiều rộng xuống w-60 (~240px) */}
+        <aside className="lg:w-60 flex-shrink-0 space-y-5">
           {/* 1. Box Tìm kiếm */}
           <div className="bg-white p-6 rounded-md border border-gray-200 shadow-sm">
             <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
@@ -121,8 +123,8 @@ const ProductPage = () => {
               <button
                 onClick={() => setActiveCategory("all")}
                 className={`w-full text-left px-3 py-2 rounded-md text-sm transition-all ${activeCategory === "all"
-                    ? "bg-blue-50 text-blue-600 font-semibold"
-                    : "text-gray-600 hover:bg-gray-50"
+                  ? "bg-blue-50 text-blue-600 font-semibold"
+                  : "text-gray-600 hover:bg-gray-50"
                   }`}
               >
                 Tất cả sản phẩm
@@ -132,8 +134,8 @@ const ProductPage = () => {
                   key={cat.id}
                   onClick={() => setActiveCategory(cat.id)}
                   className={`w-full text-left px-3 py-2 rounded-md text-sm transition-all ${activeCategory === cat.id
-                      ? "bg-blue-50 text-blue-600 font-semibold"
-                      : "text-gray-600 hover:bg-gray-50"
+                    ? "bg-blue-50 text-blue-600 font-semibold"
+                    : "text-gray-600 hover:bg-gray-50"
                     }`}
                 >
                   {cat.categoryName}
@@ -143,17 +145,17 @@ const ProductPage = () => {
           </div>
         </aside>
 
-        {/* MAIN AREA - CHỈ HIỂN THỊ KẾT QUẢ */}
+        {/* MAIN AREA - Cập nhật Grid 4 cột cho màn hình XL */}
         <main className="flex-1">
 
           {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-              {[1, 2, 3, 4, 5, 6].map((n) => (
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
                 <div key={n} className="aspect-[3/4] bg-white border border-gray-100 rounded-md animate-pulse" />
               ))}
             </div>
           ) : processedProducts.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
               {processedProducts.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}

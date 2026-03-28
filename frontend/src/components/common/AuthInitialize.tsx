@@ -5,7 +5,6 @@ import { Loader2 } from "lucide-react";
 
 const AuthInitialize = ({ children }: { children: React.ReactNode }) => {
     const { logout, setUser } = useAuthStore();
-    // Chỉ show loading khi mở app đã có sẵn token (F5) — không show khi vừa login xong
     const [checking, setChecking] = useState(!!localStorage.getItem("access_token"));
 
     useEffect(() => {
