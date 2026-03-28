@@ -52,6 +52,7 @@ import AttributeManagementPage from "./pages/admin/AttributeManagementPage";
 // Shipper Pages
 import ShipperOrderManager from "./pages/shipper/ShipperOrderManager";
 import ShipperMyOrders from "./pages/shipper/ShipperMyOrders";
+import ShipperSettings from "./pages/shipper/ShipperSettings";
 
 function App() {
   return (
@@ -124,6 +125,7 @@ function App() {
                 <Route path="orders" element={<ShipperOrderManager />} />
                 <Route path="my-orders" element={<ShipperMyOrders />} />
                 <Route path="history" element={<div>Lịch sử giao hàng</div>} />
+                <Route path="settings" element={<ShipperSettings />} />
               </Route>
             </Route>
 

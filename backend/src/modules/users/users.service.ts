@@ -13,6 +13,8 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import * as bcrypt from 'bcrypt';
 import { SellerProfile } from './entities/seller-profile.entity';
 import { UpdateSellerProfileDto } from './dto/update-seller-profile.dto';
+import { ShipperProfile } from './entities/shipper-profile.entity';
+import { UpdateShipperProfileDto } from './dto/update-shipper-profile.dto';
 
 @Injectable()
 export class UsersService {
@@ -21,6 +23,8 @@ export class UsersService {
     private readonly userRepository: Repository<User>,
     @InjectRepository(SellerProfile)
     private readonly sellerRepository: Repository<SellerProfile>,
+    @InjectRepository(ShipperProfile)
+    private readonly shipperRepository: Repository<ShipperProfile>,
   ) { }
 
   async getMe(userId: number) {
@@ -130,19 +134,26 @@ export class UsersService {
   }
 
   // SELLER
-
   async updateSellerProfile(userId: number, updateDto: UpdateSellerProfileDto): Promise<SellerProfile> {
-    // 1. Kiểm tra xem profile có tồn tại không
     const profile = await this.sellerRepository.findOne({ where: { userId } });
 
     if (!profile) {
-      throw new NotFoundException(`Không tìm thấy thông tin cửa hàng cho User ID ${userId}`);
+      throw new NotFoundException(`Không tìm thấy profile`);
     }
 
-    // 2. Trộn dữ liệu mới vào profile cũ
-    Object.assign(profile, updateDto);
+    // BÓC TÁCH: Lấy hết các trường địa chỉ (bao gồm cả shopAddress) ra ngoài
+    const { province, district, ward, addressDetail, shopAddress, ...otherData } = updateDto;
 
-    // 3. Lưu lại (TypeORM sẽ thực hiện lệnh UPDATE)
+    // 1. Gộp địa chỉ mới
+    if (province && district && ward && addressDetail) {
+      profile.shopAddress = `${addressDetail}, ${ward}, ${district}, ${province}`;
+    }
+
+    // 2. Lúc này otherData chỉ còn lại shopName, rating... 
+    // shopAddress đã bị bóc ra ở trên nên Object.assign sẽ không ghi đè bậy bạ nữa
+    Object.assign(profile, otherData);
+
+    // 3. Lưu lại
     return await this.sellerRepository.save(profile);
   }
 
@@ -151,6 +162,35 @@ export class UsersService {
     const profile = await this.sellerRepository.findOne({ where: { userId } });
     if (!profile) throw new NotFoundException('Cửa hàng chưa được thiết lập.');
     return profile;
+  }
+
+  // SHIPPER
+
+  // 1. Lấy thông tin Shipper
+  async getShipperProfile(userId: number) {
+    const profile = await this.shipperRepository.findOne({ where: { userId } });
+    if (!profile) {
+      throw new NotFoundException('Không tìm thấy thông tin vận chuyển');
+    }
+    return profile;
+  }
+
+  async updateShipperProfile(userId: number, updateDto: UpdateShipperProfileDto) {
+    const profile = await this.shipperRepository.findOne({ where: { userId } });
+
+    if (!profile) {
+      throw new NotFoundException(`Không tìm thấy hồ sơ shipper cho User ID ${userId}`);
+    }
+
+    const { province, district, ward, addressDetail, ...otherData } = updateDto;
+
+    if (province && district && ward && addressDetail) {
+      profile.address = `${addressDetail}, ${ward}, ${district}, ${province}`;
+    }
+
+    Object.assign(profile, otherData);
+
+    return await this.shipperRepository.save(profile);
   }
 
 }

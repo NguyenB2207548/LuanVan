@@ -4,27 +4,43 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Store, Loader2, MapPin } from "lucide-react"; // Thêm icon MapPin
+import { Store, Loader2 } from "lucide-react";
 import axiosClient from "@/api/axiosClient";
 import toast, { Toaster } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
+import AddressSelector from "../../components/user/AddressSelector";
 
 const RegisterSellerPage = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+
   const [formData, setFormData] = useState({
     requestedRole: "seller",
     shopName: "",
-    shopAddress: "",
+    // Các trường địa chỉ cấu trúc
+    province: "",
+    district: "",
+    ward: "",
+    addressDetail: "",
   });
 
+  const handleAddressChange = (addressData: any) => {
+    setFormData((prev) => ({
+      ...prev,
+      ...addressData,
+    }));
+  };
+
   const handleRegister = async () => {
-    if (!formData.shopName.trim() || !formData.shopAddress.trim()) {
-      return toast.error("Vui lòng nhập tên và địa chỉ shop");
+    // Validate
+    if (!formData.shopName.trim()) return toast.error("Vui lòng nhập tên cửa hàng");
+    if (!formData.province || !formData.district || !formData.ward || !formData.addressDetail) {
+      return toast.error("Vui lòng nhập đầy đủ địa chỉ lấy hàng");
     }
 
     try {
       setLoading(true);
+      // Gửi formData chứa các trường lẻ, Backend sẽ tự gộp thành shopAddress
       await axiosClient.post("/approvals/request", formData);
 
       toast.success("Gửi yêu cầu đăng ký thành công. Vui lòng chờ phê duyệt!");
@@ -51,15 +67,12 @@ const RegisterSellerPage = () => {
 
       <Card className="rounded-lg border border-gray-200 shadow-sm bg-white">
         <CardContent className="p-8 sm:p-10 space-y-6">
-          {/* Section Header */}
           <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
             <Store size={20} className="text-blue-600" />
-            <h2 className="text-lg font-semibold text-gray-900">
-              Thông tin cửa hàng
-            </h2>
+            <h2 className="text-lg font-semibold text-gray-900">Thông tin cửa hàng</h2>
           </div>
 
-          <div className="space-y-5">
+          <div className="space-y-6">
             {/* Tên Shop */}
             <div className="space-y-1.5">
               <Label className="text-sm font-medium text-gray-700">Tên cửa hàng</Label>
@@ -76,24 +89,10 @@ const RegisterSellerPage = () => {
               </div>
             </div>
 
-            {/* Địa chỉ */}
-            <div className="space-y-1.5">
-              <Label className="text-sm font-medium text-gray-700">Địa chỉ lấy hàng</Label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
-                  <MapPin size={18} />
-                </div>
-                <Input
-                  placeholder="Số nhà, tên đường, phường/xã..."
-                  value={formData.shopAddress}
-                  onChange={(e) => setFormData({ ...formData, shopAddress: e.target.value })}
-                  className="pl-10 h-11 rounded-md border-gray-300 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                />
-              </div>
-            </div>
+            {/* Bộ chọn địa chỉ API */}
+            <AddressSelector onAddressChange={handleAddressChange} />
           </div>
 
-          {/* Action Button */}
           <div className="pt-4">
             <Button
               onClick={handleRegister}

@@ -42,7 +42,7 @@ const ShipperLayout = () => {
     { to: "/shipper/orders", icon: ClipboardList, label: "Đơn hàng" },
     { to: "/shipper/my-orders", icon: Truck, label: "Đơn đang giao" },
     { to: "/shipper/history", icon: History, label: "Lịch sử giao hàng" },
-    { to: "/profile", icon: UserCircle, label: "Hồ sơ cá nhân" },
+    { to: "/shipper/settings", icon: UserCircle, label: "Hồ sơ vận chuyển" },
   ];
 
   return (

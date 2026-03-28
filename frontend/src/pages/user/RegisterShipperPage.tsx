@@ -4,27 +4,43 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Truck, Loader2, MapPin, CreditCard } from "lucide-react";
+import { Truck, Loader2, CreditCard } from "lucide-react";
 import axiosClient from "@/api/axiosClient";
 import toast, { Toaster } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
+import AddressSelector from "../../components/user/AddressSelector";
 
 const RegisterShipperPage = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+
   const [formData, setFormData] = useState({
     requestedRole: "shipper",
     vehiclePlate: "",
-    shipperAddress: "",
+    // Các trường địa chỉ cấu trúc
+    province: "",
+    district: "",
+    ward: "",
+    addressDetail: "",
   });
 
+  const handleAddressChange = (addressData: any) => {
+    setFormData((prev) => ({
+      ...prev,
+      ...addressData,
+    }));
+  };
+
   const handleRegister = async () => {
-    if (!formData.vehiclePlate.trim() || !formData.shipperAddress.trim()) {
-      return toast.error("Vui lòng nhập đầy đủ biển số xe và địa chỉ");
+    // Validate
+    if (!formData.vehiclePlate.trim()) return toast.error("Vui lòng nhập biển số xe");
+    if (!formData.province || !formData.district || !formData.ward || !formData.addressDetail) {
+      return toast.error("Vui lòng cung cấp địa chỉ hoạt động đầy đủ");
     }
 
     try {
       setLoading(true);
+      // Gửi formData chứa các trường lẻ, Backend sẽ tự gộp thành shipperAddress
       await axiosClient.post("/approvals/request", formData);
 
       toast.success("Gửi yêu cầu thành công. Vui lòng chờ phê duyệt!");
@@ -51,15 +67,12 @@ const RegisterShipperPage = () => {
 
       <Card className="rounded-lg border border-gray-200 shadow-sm bg-white">
         <CardContent className="p-8 sm:p-10 space-y-6">
-          {/* Section Header */}
           <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
             <Truck size={20} className="text-emerald-600" />
-            <h2 className="text-lg font-semibold text-gray-900">
-              Thông tin Shipper
-            </h2>
+            <h2 className="text-lg font-semibold text-gray-900">Thông tin Shipper</h2>
           </div>
 
-          <div className="space-y-5">
+          <div className="space-y-6">
             {/* Biển số xe */}
             <div className="space-y-1.5">
               <Label className="text-sm font-medium text-gray-700">Biển số xe</Label>
@@ -76,24 +89,10 @@ const RegisterShipperPage = () => {
               </div>
             </div>
 
-            {/* Địa chỉ hoạt động */}
-            <div className="space-y-1.5">
-              <Label className="text-sm font-medium text-gray-700">Địa chỉ hoạt động</Label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
-                  <MapPin size={18} />
-                </div>
-                <Input
-                  placeholder="Khu vực bạn muốn nhận đơn..."
-                  value={formData.shipperAddress}
-                  onChange={(e) => setFormData({ ...formData, shipperAddress: e.target.value })}
-                  className="pl-10 h-11 rounded-md border-gray-300 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 transition-all"
-                />
-              </div>
-            </div>
+            {/* Bộ chọn địa chỉ API */}
+            <AddressSelector onAddressChange={handleAddressChange} />
           </div>
 
-          {/* Action Button */}
           <div className="pt-4">
             <Button
               onClick={handleRegister}

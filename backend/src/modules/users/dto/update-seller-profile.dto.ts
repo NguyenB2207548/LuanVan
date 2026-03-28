@@ -1,5 +1,4 @@
 import { IsString, IsOptional, Length, IsNumber, Min, Max } from 'class-validator';
-// import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class UpdateSellerProfileDto {
     @IsOptional()
@@ -7,11 +6,28 @@ export class UpdateSellerProfileDto {
     @Length(3, 150)
     shopName?: string;
 
+    // --- CÁC TRƯỜNG ĐỊA CHỈ MỚI ---
+    @IsOptional()
+    @IsString()
+    province?: string;
+
+    @IsOptional()
+    @IsString()
+    district?: string;
+
+    @IsOptional()
+    @IsString()
+    ward?: string;
+
+    @IsOptional()
+    @IsString()
+    addressDetail?: string;
+
+    // Trường này sẽ dùng để lưu chuỗi gộp cuối cùng
     @IsOptional()
     @IsString()
     shopAddress?: string;
 
-    // Thường rating do hệ thống tính, nhưng nếu bạn muốn admin sửa thì để ở đây
     @IsOptional()
     @IsNumber()
     @Min(0)

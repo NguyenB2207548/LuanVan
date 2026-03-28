@@ -22,6 +22,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { UpdateSellerProfileDto } from './dto/update-seller-profile.dto';
+import { UpdateShipperProfileDto } from './dto/update-shipper-profile.dto';
 
 @Controller('users')
 export class UsersController {
@@ -48,6 +49,22 @@ export class UsersController {
     @Body() updateDto: UpdateSellerProfileDto
   ) {
     return this.usersService.updateSellerProfile(req.user.id, updateDto);
+  }
+
+  // SHIPPER
+  @UseGuards(JwtAuthGuard)
+  @Get('shipper/profile')
+  async getMyShipperProfile(@Request() req) {
+    return this.usersService.getShipperProfile(req.user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('shipper/profile')
+  async updateShipperProfile(
+    @Request() req,
+    @Body() updateDto: UpdateShipperProfileDto
+  ) {
+    return this.usersService.updateShipperProfile(req.user.id, updateDto);
   }
 
   @Post()

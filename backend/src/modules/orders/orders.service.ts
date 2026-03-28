@@ -70,32 +70,6 @@ export class OrdersService {
     return order;
   }
 
-  // async getOrderDetails(orderId: number, user: { id: number; role: string }) {
-  //   const order = await this.orderRepository.findOne({
-  //     where: { id: orderId },
-  //     relations: [
-  //       'user',
-  //       'seller',
-  //       'items',
-  //       'items.variant',
-  //       'items.variant.product',
-  //     ],
-  //   });
-
-  //   if (!order) throw new NotFoundException('Đơn hàng không tồn tại');
-
-  //   // Kiểm tra quyền truy cập (như đã thảo luận ở các bước trước)
-  //   const canAccess =
-  //     user.role === 'admin' ||
-  //     order.user.id === user.id ||
-  //     order.seller.id === user.id;
-
-  //   if (!canAccess)
-  //     throw new ForbiddenException('Bạn không có quyền xem đơn hàng này');
-
-  //   return order;
-  // }
-
   async findByOrderNumber(orderNumber: string): Promise<Order | null> {
     return await this.orderRepository.findOne({
       where: { orderNumber: orderNumber }, // Đảm bảo field name đúng với entity của bạn
@@ -118,6 +92,10 @@ export class OrdersService {
         throw new BadRequestException('Giỏ hàng trống!');
       }
 
+      // --- LOGIC XỬ LÝ ĐỊA CHỈ MỚI ---
+      // Gộp địa chỉ từ các trường trong DTO thành chuỗi hoàn chỉnh
+      const fullAddress = `${dto.addressDetail}, ${dto.ward}, ${dto.district}, ${dto.province}`;
+
       // Nhóm CartItem theo Seller
       const itemsBySeller = new Map<number, CartItem[]>();
       for (const item of cart.items) {
@@ -132,9 +110,9 @@ export class OrdersService {
       }
 
       const createdOrders: Order[] = [];
-      let grandTotal = 0; // Tổng tiền của tất cả các đơn để thanh toán MoMo
+      let grandTotal = 0;
 
-      //  Tạo Đơn hàng cho từng Seller
+      // Tạo Đơn hàng cho từng Seller
       for (const [sellerId, items] of itemsBySeller) {
         let sellerOrderTotal = 0;
         const orderItems: OrderItem[] = [];
@@ -159,7 +137,7 @@ export class OrdersService {
             variant: { id: variant.id },
             quantity: cartItem.quantity,
             priceAtPurchase: price,
-            variantNameSnapshot: `${variant.product.productName} - ${variant.sku}`, // Quan trọng!
+            variantNameSnapshot: `${variant.product.productName} - ${variant.sku}`,
             customizedDesignJson: cartItem.customizedDesignJson,
           });
           orderItems.push(orderItem);
@@ -170,7 +148,7 @@ export class OrdersService {
           totalAmount: sellerOrderTotal,
           recipientName: dto.recipientName,
           phoneNumber: dto.phoneNumber,
-          shippingAddress: dto.shippingAddress,
+          shippingAddress: fullAddress, // Sử dụng địa chỉ đã gộp ở trên
           paymentMethod: dto.paymentMethod,
           status: 'pending',
           user: { id: userId },
@@ -183,7 +161,7 @@ export class OrdersService {
         grandTotal += sellerOrderTotal;
       }
 
-      //  Dọn dẹp giỏ hàng
+      // Dọn dẹp giỏ hàng
       await manager.delete(CartItem, { cart: { id: cart.id } });
 
       let payUrl = null;
@@ -203,6 +181,108 @@ export class OrdersService {
       };
     });
   }
+
+  // async createOrderFromCart(userId: number, dto: CreateOrderDto) {
+  //   return await this.dataSource.transaction(async (manager) => {
+  //     const cart = await manager.findOne(Cart, {
+  //       where: { user: { id: userId } },
+  //       relations: [
+  //         'items',
+  //         'items.variant',
+  //         'items.variant.product',
+  //         'items.variant.product.seller',
+  //       ],
+  //     });
+
+  //     if (!cart || cart.items.length === 0) {
+  //       throw new BadRequestException('Giỏ hàng trống!');
+  //     }
+
+  //     // Nhóm CartItem theo Seller
+  //     const itemsBySeller = new Map<number, CartItem[]>();
+  //     for (const item of cart.items) {
+  //       const sellerId = item.variant.product.seller?.id;
+  //       if (!sellerId)
+  //         throw new BadRequestException(
+  //           `Sản phẩm ${item.variant.product.productName} không rõ người bán`,
+  //         );
+
+  //       if (!itemsBySeller.has(sellerId)) itemsBySeller.set(sellerId, []);
+  //       itemsBySeller.get(sellerId)!.push(item);
+  //     }
+
+  //     const createdOrders: Order[] = [];
+  //     let grandTotal = 0; // Tổng tiền của tất cả các đơn để thanh toán MoMo
+
+  //     //  Tạo Đơn hàng cho từng Seller
+  //     for (const [sellerId, items] of itemsBySeller) {
+  //       let sellerOrderTotal = 0;
+  //       const orderItems: OrderItem[] = [];
+
+  //       for (const cartItem of items) {
+  //         const variant = cartItem.variant;
+
+  //         // Check & Update Stock
+  //         if (variant.stock < cartItem.quantity) {
+  //           throw new BadRequestException(
+  //             `Sản phẩm "${variant.product.productName}" hết hàng.`,
+  //           );
+  //         }
+  //         variant.stock -= cartItem.quantity;
+  //         await manager.save(Variant, variant);
+
+  //         const price = Number(variant.price);
+  //         sellerOrderTotal += price * cartItem.quantity;
+
+  //         // Lưu OrderItem kèm Snapshot thông tin
+  //         const orderItem = manager.create(OrderItem, {
+  //           variant: { id: variant.id },
+  //           quantity: cartItem.quantity,
+  //           priceAtPurchase: price,
+  //           variantNameSnapshot: `${variant.product.productName} - ${variant.sku}`, // Quan trọng!
+  //           customizedDesignJson: cartItem.customizedDesignJson,
+  //         });
+  //         orderItems.push(orderItem);
+  //       }
+
+  //       const order = manager.create(Order, {
+  //         orderNumber: `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+  //         totalAmount: sellerOrderTotal,
+  //         recipientName: dto.recipientName,
+  //         phoneNumber: dto.phoneNumber,
+  //         shippingAddress: dto.shippingAddress,
+  //         paymentMethod: dto.paymentMethod,
+  //         status: 'pending',
+  //         user: { id: userId },
+  //         seller: { id: sellerId },
+  //         items: orderItems,
+  //       });
+
+  //       const savedOrder = await manager.save(Order, order);
+  //       createdOrders.push(savedOrder);
+  //       grandTotal += sellerOrderTotal;
+  //     }
+
+  //     //  Dọn dẹp giỏ hàng
+  //     await manager.delete(CartItem, { cart: { id: cart.id } });
+
+  //     let payUrl = null;
+  //     if (dto.paymentMethod === 'MOMO' && createdOrders.length > 0) {
+  //       const orderIds = createdOrders.map((o) => o.id);
+  //       payUrl = await this.momoService.createPaymentUrl({
+  //         amount: grandTotal,
+  //         orderIds: orderIds,
+  //         orderInfo: `Thanh toán ${createdOrders.length} đơn hàng tại MyGiftShop`,
+  //       });
+  //     }
+
+  //     return {
+  //       message: 'Đặt hàng thành công',
+  //       orders: createdOrders,
+  //       payUrl: payUrl,
+  //     };
+  //   });
+  // }
 
   async saveOrder(order: Order) {
     return await this.dataSource.manager.save(Order, order);

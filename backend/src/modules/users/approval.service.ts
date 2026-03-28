@@ -52,7 +52,6 @@ export class ApprovalService {
     });
   }
 
-  // Tạo yêu cầu mới
   async create(userId: number, createDto: CreateApprovalRequestDto) {
     const existingRequest = await this.approvalRepo.findOne({
       where: {
@@ -65,13 +64,51 @@ export class ApprovalService {
       throw new BadRequestException('Bạn đã có một yêu cầu đang chờ xử lý.');
     }
 
-    const newRequest = this.approvalRepo.create({
-      userId,
-      ...createDto,
-    });
+    const { addressDetail, ward, district, province } = createDto;
+    const fullAddress = `${addressDetail}, ${ward}, ${district}, ${province}`;
 
-    return this.approvalRepo.save(newRequest);
+    const {
+      addressDetail: _, ward: __, district: ___, province: ____,
+      shopAddress,
+      shipperAddress,
+      ...rest
+    } = createDto;
+
+    const requestData: any = {
+      ...rest,
+      user: { id: userId },
+      status: RequestStatus.PENDING,
+    };
+
+    if (createDto.requestedRole === UserRole.SELLER) {
+      requestData.shopAddress = fullAddress;
+    } else if (createDto.requestedRole === UserRole.SHIPPER) {
+      requestData.shipperAddress = fullAddress;
+    }
+
+    const newRequest = this.approvalRepo.create(requestData);
+    return await this.approvalRepo.save(newRequest);
   }
+
+  // async create(userId: number, createDto: CreateApprovalRequestDto) {
+  //   const existingRequest = await this.approvalRepo.findOne({
+  //     where: {
+  //       user: { id: userId },
+  //       status: RequestStatus.PENDING,
+  //     },
+  //   });
+
+  //   if (existingRequest) {
+  //     throw new BadRequestException('Bạn đã có một yêu cầu đang chờ xử lý.');
+  //   }
+
+  //   const newRequest = this.approvalRepo.create({
+  //     userId,
+  //     ...createDto,
+  //   });
+
+  //   return this.approvalRepo.save(newRequest);
+  // }
 
   // Cập nhật trạng thái (Dùng chung cho Duyệt và Từ chối)
   async updateStatus(requestId: number, status: RequestStatus) {
