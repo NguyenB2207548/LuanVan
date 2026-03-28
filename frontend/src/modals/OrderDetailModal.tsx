@@ -1,15 +1,9 @@
 import {
-    X,
-    Package,
-    User,
-    MapPin,
-    Phone,
-    CreditCard,
-    ShoppingBag,
-    CircleDot,
-    Calendar
+    X, Package, User, MapPin, Phone, CreditCard,
+    ShoppingBag, Clock, Truck, CircleCheck, CircleX, Calendar, Hash
 } from "lucide-react";
 import { format } from "date-fns";
+import { vi } from "date-fns/locale";
 
 const BASE_URL = "http://localhost:3000";
 
@@ -19,139 +13,163 @@ interface OrderDetailModalProps {
     onClose: () => void;
 }
 
+const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
+    pending: { label: "Chờ xác nhận", color: "text-amber-700", bg: "bg-amber-50", border: "border-amber-200" },
+    confirmed: { label: "Đã xác nhận", color: "text-blue-700", bg: "bg-blue-50", border: "border-blue-200" },
+    shipped: { label: "Đang giao", color: "text-violet-700", bg: "bg-violet-50", border: "border-violet-200" },
+    success: { label: "Hoàn thành", color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-200" },
+    failed: { label: "Thất bại", color: "text-orange-700", bg: "bg-orange-50", border: "border-orange-200" },
+    cancelled: { label: "Đã hủy", color: "text-rose-700", bg: "bg-rose-50", border: "border-rose-200" },
+};
+
+const PAYMENT_STATUS: Record<string, { label: string; color: string }> = {
+    pending: { label: "Chưa thanh toán", color: "text-amber-600" },
+    paid: { label: "Đã thanh toán", color: "text-emerald-600" },
+    failed: { label: "Thanh toán thất bại", color: "text-rose-600" },
+};
+
 const OrderDetailModal = ({ order, isOpen, onClose }: OrderDetailModalProps) => {
     if (!isOpen || !order) return null;
 
-    const getStatusStyle = (status: string) => {
-        const styles: any = {
-            pending: "bg-amber-50 text-amber-600 border-amber-100",
-            confirmed: "bg-blue-50 text-blue-600 border-blue-100",
-            shipping: "bg-purple-50 text-purple-600 border-purple-100",
-            success: "bg-emerald-50 text-emerald-600 border-emerald-100",
-            failed: "bg-orange-50 text-orange-600 border-orange-100",
-            cancelled: "bg-red-50 text-red-600 border-red-100",
-        };
-        return styles[status] || "bg-gray-50 text-gray-600 border-gray-100";
-    };
+    const statusCfg = STATUS_CONFIG[order.status] || { label: order.status, color: "text-gray-600", bg: "bg-gray-50", border: "border-gray-200" };
+    const paymentCfg = PAYMENT_STATUS[order.paymentStatus] || { label: order.paymentStatus, color: "text-gray-600" };
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="bg-white w-full max-w-3xl max-h-[90vh] rounded-[32px] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in duration-300 border border-white/20">
-
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40" onClick={onClose}>
+            <div
+                className="bg-white w-full max-w-2xl max-h-[90vh] rounded-xl shadow-xl overflow-hidden flex flex-col"
+                onClick={e => e.stopPropagation()}
+            >
                 {/* Header */}
-                <div className="p-6 border-b flex justify-between items-center bg-slate-50/50">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-200">
-                            <ShoppingBag size={24} />
+                <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 bg-gray-900 rounded-lg flex items-center justify-center">
+                            <ShoppingBag size={18} className="text-white" />
                         </div>
                         <div>
-                            <h2 className="text-xl font-black text-slate-900 leading-tight">Chi tiết đơn hàng</h2>
-                            <p className="text-xs font-bold text-slate-400 uppercase tracking-tight">
-                                Mã: {order.orderNumber}
-                            </p>
+                            <h2 className="text-base font-semibold text-gray-900">Chi tiết đơn hàng</h2>
+                            <p className="text-xs text-gray-400 font-mono mt-0.5">{order.orderNumber}</p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full text-slate-400 transition-colors">
-                        <X size={24} />
+                    <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400 transition-colors">
+                        <X size={18} />
                     </button>
                 </div>
 
                 {/* Body */}
-                <div className="overflow-y-auto p-8 space-y-10">
-
-                    {/* Row 1: Status & Info */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="space-y-1">
-                            <p className="text-[10px] font-black text-slate-400 uppercase flex items-center gap-1"><CircleDot size={12} /> Trạng thái</p>
-                            <div className={`inline-flex px-3 py-1 rounded-full text-[10px] font-black border uppercase ${getStatusStyle(order.status)}`}>
-                                {order.status}
-                            </div>
-                        </div>
-                        <div className="space-y-1">
-                            <p className="text-[10px] font-black text-slate-400 uppercase flex items-center gap-1"><Calendar size={12} /> Ngày đặt</p>
-                            <p className="text-sm font-bold text-slate-700">{format(new Date(order.createdAt), "dd/MM/yyyy HH:mm")}</p>
-                        </div>
-                        <div className="space-y-1">
-                            <p className="text-[10px] font-black text-slate-400 uppercase flex items-center gap-1"><CreditCard size={12} /> Thanh toán</p>
-                            <p className="text-sm font-bold text-slate-700">{order.paymentMethod} - <span className="text-amber-600 uppercase text-xs">{order.paymentStatus}</span></p>
+                <div className="overflow-y-auto flex-1">
+                    {/* Status bar */}
+                    <div className={`px-6 py-3 border-b ${statusCfg.bg} ${statusCfg.border} border-b flex items-center justify-between`}>
+                        <span className={`text-sm font-medium ${statusCfg.color}`}>{statusCfg.label}</span>
+                        <div className="flex items-center gap-4 text-xs text-gray-500">
+                            <span className="flex items-center gap-1"><Calendar size={12} /> Đặt: {format(new Date(order.createdAt), "dd/MM/yyyy HH:mm", { locale: vi })}</span>
+                            <span className="flex items-center gap-1"><Clock size={12} /> Cập nhật: {format(new Date(order.updatedAt), "dd/MM/yyyy HH:mm", { locale: vi })}</span>
                         </div>
                     </div>
 
-                    {/* Row 2: Customer & Shipping */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                        <div className="space-y-4">
-                            <h4 className="text-xs font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
-                                <MapPin size={16} className="text-red-500" /> Địa chỉ giao hàng
-                            </h4>
-                            <div className="p-5 bg-slate-50 rounded-3xl border border-slate-100 space-y-2">
-                                <p className="font-black text-slate-800">{order.recipientName}</p>
-                                <p className="text-sm text-slate-600 font-medium italic leading-relaxed">{order.shippingAddress}</p>
-                                <p className="text-sm font-bold text-blue-600 flex items-center gap-2"><Phone size={14} /> {order.phoneNumber}</p>
+                    <div className="p-6 space-y-6">
+                        {/* Info grid */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {/* Recipient */}
+                            <div className="border border-gray-100 rounded-lg p-4 space-y-3">
+                                <p className="text-xs font-medium text-gray-400 uppercase tracking-wide flex items-center gap-1.5"><MapPin size={12} />Thông tin giao hàng</p>
+                                <div className="space-y-1.5 text-sm">
+                                    <div className="flex justify-between gap-2">
+                                        <span className="text-gray-500 shrink-0">Người nhận</span>
+                                        <span className="font-medium text-gray-900 text-right">{order.recipientName}</span>
+                                    </div>
+                                    <div className="flex justify-between gap-2">
+                                        <span className="text-gray-500 shrink-0 flex items-center gap-1"><Phone size={11} />SĐT</span>
+                                        <span className="font-medium text-gray-900">{order.phoneNumber}</span>
+                                    </div>
+                                    <div className="flex justify-between gap-4">
+                                        <span className="text-gray-500 shrink-0">Địa chỉ</span>
+                                        <span className="text-gray-800 text-right leading-relaxed">{order.shippingAddress}</span>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
 
-                        <div className="space-y-4">
-                            <h4 className="text-xs font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
-                                <User size={16} className="text-blue-500" /> Khách hàng
-                            </h4>
-                            <div className="p-5 bg-slate-50 rounded-3xl border border-slate-100">
-                                <p className="font-black text-slate-800">{order.user.fullName}</p>
-                                <p className="text-sm text-slate-500 font-medium">{order.user.email}</p>
-                                <div className="mt-2 text-[10px] font-bold text-slate-400 bg-white inline-block px-2 py-1 rounded-lg border border-slate-100 uppercase">
-                                    User ID: #{order.user.id}
+                            {/* Customer + Payment */}
+                            <div className="space-y-3">
+                                <div className="border border-gray-100 rounded-lg p-4 space-y-2">
+                                    <p className="text-xs font-medium text-gray-400 uppercase tracking-wide flex items-center gap-1.5"><User size={12} />Khách hàng</p>
+                                    <p className="text-sm font-medium text-gray-900">{order.user.fullName}</p>
+                                    <p className="text-xs text-gray-500">{order.user.email}</p>
+                                    <p className="text-xs text-gray-500">{order.user.phoneNumber}</p>
+                                </div>
+
+                                <div className="border border-gray-100 rounded-lg p-4 space-y-2">
+                                    <p className="text-xs font-medium text-gray-400 uppercase tracking-wide flex items-center gap-1.5"><CreditCard size={12} />Thanh toán</p>
+                                    <div className="flex items-center justify-between text-sm">
+                                        <span className="text-gray-600">{order.paymentMethod}</span>
+                                        <span className={`text-xs font-medium ${paymentCfg.color}`}>{paymentCfg.label}</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    {/* Row 3: Products */}
-                    <div className="space-y-4">
-                        <h4 className="text-xs font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
-                            <Package size={16} className="text-emerald-500" /> Danh sách sản phẩm
-                        </h4>
-                        <div className="border border-slate-100 rounded-[24px] overflow-hidden shadow-sm">
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-sm text-left">
-                                    <thead className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase">
+                        {/* Shipper */}
+                        {order.shipper && (
+                            <div className="border border-violet-100 bg-violet-50/40 rounded-lg p-4">
+                                <p className="text-xs font-medium text-violet-500 uppercase tracking-wide flex items-center gap-1.5 mb-2"><Truck size={12} />Shipper phụ trách</p>
+                                <div className="flex items-center gap-3 text-sm">
+                                    <div className="w-7 h-7 rounded-full bg-violet-200 flex items-center justify-center text-violet-700 font-semibold text-xs">
+                                        {order.shipper.fullName.charAt(0)}
+                                    </div>
+                                    <div>
+                                        <span className="font-medium text-gray-900">{order.shipper.fullName}</span>
+                                        <span className="text-gray-500 ml-2">{order.shipper.phoneNumber}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Products */}
+                        <div>
+                            <p className="text-xs font-medium text-gray-400 uppercase tracking-wide flex items-center gap-1.5 mb-3"><Package size={12} />Sản phẩm ({order.items.length})</p>
+                            <div className="border border-gray-100 rounded-lg overflow-hidden">
+                                <table className="w-full text-sm">
+                                    <thead className="bg-gray-50 border-b border-gray-100">
                                         <tr>
-                                            <th className="px-6 py-4">Sản phẩm</th>
-                                            <th className="px-6 py-4 text-center">Số lượng</th>
-                                            <th className="px-6 py-4 text-right">Đơn giá</th>
-                                            <th className="px-6 py-4 text-right">Thành tiền</th>
+                                            <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-500">Sản phẩm</th>
+                                            <th className="px-4 py-2.5 text-center text-xs font-medium text-gray-500 w-20">SL</th>
+                                            <th className="px-4 py-2.5 text-right text-xs font-medium text-gray-500 w-28">Đơn giá</th>
+                                            <th className="px-4 py-2.5 text-right text-xs font-medium text-gray-500 w-28">Thành tiền</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-slate-50">
+                                    <tbody className="divide-y divide-gray-50">
                                         {order.items.map((item: any) => {
-                                            // Lấy ảnh: Ưu tiên ảnh Variant chính -> ảnh Product chính
-                                            const displayImage = item.variant?.images?.find((img: any) => img.isPrimary)?.url
-                                                || item.variant?.product?.images?.find((img: any) => img.isPrimary)?.url;
+                                            const variantImg = item.variant?.images?.find((i: any) => i.isPrimary)?.url;
+                                            const productImg = item.variant?.product?.images?.find((i: any) => i.isPrimary)?.url;
+                                            const img = variantImg || productImg;
 
                                             return (
-                                                <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
-                                                    <td className="px-6 py-4">
-                                                        <div className="flex items-center gap-4">
-                                                            <div className="w-14 h-14 bg-slate-100 rounded-xl overflow-hidden flex-shrink-0 border border-slate-200">
-                                                                {displayImage ? (
-                                                                    <img
-                                                                        src={`${BASE_URL}${displayImage}`}
-                                                                        className="w-full h-full object-cover"
-                                                                        alt="product"
-                                                                    />
-                                                                ) : (
-                                                                    <div className="w-full h-full flex items-center justify-center text-slate-300">
-                                                                        <Package size={20} />
-                                                                    </div>
-                                                                )}
+                                                <tr key={item.id} className="hover:bg-gray-50/50">
+                                                    <td className="px-4 py-3">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-11 h-11 rounded-lg border border-gray-100 bg-gray-50 overflow-hidden shrink-0">
+                                                                {img
+                                                                    ? <img src={`${BASE_URL}${img}`} className="w-full h-full object-cover" alt="" />
+                                                                    : <div className="w-full h-full flex items-center justify-center"><Package size={14} className="text-gray-300" /></div>
+                                                                }
                                                             </div>
-                                                            <div>
-                                                                <p className="font-black text-slate-800 leading-tight line-clamp-1">{item.variantNameSnapshot}</p>
-                                                                <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase">SKU: {item.variant?.sku || 'N/A'}</p>
+                                                            <div className="min-w-0">
+                                                                <p className="text-sm text-gray-800 font-medium leading-snug line-clamp-2">{item.variantNameSnapshot}</p>
+                                                                {item.variant?.sku && (
+                                                                    <p className="text-xs text-gray-400 font-mono mt-0.5">{item.variant.sku}</p>
+                                                                )}
+                                                                {item.customizedDesignJson && (
+                                                                    <p className="text-xs text-violet-600 mt-0.5">✦ Thiết kế tuỳ chỉnh</p>
+                                                                )}
+                                                                {!item.variant && (
+                                                                    <p className="text-xs text-rose-400 mt-0.5">Variant đã bị xóa</p>
+                                                                )}
                                                             </div>
                                                         </div>
                                                     </td>
-                                                    <td className="px-6 py-4 text-center font-bold text-slate-600">x{item.quantity}</td>
-                                                    <td className="px-6 py-4 text-right font-medium text-slate-600">{Number(item.priceAtPurchase).toLocaleString()}đ</td>
-                                                    <td className="px-6 py-4 text-right font-black text-blue-600">{(item.priceAtPurchase * item.quantity).toLocaleString()}đ</td>
+                                                    <td className="px-4 py-3 text-center text-gray-600">x{item.quantity}</td>
+                                                    <td className="px-4 py-3 text-right text-gray-600">{item.priceAtPurchase.toLocaleString("vi-VN")}đ</td>
+                                                    <td className="px-4 py-3 text-right font-medium text-gray-900">{(item.priceAtPurchase * item.quantity).toLocaleString("vi-VN")}đ</td>
                                                 </tr>
                                             );
                                         })}
@@ -163,21 +181,14 @@ const OrderDetailModal = ({ order, isOpen, onClose }: OrderDetailModalProps) => 
                 </div>
 
                 {/* Footer */}
-                <div className="p-8 border-t bg-slate-50/50 flex flex-col md:flex-row justify-between items-center gap-6">
-                    <div className="text-center md:text-left">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Tổng cộng đơn hàng</p>
-                        <p className="text-3xl font-black text-blue-600">{Number(order.totalAmount).toLocaleString()}đ</p>
+                <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between">
+                    <div>
+                        <p className="text-xs text-gray-400 mb-0.5">Tổng giá trị đơn hàng</p>
+                        <p className="text-xl font-semibold text-gray-900">{Number(order.totalAmount).toLocaleString("vi-VN")}đ</p>
                     </div>
-                    <div className="flex gap-3 w-full md:w-auto">
-                        <button onClick={onClose} className="flex-1 md:flex-none px-8 py-3 rounded-2xl font-bold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 transition-all active:scale-95">
-                            Đóng
-                        </button>
-                        {order.status === 'pending' && (
-                            <button className="flex-1 md:flex-none px-8 py-3 rounded-2xl font-black bg-blue-600 text-white shadow-xl shadow-blue-200 hover:bg-blue-700 transition-all active:scale-95">
-                                Xác nhận đơn
-                            </button>
-                        )}
-                    </div>
+                    <button onClick={onClose} className="px-5 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                        Đóng
+                    </button>
                 </div>
             </div>
         </div>

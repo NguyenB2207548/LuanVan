@@ -1,14 +1,7 @@
 import React, { useState, useEffect } from "react";
 import {
-    MapPin,
-    Phone,
-    CheckCircle2,
-    Clock,
-    Truck,
-    Box,
-    Store,
-    XCircle,
-    Calendar
+    MapPin, Phone, CheckCircle2, Truck, Store,
+    XCircle, ArrowRight, RefreshCw, Package,
 } from "lucide-react";
 import axiosClient from "@/api/axiosClient";
 import { format } from "date-fns";
@@ -23,33 +16,38 @@ interface Order {
     recipientName: string;
     phoneNumber: string;
     shippingAddress: string;
+    paymentMethod: string;
     createdAt: string;
     seller?: {
         fullName: string;
         phoneNumber: string;
-        sellerProfile?: {
-            shopName: string;
-            shopAddress: string;
-        };
+        sellerProfile?: { shopName: string; shopAddress: string };
     };
 }
+
+const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string; dot: string }> = {
+    shipping: { label: "Đang giao", color: "text-blue-700", bg: "bg-blue-50", border: "border-blue-200", dot: "bg-blue-500" },
+    confirmed: { label: "Đang giao", color: "text-blue-700", bg: "bg-blue-50", border: "border-blue-200", dot: "bg-blue-500" },
+    success: { label: "Hoàn thành", color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-200", dot: "bg-emerald-500" },
+    failed: { label: "Thất bại", color: "text-rose-700", bg: "bg-rose-50", border: "border-rose-200", dot: "bg-rose-400" },
+    cancelled: { label: "Đã hủy", color: "text-rose-700", bg: "bg-rose-50", border: "border-rose-200", dot: "bg-rose-400" },
+};
+
+const isActive = (status: string) => status !== "success" && status !== "failed" && status !== "cancelled";
 
 const ShipperMyOrders = () => {
     const [myOrders, setMyOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        fetchMyShippingOrders();
-    }, []);
+    useEffect(() => { fetchMyShippingOrders(); }, []);
 
     const fetchMyShippingOrders = async () => {
         try {
             setLoading(true);
             const res = await axiosClient.get("/orders/shipper/my-orders");
-            const ordersList = res.data?.data || res.data;
-            setMyOrders(Array.isArray(ordersList) ? ordersList : []);
-        } catch (err) {
-            console.error("Lỗi:", err);
+            const list = res.data?.data || res.data;
+            setMyOrders(Array.isArray(list) ? list : []);
+        } catch {
             toast.error("Không thể tải danh sách đơn hàng");
         } finally {
             setLoading(false);
@@ -57,10 +55,10 @@ const ShipperMyOrders = () => {
     };
 
     const handleCompleteOrder = async (orderId: number) => {
-        if (!window.confirm("Xác nhận bạn đã giao hàng và thu tiền thành công?")) return;
+        if (!window.confirm("Xác nhận đã giao hàng và thu tiền thành công?")) return;
         try {
             await axiosClient.patch(`/orders/shipper/${orderId}/complete`);
-            toast.success("Đơn hàng đã hoàn thành thành công.");
+            toast.success("Đơn hàng hoàn thành.");
             fetchMyShippingOrders();
         } catch (err: any) {
             toast.error(err.response?.data?.message || "Lỗi cập nhật");
@@ -68,7 +66,7 @@ const ShipperMyOrders = () => {
     };
 
     const handleFailOrder = async (orderId: number) => {
-        if (!window.confirm("Xác nhận đơn hàng này giao hàng thất bại?")) return;
+        if (!window.confirm("Xác nhận đơn hàng giao thất bại?")) return;
         try {
             await axiosClient.patch(`/orders/shipper/${orderId}/fail`, { reason: "Giao hàng không thành công" });
             toast.success("Đã xác nhận giao thất bại.");
@@ -78,136 +76,199 @@ const ShipperMyOrders = () => {
         }
     };
 
-    return (
-        <div className="max-w-5xl mx-auto px-6 py-10 font-sans text-gray-800">
-            <Toaster position="top-center" />
+    const activeOrders = myOrders.filter(o => isActive(o.status));
+    const doneOrders = myOrders.filter(o => !isActive(o.status));
 
-            {/* Header tối giản */}
-            <div className="mb-10 border-b border-gray-100 pb-6 flex justify-between items-end">
+    return (
+        <div className="min-h-screen pb-16">
+            <Toaster position="top-right" />
+
+            {/* Page header */}
+            <div className="mb-6 flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-semibold text-gray-800 flex items-center gap-2">
-                        <Truck size={24} className="text-gray-400" /> Đơn hàng đang giao
-                    </h1>
-                    <p className="text-sm text-gray-500 mt-1">Quản lý và cập nhật trạng thái các đơn hàng bạn đang vận chuyển</p>
+                    <h1 className="text-xl font-semibold text-gray-900">Đơn hàng đang giao</h1>
+                    <p className="text-sm text-gray-500 mt-0.5">Quản lý và cập nhật trạng thái các đơn hàng của bạn</p>
                 </div>
-                <div className="text-sm font-medium text-gray-400">
-                    <span className="text-gray-800 font-bold">{myOrders.length}</span> Đơn phụ trách
+                <div className="flex items-center gap-3">
+                    <span className="text-sm text-gray-500">
+                        <span className="font-semibold text-gray-900">{myOrders.length}</span> đơn phụ trách
+                    </span>
+                    <button
+                        onClick={fetchMyShippingOrders}
+                        className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                        <RefreshCw size={16} />
+                    </button>
                 </div>
             </div>
 
             {loading ? (
-                <div className="py-20 text-center text-gray-400 italic text-sm">
-                    Đang tải dữ liệu vận chuyển...
+                <div className="bg-white border border-gray-200 rounded-xl py-20 flex flex-col items-center gap-3">
+                    <div className="w-5 h-5 border-2 border-gray-300 border-t-gray-700 rounded-full animate-spin" />
+                    <p className="text-sm text-gray-400">Đang tải dữ liệu...</p>
+                </div>
+            ) : myOrders.length === 0 ? (
+                <div className="bg-white border border-gray-200 rounded-xl py-24 text-center">
+                    <Package size={36} className="mx-auto text-gray-200 mb-3" />
+                    <p className="text-sm text-gray-400 mb-4">Bạn chưa nhận đơn hàng nào</p>
+                    <a href="/shipper/available" className="text-sm font-medium text-gray-700 hover:underline">
+                        Xem đơn hàng sẵn sàng →
+                    </a>
                 </div>
             ) : (
-                <div className="space-y-8">
-                    {myOrders.length === 0 ? (
-                        <div className="bg-white border border-gray-100 rounded-md py-20 text-center">
-                            <Box size={40} className="mx-auto text-gray-200 mb-4" />
-                            <p className="text-gray-400 text-sm mb-4">Bạn chưa nhận đơn hàng nào</p>
-                            <button
-                                onClick={() => window.location.href = '/shipper/available'}
-                                className="text-sm font-bold text-gray-800 hover:underline"
-                            >
-                                Xem đơn hàng sẵn sàng →
-                            </button>
-                        </div>
-                    ) : (
-                        myOrders.map((order) => (
-                            <div
-                                key={order.id}
-                                className={`bg-white border rounded-md overflow-hidden transition-all ${order.status === 'success' ? 'border-emerald-200 bg-emerald-50/10' :
-                                        (order.status === 'failed' || order.status === 'cancelled') ? 'border-red-200 bg-red-50/10' :
-                                            'border-gray-200'
-                                    }`}
-                            >
-                                {/* Order Header */}
-                                <div className="px-6 py-3 bg-gray-50/50 border-b border-gray-100 flex justify-between items-center">
-                                    <div className="flex items-center gap-3">
-                                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                                            Mã đơn: {order.orderNumber}
-                                        </span>
-                                        <div className="h-3 w-px bg-gray-200"></div>
-                                        <div className="flex items-center gap-1.5 text-gray-400 text-[12px]">
-                                            <Calendar size={13} />
-                                            <span>{format(new Date(order.createdAt), "HH:mm - dd/MM/yyyy", { locale: vi })}</span>
-                                        </div>
-                                    </div>
-                                    <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded ${order.status === 'success' ? 'text-emerald-600' :
-                                            (order.status === 'failed' || order.status === 'cancelled') ? 'text-red-600' :
-                                                'text-blue-600'
-                                        }`}>
-                                        {order.status === 'success' ? 'Đã hoàn tất' :
-                                            (order.status === 'failed' || order.status === 'cancelled') ? 'Thất bại' :
-                                                'Đang giao hàng'}
-                                    </span>
-                                </div>
+                <div className="space-y-6">
 
-                                <div className="p-6">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                                        {/* Điểm lấy hàng */}
-                                        <section>
-                                            <h3 className="flex items-center gap-2 text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-4">
-                                                <Store size={14} /> Điểm lấy hàng
-                                            </h3>
-                                            <div className="text-sm space-y-1.5">
-                                                <p className="font-semibold text-gray-700">{order.seller?.sellerProfile?.shopName || order.seller?.fullName || "N/A"}</p>
-                                                <p className="flex items-center gap-2 text-gray-500"><Phone size={13} className="text-gray-300" /> {order.seller?.phoneNumber}</p>
-                                                <p className="text-gray-400 text-xs italic">{order.seller?.sellerProfile?.shopAddress || "Địa chỉ kho lẻ"}</p>
+                    {/* Active orders */}
+                    {activeOrders.length > 0 && (
+                        <div className="space-y-3">
+                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-1">
+                                Đang vận chuyển · {activeOrders.length} đơn
+                            </p>
+                            {activeOrders.map(order => {
+                                const shopName = order.seller?.sellerProfile?.shopName || order.seller?.fullName || "—";
+                                const shopAddress = order.seller?.sellerProfile?.shopAddress || "Chưa cập nhật";
+                                const sellerPhone = order.seller?.phoneNumber || "—";
+                                const cfg = STATUS_CONFIG[order.status] || STATUS_CONFIG.shipping;
+
+                                return (
+                                    <div key={order.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:border-gray-300 transition-colors">
+
+                                        {/* Header */}
+                                        <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+                                            <div className="flex items-center gap-3">
+                                                <span className="text-sm font-semibold text-gray-900 font-mono">{order.orderNumber}</span>
+                                                <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2 py-0.5 rounded border ${cfg.bg} ${cfg.color} ${cfg.border}`}>
+                                                    <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+                                                    {cfg.label}
+                                                </span>
                                             </div>
-                                        </section>
-
-                                        {/* Điểm giao hàng */}
-                                        <section>
-                                            <h3 className="flex items-center gap-2 text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-4">
-                                                <MapPin size={14} /> Điểm giao hàng
-                                            </h3>
-                                            <div className="text-sm space-y-1.5 text-gray-600">
-                                                <p className="font-semibold text-gray-700">{order.recipientName}</p>
-                                                <p className="flex items-center gap-2 text-gray-500"><Phone size={13} className="text-gray-300" /> {order.phoneNumber}</p>
-                                                <p className="bg-gray-50 p-3 rounded-sm border border-gray-100 text-gray-500">{order.shippingAddress}</p>
-                                            </div>
-                                        </section>
-                                    </div>
-
-                                    {/* Divider ngang nhạt */}
-                                    <div className="h-px bg-gray-100 w-full my-6"></div>
-
-                                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                                        <div>
-                                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tight">Số tiền thu hộ (COD)</p>
-                                            <p className={`text-xl font-bold ${order.status === 'success' ? 'text-emerald-600' : 'text-gray-800'}`}>
-                                                {Number(order.totalAmount).toLocaleString("vi-VN")}đ
-                                            </p>
+                                            <span className="text-xs text-gray-400">
+                                                {format(new Date(order.createdAt), "HH:mm · dd/MM/yyyy", { locale: vi })}
+                                            </span>
                                         </div>
 
-                                        <div className="flex gap-3 w-full sm:w-auto">
-                                            {order.status !== 'success' && order.status !== 'failed' && order.status !== 'cancelled' ? (
-                                                <>
-                                                    <button
-                                                        onClick={() => handleFailOrder(order.id)}
-                                                        className="flex-1 sm:flex-none px-6 py-2.5 text-xs font-bold text-red-600 border border-red-100 rounded hover:bg-red-50 transition-all flex items-center justify-center gap-2"
-                                                    >
-                                                        <XCircle size={16} /> Giao thất bại
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleCompleteOrder(order.id)}
-                                                        className="flex-1 sm:flex-none px-8 py-2.5 bg-gray-800 text-white text-xs font-bold rounded hover:bg-black transition-all flex items-center justify-center gap-2"
-                                                    >
-                                                        <CheckCircle2 size={16} /> Hoàn tất giao
-                                                    </button>
-                                                </>
-                                            ) : (
-                                                <div className="text-xs font-bold text-gray-400 border border-gray-100 px-4 py-2 rounded">
-                                                    ĐƠN HÀNG ĐÃ ĐÓNG
+                                        {/* Route */}
+                                        <div className="px-5 py-4">
+                                            <div className="flex items-start gap-4">
+                                                {/* Pickup */}
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1 mb-2">
+                                                        <Store size={11} /> Lấy hàng
+                                                    </p>
+                                                    <p className="text-sm font-medium text-gray-900">{shopName}</p>
+                                                    <p className="text-sm text-gray-500 mt-1 flex items-center gap-1.5">
+                                                        <Phone size={12} className="text-gray-400 shrink-0" />{sellerPhone}
+                                                    </p>
+                                                    <p className="text-sm text-gray-500 mt-1 flex items-start gap-1.5">
+                                                        <MapPin size={12} className="text-gray-400 shrink-0 mt-0.5" />
+                                                        <span className="leading-relaxed">{shopAddress}</span>
+                                                    </p>
                                                 </div>
-                                            )}
+
+                                                {/* Arrow */}
+                                                <div className="pt-7 shrink-0 px-1">
+                                                    <ArrowRight size={18} className="text-gray-300" />
+                                                </div>
+
+                                                {/* Delivery */}
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1 mb-2">
+                                                        <MapPin size={11} /> Giao hàng
+                                                    </p>
+                                                    <p className="text-sm font-medium text-gray-900">{order.recipientName}</p>
+                                                    <p className="text-sm text-gray-500 mt-1 flex items-center gap-1.5">
+                                                        <Phone size={12} className="text-gray-400 shrink-0" />{order.phoneNumber}
+                                                    </p>
+                                                    <p className="text-sm text-gray-500 mt-1 flex items-start gap-1.5">
+                                                        <MapPin size={12} className="text-gray-400 shrink-0 mt-0.5" />
+                                                        <span className="leading-relaxed">{order.shippingAddress}</span>
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Footer */}
+                                        <div className="px-5 py-3.5 border-t border-gray-100 bg-gray-50/40 flex items-center justify-between gap-4">
+                                            <div>
+                                                <p className="text-xs text-gray-400 mb-0.5">
+                                                    {order.paymentMethod === "COD" ? "Thu hộ COD" : "Đã thanh toán online"}
+                                                </p>
+                                                <p className="text-base font-semibold text-gray-900">
+                                                    {Number(order.totalAmount).toLocaleString("vi-VN")}đ
+                                                </p>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    onClick={() => handleFailOrder(order.id)}
+                                                    className="flex items-center gap-1.5 px-4 py-2 text-sm text-rose-600 border border-rose-200 rounded-lg hover:bg-rose-50 transition-colors"
+                                                >
+                                                    <XCircle size={14} /> Giao thất bại
+                                                </button>
+                                                <button
+                                                    onClick={() => handleCompleteOrder(order.id)}
+                                                    className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-black transition-colors"
+                                                >
+                                                    <CheckCircle2 size={14} /> Hoàn tất giao
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            </div>
-                        ))
+                                );
+                            })}
+                        </div>
                     )}
+
+                    {/* Done orders */}
+                    {doneOrders.length > 0 && (
+                        <div className="space-y-3">
+                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-1">
+                                Đã kết thúc · {doneOrders.length} đơn
+                            </p>
+                            {doneOrders.map(order => {
+                                const shopName = order.seller?.sellerProfile?.shopName || order.seller?.fullName || "—";
+                                const sellerPhone = order.seller?.phoneNumber || "—";
+                                const cfg = STATUS_CONFIG[order.status] || STATUS_CONFIG.success;
+
+                                return (
+                                    <div key={order.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden opacity-75">
+
+                                        {/* Header */}
+                                        <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+                                            <div className="flex items-center gap-3">
+                                                <span className="text-sm font-semibold text-gray-700 font-mono">{order.orderNumber}</span>
+                                                <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2 py-0.5 rounded border ${cfg.bg} ${cfg.color} ${cfg.border}`}>
+                                                    <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+                                                    {cfg.label}
+                                                </span>
+                                            </div>
+                                            <span className="text-xs text-gray-400">
+                                                {format(new Date(order.createdAt), "HH:mm · dd/MM/yyyy", { locale: vi })}
+                                            </span>
+                                        </div>
+
+                                        {/* Compact info */}
+                                        <div className="px-5 py-4 flex items-center gap-6">
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Người nhận</p>
+                                                <p className="text-sm font-medium text-gray-800">{order.recipientName}</p>
+                                                <p className="text-sm text-gray-500 mt-0.5 flex items-center gap-1.5">
+                                                    <Phone size={12} className="text-gray-400" />{order.phoneNumber}
+                                                </p>
+                                                <p className="text-xs text-gray-400 mt-0.5 truncate">{order.shippingAddress}</p>
+                                            </div>
+                                            <div className="text-right shrink-0">
+                                                <p className="text-xs text-gray-400 mb-0.5">Tổng tiền</p>
+                                                <p className={`text-base font-semibold ${order.status === "success" ? "text-emerald-600" : "text-gray-500 line-through"}`}>
+                                                    {Number(order.totalAmount).toLocaleString("vi-VN")}đ
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+
                 </div>
             )}
         </div>

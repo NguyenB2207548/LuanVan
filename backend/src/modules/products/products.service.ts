@@ -611,4 +611,31 @@ export class ProductsService {
       await queryRunner.release();
     }
   }
+
+  // STAT
+  async getSellerProductStats(sellerId: number) {
+    const [total, active, outOfStock] = await Promise.all([
+      // 1. Tổng số sản phẩm của seller
+      // Sử dụng 'product.seller' (tên property trong Entity)
+      this.productRepository.createQueryBuilder('product')
+        .where('product.seller = :sellerId', { sellerId })
+        .getCount(),
+
+      // 2. Sản phẩm đang hoạt động
+      this.productRepository.createQueryBuilder('product')
+        .where('product.seller = :sellerId', { sellerId })
+        .andWhere('product.status = :status', { status: 'active' })
+        .getCount(),
+
+      // 3. Sản phẩm hết hàng (Toàn bộ các biến thể của sản phẩm đó có tổng stock = 0)
+      this.productRepository.createQueryBuilder('product')
+        .innerJoin('product.variants', 'variant')
+        .where('product.seller = :sellerId', { sellerId })
+        .groupBy('product.id')
+        .having('SUM(variant.stock) = 0')
+        .getCount(),
+    ]);
+
+    return { total, active, outOfStock };
+  }
 }

@@ -7,34 +7,33 @@ import {
   Trash2,
   Plus,
   Palette as PaletteIcon,
-  Copy,
   ChevronDown,
   Image as ImageIcon,
+  CheckCircle,
+  AlertTriangle,
+  Clock,
+  FileDown,
 } from "lucide-react";
 import axiosClient from "@/api/axiosClient";
+import StatCard from "@/components/common/StatCard";
 
 const BaseURL = "http://localhost:3000";
 
-// Định nghĩa Interface khớp với dữ liệu thực tế từ Backend bạn gửi
 interface Product {
   id: number;
   productName: string;
   status: string;
   createdAt: string;
-  design?: {
-    id: number;
-    name: string;
-  };
-  images: {
-    url: string;
-    isPrimary: boolean;
-  }[];
+  design?: { id: number; name: string };
+  images: { url: string; isPrimary: boolean }[];
   variants: any[];
 }
 
 const SellerProductManager = () => {
   const [products, setProducts] = useState<Product[]>([]);
+  const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [loadingStats, setLoadingStats] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -44,7 +43,6 @@ const SellerProductManager = () => {
     try {
       setLoading(true);
       const res = await axiosClient.get("/products/seller");
-      // Dựa trên JSON bạn gửi: res.data.data
       setProducts(res.data.data || []);
     } catch (err) {
       console.error("Error fetching products", err);
@@ -53,15 +51,25 @@ const SellerProductManager = () => {
     }
   };
 
+  const fetchStats = async () => {
+    try {
+      setLoadingStats(true);
+      const res = await axiosClient.get("/products/seller/stats");
+      setStats(res.data);
+    } catch (err) {
+      console.error("Error fetching stats", err);
+    } finally {
+      setLoadingStats(false);
+    }
+  };
+
   useEffect(() => {
     fetchProducts();
+    fetchStats();
   }, []);
 
-  // Logic lọc sản phẩm
   const filteredProducts = products.filter((p) => {
-    const matchesSearch = p.productName
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
+    const matchesSearch = p.productName.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "all" || p.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -71,226 +79,201 @@ const SellerProductManager = () => {
     return primary ? `${BaseURL}${primary.url}` : null;
   };
 
-  // --- HÀM XỬ LÝ XÓA SẢN PHẨM ---
   const handleDeleteProduct = async (id: number, name: string) => {
-    // 1. Hiển thị xác nhận
-    const confirmDelete = window.confirm(
-      `Bạn có chắc chắn muốn xóa sản phẩm "${name}"? Hành động này không thể hoàn tác.`,
-    );
-
-    if (!confirmDelete) return;
-
+    if (!window.confirm(`Bạn có chắc chắn muốn xóa sản phẩm "${name}"?`)) return;
     try {
       setDeletingId(id);
-      // 2. Gọi API xóa (Backend của bạn nên hỗ trợ DELETE /products/:id)
       await axiosClient.delete(`/products/${id}`);
-
-      // 3. Cập nhật UI ngay lập tức mà không cần reload trang
       setProducts((prev) => prev.filter((p) => p.id !== id));
-
-      // Có thể thêm thông báo thành công ở đây (toast, alert...)
+      fetchStats();
     } catch (err: any) {
-      console.error("Lỗi khi xóa sản phẩm:", err);
-      alert(
-        err.response?.data?.message ||
-          "Không thể xóa sản phẩm. Vui lòng thử lại.",
-      );
+      alert(err.response?.data?.message || "Không thể xóa sản phẩm. Vui lòng thử lại.");
     } finally {
       setDeletingId(null);
     }
   };
 
   return (
-    <div className="w-full">
-      {/* PAGE HEADER */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Package className="text-blue-600" size={26} />
-            Quản lý Sản phẩm
-          </h1>
-        </div>
+    <div className="space-y-6">
 
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Sản phẩm</h1>
+          <p className="text-sm text-gray-500 mt-1">Quản lý danh sách sản phẩm của cửa hàng</p>
+        </div>
         <button
           onClick={() => navigate("/seller/products/add")}
-          className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white font-medium text-sm rounded-md hover:bg-blue-700 transition-colors shadow-sm"
+          className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-black transition-colors"
         >
-          <Plus size={16} />
+          <Plus size={15} />
           Tạo sản phẩm
         </button>
       </div>
 
-      {/* FILTER & TOOLBAR - Dropdown Style */}
-      <div className="bg-white p-4 border border-gray-200 rounded-lg mb-6 flex flex-col md:flex-row items-center justify-between gap-4">
-        <div className="relative w-full max-w-md">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search className="text-gray-400" size={16} />
-          </div>
-          <input
-            type="text"
-            placeholder="Tìm theo tên sản phẩm..."
-            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          <div className="relative w-full md:w-48">
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="appearance-none block w-full px-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white cursor-pointer"
-            >
-              <option value="all">Tất cả trạng thái</option>
-              <option value="active">Đang hoạt động</option>
-              <option value="inactive">Đã ẩn</option>
-            </select>
-            <ChevronDown
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
-              size={14}
-            />
-          </div>
-        </div>
+      {/* Stat cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <StatCard label="Tổng sản phẩm" value={stats?.total || 0} icon={<Package size={18} />} loading={loadingStats} />
+        <StatCard label="Đang hoạt động" value={stats?.active || 0} icon={<CheckCircle size={18} />} loading={loadingStats} />
+        <StatCard label="Hết hàng" value={stats?.outOfStock || 0} icon={<AlertTriangle size={18} />} loading={loadingStats} />
+        <StatCard label="Chờ duyệt" value={0} icon={<Clock size={18} />} loading={loadingStats} />
       </div>
 
-      {/* DATA TABLE */}
-      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+      {/* Table card — search + filter + table trong cùng 1 nền */}
+      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+
+        {/* Toolbar */}
+        <div className="px-5 py-3 flex flex-col sm:flex-row items-center gap-2">
+          <div className="relative w-full sm:w-52">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" size={13} />
+            <input
+              type="text"
+              placeholder="Tìm sản phẩm..."
+              className="w-full pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-lg outline-none focus:border-gray-400 transition-colors"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+
+          {/* Status filter buttons */}
+          <div className="flex items-center gap-1">
+            {[
+              { value: "all", label: "Tất cả" },
+              { value: "active", label: "Hoạt động" },
+              { value: "inactive", label: "Đã ẩn" },
+            ].map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => setStatusFilter(opt.value)}
+                className={`px-3 py-1.5 text-xs rounded-lg border font-medium transition-colors ${statusFilter === opt.value
+                  ? "bg-gray-900 text-white border-gray-900"
+                  : "bg-white text-gray-500 border-gray-200 hover:border-gray-400"
+                  }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="sm:ml-auto">
+            <button
+              onClick={() => {/* TODO: export excel logic */ }}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors"
+            >
+              <FileDown size={13} />
+              Xuất Excel
+            </button>
+          </div>
+        </div>
+        {/* Table */}
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Ảnh chính
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Thông tin sản phẩm
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Tên thiết kế
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Trạng thái
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Hành động
-                </th>
+          <table className="min-w-full">
+            <thead>
+              <tr className="border-b border-gray-100">
+                <th className="px-5 py-3 text-left text-sm text-gray-900 font-semibold">Ảnh</th>
+                <th className="px-5 py-3 text-left text-sm text-gray-900 font-semibold">Sản phẩm</th>
+                <th className="px-5 py-3 text-left text-sm text-gray-900 font-semibold">Thiết kế</th>
+                <th className="px-5 py-3 text-left text-sm text-gray-900 font-semibold">Trạng thái</th>
+                <th className="px-5 py-3 text-right text-sm text-gray-900 font-semibold">Hành động</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="divide-y divide-gray-50">
               {loading ? (
                 <tr>
-                  <td
-                    colSpan={5}
-                    className="px-6 py-12 text-center text-sm text-gray-500"
-                  >
-                    <div className="flex justify-center items-center gap-2">
-                      <div className="animate-spin w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>
-                      Đang tải sản phẩm...
+                  <td colSpan={5} className="px-5 py-16 text-center">
+                    <div className="flex justify-center items-center gap-2 text-sm text-gray-400">
+                      <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+                      Đang tải...
                     </div>
                   </td>
                 </tr>
               ) : filteredProducts.length === 0 ? (
                 <tr>
-                  <td
-                    colSpan={5}
-                    className="px-6 py-12 text-center text-sm text-gray-500"
-                  >
-                    Không tìm thấy sản phẩm nào.
+                  <td colSpan={5} className="px-5 py-16 text-center">
+                    <Package className="mx-auto text-gray-200 mb-3" size={36} />
+                    <p className="text-sm text-gray-400">Không tìm thấy sản phẩm nào</p>
                   </td>
                 </tr>
               ) : (
                 filteredProducts.map((product) => (
-                  <tr
-                    key={product.id}
-                    className="hover:bg-gray-50 transition-colors"
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="h-16 w-16 rounded-md border border-gray-200 bg-gray-50 overflow-hidden flex items-center justify-center">
+                  <tr key={product.id} className="hover:bg-gray-50 transition-colors">
+
+                    {/* Ảnh */}
+                    <td className="px-5 py-4">
+                      <div className="w-14 h-14 rounded-lg border border-gray-100 bg-gray-50 overflow-hidden flex items-center justify-center shrink-0">
                         {getPrimaryImage(product) ? (
                           <img
                             src={getPrimaryImage(product) || ""}
                             alt={product.productName}
-                            className="h-full w-full object-contain"
+                            className="w-full h-full object-contain"
                           />
                         ) : (
-                          <ImageIcon className="text-gray-300" size={24} />
+                          <ImageIcon className="text-gray-300" size={20} />
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-bold text-gray-900 truncate max-w-xs">
+
+                    {/* Tên + ID */}
+                    <td className="px-5 py-4">
+                      <p className="text-sm font-semibold text-gray-900 leading-snug max-w-xs truncate">
                         {product.productName}
-                      </div>
-                      <div className="text-xs text-gray-500 mt-1 font-mono">
-                        ID: #{product.id}
-                      </div>
+                      </p>
+                      <p className="text-xs text-gray-400 mt-0.5 font-mono">#{product.id}</p>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+
+                    {/* Thiết kế */}
+                    <td className="px-5 py-4">
                       {product.design ? (
-                        <span className="inline-flex items-center px-2.5 py-1 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">
+                        <span className="text-xs text-blue-600 font-medium bg-blue-50 px-2.5 py-1 rounded-md border border-blue-100">
                           {product.design.name}
                         </span>
                       ) : (
-                        <span className="text-xs text-gray-400 italic">
-                          Chưa có thiết kế
-                        </span>
+                        <span className="text-xs text-gray-400 italic">Chưa có thiết kế</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-bold uppercase tracking-wider ${
-                          product.status === "active"
-                            ? "bg-green-50 text-green-700 border border-green-200"
-                            : "bg-gray-50 text-gray-700 border border-gray-200"
-                        }`}
-                      >
-                        <div
-                          className={`w-1.5 h-1.5 rounded-full ${product.status === "active" ? "bg-green-600 animate-pulse" : "bg-gray-400"}`}
-                        />
-                        {product.status}
+
+                    {/* Trạng thái */}
+                    <td className="px-5 py-4">
+                      <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-md border ${product.status === "active"
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+                        : "bg-gray-50 text-gray-500 border-gray-200"
+                        }`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${product.status === "active" ? "bg-emerald-500" : "bg-gray-400"
+                          }`} />
+                        {product.status === "active" ? "Hoạt động" : "Đã ẩn"}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex items-center justify-end gap-3">
+
+                    {/* Hành động */}
+                    <td className="px-5 py-4">
+                      <div className="flex items-center justify-end gap-1">
                         <button
-                          onClick={() =>
-                            navigate(`/seller/designs/${product.id}`)
-                          }
-                          className="text-blue-600 hover:text-blue-800 transition-colors"
-                          title="Cấu hình POD"
+                          onClick={() => navigate(`/seller/designs/${product.id}`)}
+                          className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="Cấu hình thiết kế"
                         >
-                          <PaletteIcon size={18} />
-                        </button>
-                        <button
-                          className="text-gray-600 hover:text-gray-900 transition-colors"
-                          title="Nhân bản"
-                        >
-                          <Copy size={18} />
+                          <PaletteIcon size={16} />
                         </button>
                         <Link
                           to={`/seller/products/edit/${product.id}`}
-                          className="text-gray-600 hover:text-blue-600 transition-colors p-1"
+                          className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
                           title="Chỉnh sửa"
                         >
-                          <Edit size={18} />
+                          <Edit size={16} />
                         </Link>
                         <button
-                          onClick={() =>
-                            handleDeleteProduct(product.id, product.productName)
-                          }
+                          onClick={() => handleDeleteProduct(product.id, product.productName)}
                           disabled={deletingId === product.id}
-                          className={`${
-                            deletingId === product.id
-                              ? "text-gray-300 cursor-not-allowed"
-                              : "text-red-500 hover:text-red-700"
-                          } transition-colors`}
+                          className={`p-2 rounded-lg transition-colors ${deletingId === product.id
+                            ? "text-gray-300 cursor-not-allowed"
+                            : "text-gray-400 hover:text-red-500 hover:bg-red-50"
+                            }`}
                           title="Xóa"
                         >
                           {deletingId === product.id ? (
-                            <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+                            <div className="w-4 h-4 border-2 border-gray-300 border-t-red-400 rounded-full animate-spin" />
                           ) : (
-                            <Trash2 size={18} />
+                            <Trash2 size={16} />
                           )}
                         </button>
                       </div>
@@ -301,23 +284,18 @@ const SellerProductManager = () => {
             </tbody>
           </table>
         </div>
-      </div>
 
-      {/* FOOTER */}
-      {!loading && filteredProducts.length > 0 && (
-        <div className="mt-4 flex items-center justify-between text-sm text-gray-500">
-          <div>
-            Hiển thị{" "}
-            <span className="font-medium">{filteredProducts.length}</span> sản
-            phẩm
+        {/* Footer */}
+        {!loading && filteredProducts.length > 0 && (
+          <div className="px-5 py-3 border-t border-gray-100">
+            <p className="text-xs text-gray-400">
+              Hiển thị <span className="font-medium text-gray-600">{filteredProducts.length}</span> sản phẩm
+            </p>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };
 
 export default SellerProductManager;
-function setDeletingId(id: number) {
-  throw new Error("Function not implemented.");
-}

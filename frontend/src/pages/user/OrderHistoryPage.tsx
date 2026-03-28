@@ -269,7 +269,6 @@ const OrderHistoryPage = () => {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Lịch sử đơn hàng</h1>
-          <p className="text-sm text-gray-500 mt-1.5">Theo dõi và quản lý các đơn hàng của bạn</p>
         </div>
 
         {/* Search + Filter */}

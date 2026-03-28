@@ -11,7 +11,8 @@ import {
   HelpCircle,
   Image as ImageIcon,
   Box,
-  Bell
+  Bell,
+  TrendingUp
 } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
 
@@ -46,12 +47,13 @@ const SellerLayout = () => {
     { to: "/seller/artworks", icon: ImageIcon, label: "Thư viện Artwork" },
     { to: "/seller/designs", icon: Palette, label: "Thiết kế" },
     { to: "/seller/orders", icon: ShoppingCart, label: "Đơn hàng" },
+    { to: "/seller/revenue", icon: TrendingUp, label: "Doanh thu" },
     { to: "/seller/settings", icon: Settings, label: "Cài đặt cửa hàng" },
     { to: "/seller/help", icon: HelpCircle, label: "Trợ giúp" },
   ];
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
+    <div className="flex min-h-screen bg-[#F8F9FA]">
       {/* Sidebar */}
       <aside className="w-56 bg-white border-r border-gray-200 flex flex-col fixed left-0 top-0 h-full z-30">
         {/* Logo */}
@@ -129,7 +131,7 @@ const SellerLayout = () => {
             <LogOut size={16} />
           </button>
         </header>
-        <main className="p-8">
+        <main className="p-8 max-w-[1400px] mx-auto w-full">
           <Outlet />
         </main>
       </div>

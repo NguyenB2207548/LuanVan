@@ -23,7 +23,7 @@ import { UpdateProductDto } from './dto/update-product.dto';
 
 @Controller('products')
 export class ProductsController {
-  constructor(private readonly productsService: ProductsService) {}
+  constructor(private readonly productsService: ProductsService) { }
 
   @Get()
   findAll() {
@@ -42,6 +42,13 @@ export class ProductsController {
     const sellerId = user.id;
 
     return this.productsService.findAllBySeller(sellerId, page, limit);
+  }
+
+  // STAT
+  @Get('seller/stats')
+  @UseGuards(JwtAuthGuard)
+  async getStats(@Request() req) {
+    return this.productsService.getSellerProductStats(req.user.id);
   }
 
   @Get('latest')

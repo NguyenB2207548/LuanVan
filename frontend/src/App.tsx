@@ -53,6 +53,7 @@ import AttributeManagementPage from "./pages/admin/AttributeManagementPage";
 import ShipperOrderManager from "./pages/shipper/ShipperOrderManager";
 import ShipperMyOrders from "./pages/shipper/ShipperMyOrders";
 import ShipperSettings from "./pages/shipper/ShipperSettings";
+import SellerRevenuePage from "./pages/seller/SellerRevenuePage";
 
 function App() {
   return (
@@ -111,6 +112,7 @@ function App() {
                 <Route path="designs" element={<SellerDesignManager />} />
                 <Route path="designs/add" element={<AddDesignPage />} />
                 <Route path="orders" element={<SellerOrderManager />} />
+                <Route path="revenue" element={<SellerRevenuePage />} />
                 <Route path="settings" element={<SellerSettings />} />
                 <Route path="products/print-area-config" element={<PrintAreaConfigPage />} />
                 <Route path="products/print-area-config/:type/:id" element={<PrintAreaConfigPage />} />

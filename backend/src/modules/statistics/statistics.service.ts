@@ -1,147 +1,185 @@
 import { Injectable } from '@nestjs/common';
 import { DataSource } from 'typeorm';
-import * as ExcelJS from 'exceljs';
-import { Response } from 'express';
 import { Order } from '../orders/entities/order.entity';
 import { OrderItem } from '../orders/entities/order-item.entity';
-import { GetStatsQueryDto } from './dto/get-stats-query.dto';
 
 @Injectable()
 export class StatisticsService {
-  exportAdminGlobalReport(
-    res: globalThis.Response,
-    startDate: string | undefined,
-    endDate: string | undefined,
-  ) {
-    throw new Error('Method not implemented.');
+  constructor(private readonly dataSource: DataSource) { }
+
+  // ----------------------------------------------------------------
+  // HELPER: Tính khoảng thời gian của kỳ trước (để so sánh)
+  // Ví dụ: từ/đến là tháng 3, kỳ trước = tháng 2
+  // ----------------------------------------------------------------
+  private getPreviousPeriod(from: Date, to: Date): { prevFrom: Date; prevTo: Date } {
+    const diff = to.getTime() - from.getTime();
+    const prevTo = new Date(from.getTime() - 1);
+    const prevFrom = new Date(prevTo.getTime() - diff);
+    return { prevFrom, prevTo };
   }
-  constructor(private dataSource: DataSource) {}
 
-  async getSellerDashboard(sellerId: number, query: GetStatsQueryDto) {
-    const { startDate, endDate } = query;
+  // ----------------------------------------------------------------
+  // 1. TỔNG QUAN DOANH THU
+  // Trả về: doanh thu, số đơn, giá trị TB mỗi đơn + so sánh kỳ trước
+  // ----------------------------------------------------------------
+  async getRevenueOverview(sellerId: number, from: Date, to: Date) {
+    const { prevFrom, prevTo } = this.getPreviousPeriod(from, to);
 
-    // 1. Thống kê tổng quát (Doanh thu, Đơn hàng)
-    const generalStatsQuery = this.dataSource
-      .getRepository(Order)
-      .createQueryBuilder('order')
+    // Query kỳ hiện tại
+    const current = await this.dataSource.manager
+      .createQueryBuilder(Order, 'order')
+      .select('COUNT(order.id)', 'totalOrders')
+      .addSelect('SUM(order.totalAmount)', 'totalRevenue')
+      .addSelect(
+        `SUM(CASE WHEN order.status = 'success' THEN order.totalAmount ELSE 0 END)`,
+        'completedRevenue',
+      )
+      .addSelect(
+        `COUNT(CASE WHEN order.status = 'success' THEN 1 END)`,
+        'completedOrders',
+      )
+      .addSelect(
+        `COUNT(CASE WHEN order.status = 'cancelled' THEN 1 END)`,
+        'cancelledOrders',
+      )
+      .addSelect(
+        `COUNT(CASE WHEN order.status = 'pending' THEN 1 END)`,
+        'pendingOrders',
+      )
       .where('order.seller_id = :sellerId', { sellerId })
-      .andWhere('order.status = :status', { status: 'delivered' });
-
-    if (startDate && endDate) {
-      generalStatsQuery.andWhere(
-        'order.created_at BETWEEN :startDate AND :endDate',
-        {
-          startDate,
-          endDate,
-        },
-      );
-    }
-
-    const stats = await generalStatsQuery
-      .select('SUM(order.totalAmount)', 'totalRevenue')
-      .addSelect('COUNT(order.id)', 'totalOrders')
+      .andWhere('order.createdAt BETWEEN :from AND :to', { from, to })
       .getRawOne();
 
-    // 2. Doanh thu theo thời gian (Biểu đồ)
-    // Lưu ý: Logic này dùng MySQL DATE_FORMAT, nếu dùng Postgres hãy dùng TO_CHAR
-    const chartQuery = this.dataSource
-      .getRepository(Order)
-      .createQueryBuilder('order')
-      .select("DATE_FORMAT(order.created_at, '%Y-%m-%d')", 'date')
-      .addSelect('SUM(order.totalAmount)', 'revenue')
+    // Query kỳ trước (để tính % thay đổi)
+    const previous = await this.dataSource.manager
+      .createQueryBuilder(Order, 'order')
+      .select('COUNT(order.id)', 'totalOrders')
+      .addSelect('SUM(order.totalAmount)', 'totalRevenue')
+      .addSelect(
+        `SUM(CASE WHEN order.status = 'success' THEN order.totalAmount ELSE 0 END)`,
+        'completedRevenue',
+      )
       .where('order.seller_id = :sellerId', { sellerId })
-      .andWhere('order.status = :status', { status: 'delivered' })
-      .groupBy('date')
-      .orderBy('date', 'ASC');
+      .andWhere('order.createdAt BETWEEN :from AND :to', {
+        from: prevFrom,
+        to: prevTo,
+      })
+      .getRawOne();
 
-    if (startDate && endDate) {
-      chartQuery.andWhere('order.created_at BETWEEN :startDate AND :endDate', {
-        startDate,
-        endDate,
-      });
-    }
-    const chartData = await chartQuery.getRawMany();
+    const currentRevenue = Number(current.completedRevenue) || 0;
+    const previousRevenue = Number(previous.completedRevenue) || 0;
+    const currentOrders = Number(current.completedOrders) || 0;
+    const previousOrders = Number(previous.completedOrders) || 0;
 
-    // 3. Top 5 sản phẩm bán chạy
-    const topProducts = await this.dataSource
-      .getRepository(OrderItem)
-      .createQueryBuilder('item')
-      .leftJoin('item.order', 'order')
-      .leftJoinAndSelect('item.variant', 'variant')
-      .leftJoinAndSelect('variant.product', 'product')
-      .select('product.productName', 'productName')
-      .addSelect('SUM(item.quantity)', 'totalSold')
-      .addSelect('SUM(item.priceAtPurchase * item.quantity)', 'revenue')
-      .where('order.seller_id = :sellerId', { sellerId })
-      .andWhere('order.status = :status', { status: 'delivered' })
-      .groupBy('product.id')
-      .orderBy('totalSold', 'DESC')
-      .limit(5)
-      .getRawMany();
+    // Tính % thay đổi
+    const revenueChange =
+      previousRevenue === 0
+        ? null
+        : ((currentRevenue - previousRevenue) / previousRevenue) * 100;
+
+    const ordersChange =
+      previousOrders === 0
+        ? null
+        : ((currentOrders - previousOrders) / previousOrders) * 100;
+
+    const avgOrderValue =
+      currentOrders > 0 ? currentRevenue / currentOrders : 0;
+
+    const prevAvgOrderValue =
+      previousOrders > 0 ? previousRevenue / previousOrders : 0;
+
+    const avgOrderChange =
+      prevAvgOrderValue === 0
+        ? null
+        : ((avgOrderValue - prevAvgOrderValue) / prevAvgOrderValue) * 100;
 
     return {
-      overview: {
-        totalRevenue: parseFloat(stats.totalRevenue || 0),
-        totalOrders: parseInt(stats.totalOrders || 0),
+      period: { from, to },
+      current: {
+        totalRevenue: currentRevenue,
+        completedOrders: currentOrders,
+        cancelledOrders: Number(current.cancelledOrders) || 0,
+        pendingOrders: Number(current.pendingOrders) || 0,
+        avgOrderValue: Math.round(avgOrderValue),
       },
-      chartData: chartData.map((d) => ({
-        date: d.date,
-        revenue: parseFloat(d.revenue),
-      })),
-      topProducts: topProducts.map((p) => ({
-        name: p.productName,
-        sold: parseInt(p.totalSold),
-        revenue: parseFloat(p.revenue),
-      })),
+      changes: {
+        revenue: revenueChange !== null ? Math.round(revenueChange * 10) / 10 : null,
+        orders: ordersChange !== null ? Math.round(ordersChange * 10) / 10 : null,
+        avgOrderValue: avgOrderChange !== null ? Math.round(avgOrderChange * 10) / 10 : null,
+      },
     };
   }
 
-  async exportOrdersToExcel(sellerId: number, res: Response) {
-    const orders = await this.dataSource.getRepository(Order).find({
-      where: { seller: { id: sellerId } },
-      relations: ['items', 'items.variant', 'items.variant.product', 'user'],
-      order: { createdAt: 'DESC' },
+  // ----------------------------------------------------------------
+  // 2. BIỂU ĐỒ DOANH THU THEO THỜI GIAN
+  // groupBy: 'day' | 'week' | 'month'
+  // Trả về mảng { label, revenue, orders } để vẽ biểu đồ
+  // ----------------------------------------------------------------
+  async getRevenueChart(
+    sellerId: number,
+    from: Date,
+    to: Date,
+    groupBy: 'day' | 'week' | 'month' = 'day',
+  ) {
+    // Định nghĩa format group theo DB (MySQL)
+    const groupFormat = {
+      day: '%Y-%m-%d',
+      week: '%Y-%u', // năm-tuần
+      month: '%Y-%m',
+    }[groupBy];
+
+    const raw = await this.dataSource.manager
+      .createQueryBuilder(Order, 'order')
+      .select(`DATE_FORMAT(order.createdAt, '${groupFormat}')`, 'period')
+      .addSelect(
+        `SUM(CASE WHEN order.status = 'success' THEN order.totalAmount ELSE 0 END)`,
+        'revenue',
+      )
+      .addSelect(
+        `COUNT(CASE WHEN order.status = 'success' THEN 1 END)`,
+        'orders',
+      )
+      .addSelect(
+        `COUNT(CASE WHEN order.status = 'cancelled' THEN 1 END)`,
+        'cancelled',
+      )
+      .where('order.seller_id = :sellerId', { sellerId })
+      .andWhere('order.createdAt BETWEEN :from AND :to', { from, to })
+      .groupBy('period')
+      .orderBy('period', 'ASC')
+      .getRawMany();
+
+    // Format label đẹp hơn cho frontend
+    const data = raw.map((row) => {
+      let label = row.period;
+
+      if (groupBy === 'day') {
+        // '2026-03-28' → '28/03'
+        const [y, m, d] = row.period.split('-');
+        label = `${d}/${m}`;
+      } else if (groupBy === 'month') {
+        // '2026-03' → 'T3/2026'
+        const [y, m] = row.period.split('-');
+        label = `T${parseInt(m)}/${y}`;
+      } else if (groupBy === 'week') {
+        // '2026-13' → 'Tuần 13'
+        const [, w] = row.period.split('-');
+        label = `Tuần ${parseInt(w)}`;
+      }
+
+      return {
+        period: row.period,
+        label,
+        revenue: Number(row.revenue) || 0,
+        orders: Number(row.orders) || 0,
+        cancelled: Number(row.cancelled) || 0,
+      };
     });
 
-    const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('Danh sách đơn hàng');
-
-    // Định nghĩa Header
-    worksheet.columns = [
-      { header: 'Mã đơn hàng', key: 'orderNumber', width: 25 },
-      { header: 'Khách hàng', key: 'customer', width: 20 },
-      { header: 'Ngày đặt', key: 'createdAt', width: 20 },
-      { header: 'Tổng tiền', key: 'totalAmount', width: 15 },
-      { header: 'Trạng thái', key: 'status', width: 15 },
-      { header: 'Địa chỉ giao hàng', key: 'address', width: 40 },
-    ];
-
-    // Thêm dữ liệu
-    orders.forEach((order) => {
-      worksheet.addRow({
-        orderNumber: order.orderNumber,
-        customer: order.user.fullName,
-        createdAt: order.createdAt.toLocaleString('vi-VN'),
-        totalAmount: order.totalAmount,
-        status: order.status,
-        address: order.shippingAddress,
-      });
-    });
-
-    // Định dạng header (tô màu, in đậm)
-    worksheet.getRow(1).font = { bold: true };
-
-    // Gửi file về client
-    res.setHeader(
-      'Content-Type',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    );
-    res.setHeader(
-      'Content-Disposition',
-      `attachment; filename=orders-report-${Date.now()}.xlsx`,
-    );
-
-    await workbook.xlsx.write(res);
-    res.end();
+    return {
+      groupBy,
+      period: { from, to },
+      data,
+    };
   }
 }
