@@ -141,7 +141,7 @@ const DesignerCanvas: React.FC<DesignerCanvasProps> = ({
               <Rect width={stageWidth} height={stageHeight} fill="#ffffff" />
             )}
 
-            {/* 2. DESIGN LAYERS (Đưa ra ngoài Group để dùng tọa độ tuyệt đối) */}
+            {/* 2. DESIGN LAYERS */}
             {mode !== "print-area" &&
               layers.map((l) => {
                 if (
@@ -151,9 +151,11 @@ const DesignerCanvas: React.FC<DesignerCanvasProps> = ({
                 )
                   return null;
 
+                // Tách riêng key (id) ra khỏi các props còn lại
+                const { id, ...otherData } = l;
+
                 const commonProps = {
-                  key: l.id,
-                  // Sử dụng tọa độ trực tiếp nhân với tỉ lệ hiển thị
+                  // Bỏ key ra khỏi object này
                   x: (l.x || 0) * scale,
                   y: (l.y || 0) * scale,
                   draggable: mode === "artwork",
@@ -166,6 +168,7 @@ const DesignerCanvas: React.FC<DesignerCanvasProps> = ({
                 if (l.type.includes("text")) {
                   return (
                     <Text
+                      key={l.id} // Truyền TRỰC TIẾP ở đây
                       {...commonProps}
                       text={l.text}
                       fontSize={(l.fontSize || 20) * scale}
@@ -184,6 +187,7 @@ const DesignerCanvas: React.FC<DesignerCanvasProps> = ({
 
                 return (
                   <URLImage
+                    key={l.id} // Truyền TRỰC TIẾP ở đây
                     {...commonProps}
                     l={{
                       ...l,

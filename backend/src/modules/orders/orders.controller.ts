@@ -107,7 +107,13 @@ export class OrdersController {
     return this.ordersService.shipperFailOrder(orderId, req.user.id, reason);
   }
 
-  // ---  ADMIN ---
+  @Get('seller/stats')
+  @UseGuards(JwtAuthGuard)
+  async getOrderStats(@Request() req) {
+    // req.user.id lấy từ JWT của Seller
+    return await this.ordersService.getSellerOrderStats(req.user.id);
+  }
+
 
   // @Get(':id')
   // getOrderById(@Param('id', ParseIntPipe) orderId: number) {

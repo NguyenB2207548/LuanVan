@@ -182,108 +182,6 @@ export class OrdersService {
     });
   }
 
-  // async createOrderFromCart(userId: number, dto: CreateOrderDto) {
-  //   return await this.dataSource.transaction(async (manager) => {
-  //     const cart = await manager.findOne(Cart, {
-  //       where: { user: { id: userId } },
-  //       relations: [
-  //         'items',
-  //         'items.variant',
-  //         'items.variant.product',
-  //         'items.variant.product.seller',
-  //       ],
-  //     });
-
-  //     if (!cart || cart.items.length === 0) {
-  //       throw new BadRequestException('Giỏ hàng trống!');
-  //     }
-
-  //     // Nhóm CartItem theo Seller
-  //     const itemsBySeller = new Map<number, CartItem[]>();
-  //     for (const item of cart.items) {
-  //       const sellerId = item.variant.product.seller?.id;
-  //       if (!sellerId)
-  //         throw new BadRequestException(
-  //           `Sản phẩm ${item.variant.product.productName} không rõ người bán`,
-  //         );
-
-  //       if (!itemsBySeller.has(sellerId)) itemsBySeller.set(sellerId, []);
-  //       itemsBySeller.get(sellerId)!.push(item);
-  //     }
-
-  //     const createdOrders: Order[] = [];
-  //     let grandTotal = 0; // Tổng tiền của tất cả các đơn để thanh toán MoMo
-
-  //     //  Tạo Đơn hàng cho từng Seller
-  //     for (const [sellerId, items] of itemsBySeller) {
-  //       let sellerOrderTotal = 0;
-  //       const orderItems: OrderItem[] = [];
-
-  //       for (const cartItem of items) {
-  //         const variant = cartItem.variant;
-
-  //         // Check & Update Stock
-  //         if (variant.stock < cartItem.quantity) {
-  //           throw new BadRequestException(
-  //             `Sản phẩm "${variant.product.productName}" hết hàng.`,
-  //           );
-  //         }
-  //         variant.stock -= cartItem.quantity;
-  //         await manager.save(Variant, variant);
-
-  //         const price = Number(variant.price);
-  //         sellerOrderTotal += price * cartItem.quantity;
-
-  //         // Lưu OrderItem kèm Snapshot thông tin
-  //         const orderItem = manager.create(OrderItem, {
-  //           variant: { id: variant.id },
-  //           quantity: cartItem.quantity,
-  //           priceAtPurchase: price,
-  //           variantNameSnapshot: `${variant.product.productName} - ${variant.sku}`, // Quan trọng!
-  //           customizedDesignJson: cartItem.customizedDesignJson,
-  //         });
-  //         orderItems.push(orderItem);
-  //       }
-
-  //       const order = manager.create(Order, {
-  //         orderNumber: `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-  //         totalAmount: sellerOrderTotal,
-  //         recipientName: dto.recipientName,
-  //         phoneNumber: dto.phoneNumber,
-  //         shippingAddress: dto.shippingAddress,
-  //         paymentMethod: dto.paymentMethod,
-  //         status: 'pending',
-  //         user: { id: userId },
-  //         seller: { id: sellerId },
-  //         items: orderItems,
-  //       });
-
-  //       const savedOrder = await manager.save(Order, order);
-  //       createdOrders.push(savedOrder);
-  //       grandTotal += sellerOrderTotal;
-  //     }
-
-  //     //  Dọn dẹp giỏ hàng
-  //     await manager.delete(CartItem, { cart: { id: cart.id } });
-
-  //     let payUrl = null;
-  //     if (dto.paymentMethod === 'MOMO' && createdOrders.length > 0) {
-  //       const orderIds = createdOrders.map((o) => o.id);
-  //       payUrl = await this.momoService.createPaymentUrl({
-  //         amount: grandTotal,
-  //         orderIds: orderIds,
-  //         orderInfo: `Thanh toán ${createdOrders.length} đơn hàng tại MyGiftShop`,
-  //       });
-  //     }
-
-  //     return {
-  //       message: 'Đặt hàng thành công',
-  //       orders: createdOrders,
-  //       payUrl: payUrl,
-  //     };
-  //   });
-  // }
-
   async saveOrder(order: Order) {
     return await this.dataSource.manager.save(Order, order);
   }
@@ -439,24 +337,6 @@ export class OrdersService {
     });
   }
 
-  // async getAvailableOrdersForShipper() {
-  //   const rawOrders = await this.dataSource.manager
-  //     .createQueryBuilder(Order, 'order')
-  //     .where('order.status = :status', { status: 'confirmed' })
-  //     .getRawMany();
-
-
-  //   const results = await this.dataSource.manager.find(Order, {
-  //     where: {
-  //       status: 'confirmed',
-  //       shipper: IsNull(),
-  //     },
-  //     relations: ['seller'],
-  //   });
-
-  //   return results;
-  // }
-
   async shipperPickUpOrder(orderId: number, shipperId: number) {
     return await this.dataSource.transaction(async (manager) => {
       const order = await manager.findOne(Order, {
@@ -566,5 +446,46 @@ export class OrdersService {
         lastPage: Math.ceil(total / limit),
       },
     };
+  }
+
+  async getSellerOrderStats(sellerId: number) {
+    const [statusStats, revenueData] = await Promise.all([
+      // 1. Đếm số lượng đơn hàng theo từng trạng thái
+      this.orderRepository
+        .createQueryBuilder('order')
+        .select('order.status', 'status')
+        .addSelect('COUNT(order.id)', 'count')
+        .where('order.seller_id = :sellerId', { sellerId })
+        .groupBy('order.status')
+        .getRawMany(),
+
+      // 2. Tính tổng doanh thu từ các đơn hàng thành công (success)
+      this.orderRepository
+        .createQueryBuilder('order')
+        .select('SUM(order.totalAmount)', 'totalRevenue')
+        .where('order.seller_id = :sellerId', { sellerId })
+        .andWhere('order.status = :status', { status: 'success' })
+        .getRawOne(),
+    ]);
+
+    // 3. Format lại dữ liệu để Frontend dễ dùng
+    const stats = {
+      pending: 0,
+      confirmed: 0,
+      shipping: 0,
+      success: 0,
+      cancelled: 0,
+      failed: 0,
+      totalOrders: 0,
+      revenue: parseFloat(revenueData?.totalRevenue || 0),
+    };
+
+    statusStats.forEach((item) => {
+      const count = parseInt(item.count);
+      stats[item.status] = count;
+      stats.totalOrders += count;
+    });
+
+    return stats;
   }
 }

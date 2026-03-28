@@ -9,7 +9,6 @@ import {
     Calendar,
 } from "lucide-react";
 import {
-    Line,
     XAxis,
     YAxis,
     CartesianGrid,
@@ -19,6 +18,7 @@ import {
     AreaChart,
 } from "recharts";
 import axiosClient from "@/api/axiosClient";
+import StatCard from "@/components/common/StatCard"; // Import StatCard chung
 
 // --- INTERFACES ---
 interface RevenueOverview {
@@ -56,7 +56,6 @@ const formatShortVND = (value: number) => {
     return value.toString();
 };
 
-// Custom tooltip cho biểu đồ
 const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload?.length) return null;
     return (
@@ -72,20 +71,15 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     );
 };
 
-// --- PRESET DATE RANGES ---
 const getPresets = () => {
     const now = new Date();
     const fmt = (d: Date) => d.toISOString().split("T")[0];
-
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-
     const start7 = new Date(now);
     start7.setDate(now.getDate() - 6);
-
     const start30 = new Date(now);
     start30.setDate(now.getDate() - 29);
-
     const startOfYear = new Date(now.getFullYear(), 0, 1);
 
     return [
@@ -96,7 +90,6 @@ const getPresets = () => {
     ];
 };
 
-// --- MAIN COMPONENT ---
 const SellerRevenuePage = () => {
     const presets = getPresets();
 
@@ -122,9 +115,7 @@ const SellerRevenuePage = () => {
                 params: { from, to },
             });
             setOverview(res.data);
-        } catch {
-            //
-        } finally {
+        } catch { /* Error handle */ } finally {
             setLoadingOverview(false);
         }
     };
@@ -136,9 +127,7 @@ const SellerRevenuePage = () => {
                 params: { from, to, groupBy },
             });
             setChart(res.data);
-        } catch {
-            //
-        } finally {
+        } catch { /* Error handle */ } finally {
             setLoadingChart(false);
         }
     };
@@ -157,59 +146,57 @@ const SellerRevenuePage = () => {
         else setTo(value);
     };
 
-    const statCards = overview
-        ? [
-            {
-                label: "Doanh thu",
-                value: formatVND(overview.current.totalRevenue),
-                icon: <TrendingUp size={18} className="text-blue-500" />,
-                bg: "bg-blue-50",
-            },
-            {
-                label: "Đơn hoàn thành",
-                value: overview.current.completedOrders,
-                icon: <CheckCircle2 size={18} className="text-emerald-500" />,
-                bg: "bg-emerald-50",
-            },
-            {
-                label: "Giá trị TB / đơn",
-                value: formatVND(overview.current.avgOrderValue),
-                icon: <ShoppingBag size={18} className="text-violet-500" />,
-                bg: "bg-violet-50",
-            },
-            {
-                label: "Đơn đã hủy",
-                value: overview.current.cancelledOrders,
-                icon: <XCircle size={18} className="text-red-400" />,
-                bg: "bg-red-50",
-            },
-            {
-                label: "Đơn chờ xử lý",
-                value: overview.current.pendingOrders,
-                icon: <Clock size={18} className="text-amber-500" />,
-                bg: "bg-amber-50",
-            },
-        ]
-        : [];
-
     return (
         <div className="space-y-6">
             {/* Header */}
             <div>
                 <h1 className="text-2xl font-bold text-gray-900">Doanh thu</h1>
-                <p className="text-sm text-gray-500 mt-1">Tổng quan và biểu đồ doanh thu theo thời gian</p>
+            </div>
+
+            {/* Stat Cards Section */}
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+                <StatCard
+                    label="Doanh thu"
+                    value={overview ? formatVND(overview.current.totalRevenue) : "0đ"}
+                    icon={<TrendingUp />}
+                    loading={loadingOverview}
+                />
+                <StatCard
+                    label="Đơn hoàn thành"
+                    value={overview?.current.completedOrders || 0}
+                    icon={<CheckCircle2 />}
+                    loading={loadingOverview}
+                />
+                <StatCard
+                    label="Giá trị TB / đơn"
+                    value={overview ? formatVND(overview.current.avgOrderValue) : "0đ"}
+                    icon={<ShoppingBag />}
+                    loading={loadingOverview}
+                />
+                <StatCard
+                    label="Đơn đã hủy"
+                    value={overview?.current.cancelledOrders || 0}
+                    icon={<XCircle />}
+                    loading={loadingOverview}
+                />
+                <StatCard
+                    label="Đơn chờ xử lý"
+                    value={overview?.current.pendingOrders || 0}
+                    icon={<Clock />}
+                    loading={loadingOverview}
+                />
             </div>
 
             {/* Filter bar */}
-            <div className="bg-white border border-gray-200 rounded-xl p-4 flex flex-wrap items-center gap-3">
+            <div className="bg-white border border-gray-200 rounded-xl p-4 flex flex-wrap items-center gap-3 shadow-sm">
                 <div className="flex gap-1.5 flex-wrap">
                     {presets.map((p, i) => (
                         <button
                             key={i}
                             onClick={() => applyPreset(i)}
                             className={`px-3 py-1.5 text-xs font-medium rounded-md border transition-colors ${activePreset === i
-                                    ? "bg-gray-900 text-white border-gray-900"
-                                    : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
+                                ? "bg-gray-900 text-white border-gray-900"
+                                : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
                                 }`}
                         >
                             {p.label}
@@ -225,14 +212,14 @@ const SellerRevenuePage = () => {
                         type="date"
                         value={from}
                         onChange={(e) => handleCustomDate("from", e.target.value)}
-                        className="border border-gray-200 rounded-md px-2 py-1 text-xs outline-none focus:border-gray-400"
+                        className="border border-gray-200 rounded-md px-2 py-1 text-xs outline-none focus:border-gray-400 bg-gray-50"
                     />
                     <span className="text-gray-400 text-xs">đến</span>
                     <input
                         type="date"
                         value={to}
                         onChange={(e) => handleCustomDate("to", e.target.value)}
-                        className="border border-gray-200 rounded-md px-2 py-1 text-xs outline-none focus:border-gray-400"
+                        className="border border-gray-200 rounded-md px-2 py-1 text-xs outline-none focus:border-gray-400 bg-gray-50"
                     />
                 </div>
 
@@ -244,8 +231,8 @@ const SellerRevenuePage = () => {
                             key={g}
                             onClick={() => { setGroupBy(g); setActivePreset(-1); }}
                             className={`px-3 py-1.5 text-xs font-medium rounded-md border transition-colors ${groupBy === g
-                                    ? "bg-gray-900 text-white border-gray-900"
-                                    : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
+                                ? "bg-gray-900 text-white border-gray-900"
+                                : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
                                 }`}
                         >
                             {g === "day" ? "Ngày" : g === "week" ? "Tuần" : "Tháng"}
@@ -254,27 +241,10 @@ const SellerRevenuePage = () => {
                 </div>
             </div>
 
-            {/* Stat cards */}
-            {loadingOverview ? (
-                <div className="flex items-center justify-center py-10">
-                    <Loader2 className="animate-spin text-gray-400" size={28} />
-                </div>
-            ) : (
-                <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-                    {statCards.map((card, i) => (
-                        <div key={i} className="bg-white border border-gray-200 rounded-xl p-4">
-                            <div className={`w-9 h-9 rounded-lg ${card.bg} flex items-center justify-center mb-3`}>
-                                {card.icon}
-                            </div>
-                            <p className="text-xs text-gray-500 mb-1">{card.label}</p>
-                            <p className="text-xl font-bold text-gray-900">{card.value}</p>
-                        </div>
-                    ))}
-                </div>
-            )}
 
-            {/* Chart */}
-            <div className="bg-white border border-gray-200 rounded-xl p-6">
+
+            {/* Chart Area */}
+            <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
                 <div className="mb-6">
                     <h2 className="text-sm font-bold text-gray-800">Biểu đồ doanh thu</h2>
                     <p className="text-xs text-gray-400 mt-0.5">
@@ -324,14 +294,6 @@ const SellerRevenuePage = () => {
                                 fill="url(#revenueGradient)"
                                 dot={{ r: 3, fill: "#3b82f6", strokeWidth: 0 }}
                                 activeDot={{ r: 5, fill: "#3b82f6" }}
-                            />
-                            <Line
-                                type="monotone"
-                                dataKey="orders"
-                                stroke="#10b981"
-                                strokeWidth={1.5}
-                                dot={false}
-                                strokeDasharray="4 3"
                             />
                         </AreaChart>
                     </ResponsiveContainer>

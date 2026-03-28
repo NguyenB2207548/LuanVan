@@ -1,13 +1,15 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   Search, Package, Eye, Check, X, FileDown,
-  Clock, Truck, CircleCheck, CircleX, RefreshCw
+  Clock, Truck, CircleCheck, CircleX, RefreshCw,
+  DollarSign
 } from "lucide-react";
 import axiosClient from "@/api/axiosClient";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 import toast, { Toaster } from "react-hot-toast";
 import OrderDetailModal from "../../modals/OrderDetailModal";
+import StatCard from "@/components/common/StatCard";
 
 const BASE_URL = "http://localhost:3000";
 
@@ -46,6 +48,17 @@ interface Order {
   items: OrderItem[];
   user: { id: number; fullName: string; email: string; phoneNumber: string };
   shipper: { id: number; fullName: string; phoneNumber: string } | null;
+}
+
+interface OrderStats {
+  pending: number;
+  confirmed: number;
+  shipping: number;
+  success: number;
+  cancelled: number;
+  failed: number;
+  totalOrders: number;
+  revenue: number;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
@@ -92,13 +105,18 @@ const StatusBadge = ({ status }: { status: string }) => {
 
 const SellerOrderManager = () => {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [stats, setStats] = useState<OrderStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadingStats, setLoadingStats] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  useEffect(() => { fetchOrders(); }, []);
+  useEffect(() => {
+    fetchOrders();
+    fetchStats();
+  }, []);
 
   const fetchOrders = async () => {
     try {
@@ -112,6 +130,18 @@ const SellerOrderManager = () => {
     }
   };
 
+  const fetchStats = async () => {
+    try {
+      setLoadingStats(true);
+      const res = await axiosClient.get("/orders/seller/stats");
+      setStats(res.data);
+    } catch {
+      console.error("Không thể tải thống kê đơn hàng");
+    } finally {
+      setLoadingStats(false);
+    }
+  };
+
   const handleConfirmOrder = async (orderId: number, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!window.confirm("Xác nhận đơn hàng này?")) return;
@@ -120,6 +150,7 @@ const SellerOrderManager = () => {
       await axiosClient.patch(`/orders/${orderId}/seller-confirm`);
       toast.success("Xác nhận thành công", { id: t });
       fetchOrders();
+      fetchStats(); // Cập nhật lại stats
     } catch (err: any) {
       toast.error(err.response?.data?.message || "Xác nhận thất bại", { id: t });
     }
@@ -133,6 +164,7 @@ const SellerOrderManager = () => {
       await axiosClient.patch(`/orders/${orderId}/seller-cancel`);
       toast.success("Đã hủy đơn hàng", { id: t });
       fetchOrders();
+      fetchStats(); // Cập nhật lại stats
     } catch (err: any) {
       toast.error(err.response?.data?.message || "Hủy thất bại", { id: t });
     }
@@ -163,11 +195,10 @@ const SellerOrderManager = () => {
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold text-gray-900">Quản lý đơn hàng</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Theo dõi và xử lý đơn hàng từ khách hàng</p>
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={fetchOrders}
+            onClick={() => { fetchOrders(); fetchStats(); }}
             className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
             title="Làm mới"
           >
@@ -177,6 +208,34 @@ const SellerOrderManager = () => {
             <FileDown size={15} /> Xuất Excel
           </button>
         </div>
+      </div>
+
+      {/* STATS SECTION */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <StatCard
+          label="Doanh thu (VNĐ)"
+          value={stats?.revenue?.toLocaleString("vi-VN") || 0}
+          icon={<DollarSign />}
+          loading={loadingStats}
+        />
+        <StatCard
+          label="Chờ xác nhận"
+          value={stats?.pending || 0}
+          icon={<Clock />}
+          loading={loadingStats}
+        />
+        <StatCard
+          label="Đang giao hàng"
+          value={stats?.shipping || 0}
+          icon={<Truck />}
+          loading={loadingStats}
+        />
+        <StatCard
+          label="Đã hoàn thành"
+          value={stats?.success || 0}
+          icon={<CircleCheck />}
+          loading={loadingStats}
+        />
       </div>
 
       {/* Card chứa cả toolbar + table */}
@@ -265,20 +324,17 @@ const SellerOrderManager = () => {
                       className="hover:bg-gray-50/70 transition-colors cursor-pointer"
                       onClick={() => { setSelectedOrder(order); setIsModalOpen(true); }}
                     >
-                      {/* Mã đơn */}
                       <td className="px-5 py-4">
                         <span className="text-sm font-medium text-gray-900 font-mono">
                           {order.orderNumber.replace("ORD-", "")}
                         </span>
                       </td>
 
-                      {/* Khách hàng */}
                       <td className="px-5 py-4">
                         <p className="text-sm text-gray-900">{order.recipientName}</p>
                         <p className="text-xs text-gray-400 mt-0.5">{order.phoneNumber}</p>
                       </td>
 
-                      {/* Sản phẩm */}
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-2.5">
                           <div className="w-9 h-9 rounded-lg border border-gray-100 bg-gray-50 overflow-hidden shrink-0">
@@ -298,25 +354,21 @@ const SellerOrderManager = () => {
                         </div>
                       </td>
 
-                      {/* Trạng thái */}
                       <td className="px-5 py-4">
                         <StatusBadge status={order.status} />
                       </td>
 
-                      {/* Thanh toán */}
                       <td className="px-5 py-4">
                         <p className={`text-xs font-medium ${paymentCfg.color}`}>{paymentCfg.label}</p>
                         <p className="text-xs text-gray-400 mt-0.5">{order.paymentMethod}</p>
                       </td>
 
-                      {/* Tổng tiền */}
                       <td className="px-5 py-4 text-right">
                         <span className="text-sm font-semibold text-gray-900">
                           {Number(order.totalAmount).toLocaleString("vi-VN")}đ
                         </span>
                       </td>
 
-                      {/* Ngày đặt */}
                       <td className="px-5 py-4">
                         <p className="text-sm text-gray-600">
                           {format(new Date(order.createdAt), "dd/MM/yyyy", { locale: vi })}
@@ -326,7 +378,6 @@ const SellerOrderManager = () => {
                         </p>
                       </td>
 
-                      {/* Hành động */}
                       <td className="px-5 py-4">
                         <div className="flex items-center justify-end gap-1" onClick={e => e.stopPropagation()}>
                           {order.status === "pending" && (
@@ -364,7 +415,6 @@ const SellerOrderManager = () => {
           </table>
         </div>
 
-        {/* Footer */}
         {!loading && filtered.length > 0 && (
           <div className="px-5 py-3 border-t border-gray-100">
             <p className="text-xs text-gray-400">

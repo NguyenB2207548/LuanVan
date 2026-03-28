@@ -9,8 +9,7 @@ import {
   Get,
   ParseIntPipe,
   Query,
-  UseInterceptors,
-  UploadedFile,
+  Request,
   Delete,
 } from '@nestjs/common';
 import { DesignService } from './designs.service';
@@ -25,12 +24,13 @@ import { FileInterceptor } from '@nestjs/platform-express/multer/interceptors/fi
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { CreateArtworkDto } from './dto/create-artwork.dto';
+import { UpdateArtworkDto } from './dto/update-artwork.dto';
 
 @Controller('designs')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.SELLER)
 export class DesignController {
-  constructor(private readonly designService: DesignService) {}
+  constructor(private readonly designService: DesignService) { }
 
   // ======================= MOCKUP =========================
 
@@ -90,6 +90,32 @@ export class DesignController {
     return this.designService.createArtwork(req.user.id, dto);
   }
 
+  @Get('seller/artworks/stats')
+  @UseGuards(JwtAuthGuard)
+  async getStats(@Request() req) {
+    // req.user.id lấy từ token của Seller
+    return await this.designService.getSellerArtworkStats(req.user.id);
+  }
+
+  @Get('seller/artworks/:id')
+  @UseGuards(JwtAuthGuard)
+  async getArtworkDetail(@Param('id') id: number, @Request() req) {
+    // req.user.id là ID của Seller đang đăng nhập
+    return await this.designService.getArtworkById(id, req.user.id);
+  }
+
+  @Patch('seller/artworks/:id')
+  @UseGuards(JwtAuthGuard)
+  async updateArtwork(
+    @Param('id') id: number,
+    @Body() updateArtworkDto: UpdateArtworkDto,
+    @Request() req,
+  ) {
+    // req.user.id lấy từ JWT Token
+    return await this.designService.updateArtwork(id, req.user.id, updateArtworkDto);
+  }
+
+
   // ======================= DESIGN =========================
 
   @Post()
@@ -101,6 +127,12 @@ export class DesignController {
   @UseGuards(JwtAuthGuard)
   async getSellerDesignList(@Req() req: any) {
     return this.designService.getDesignsBySeller(req.user.id);
+  }
+
+  @Get('seller/designs/stats')
+  @UseGuards(JwtAuthGuard)
+  async getDesignStats(@Request() req) {
+    return await this.designService.getSellerDesignStats(req.user.id);
   }
 
   @Get('admin/all')

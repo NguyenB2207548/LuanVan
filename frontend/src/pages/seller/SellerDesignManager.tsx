@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Plus,
@@ -12,13 +12,16 @@ import {
   ExternalLink,
   Box,
   Maximize,
+  CheckCircle,
+  AlertCircle,
 } from "lucide-react";
 import axiosClient from "@/api/axiosClient";
 import { format } from "date-fns";
+import StatCard from "@/components/common/StatCard";
 
 const BASE_URL = "http://localhost:3000";
 
-// --- INTERFACES CẬP NHẬT THEO API THẬT ---
+// --- INTERFACES ---
 interface MergedDesign {
   id: number;
   designName: string;
@@ -43,16 +46,26 @@ interface MergedDesign {
   };
 }
 
+interface DesignStats {
+  total: number;
+  activeDesigns: number;
+  pendingDesigns: number;
+  designedProducts: number;
+}
+
 const SellerDesignManager = () => {
   const navigate = useNavigate();
   const [mergedDesigns, setMergedDesigns] = useState<MergedDesign[]>([]);
+  const [stats, setStats] = useState<DesignStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadingStats, setLoadingStats] = useState(true);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [searchTerm, setSearchTerm] = useState("");
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
   useEffect(() => {
     fetchMergedDesigns();
+    fetchStats();
   }, []);
 
   const fetchMergedDesigns = async () => {
@@ -67,12 +80,25 @@ const SellerDesignManager = () => {
     }
   };
 
+  const fetchStats = async () => {
+    try {
+      setLoadingStats(true);
+      const res = await axiosClient.get("/designs/seller/designs/stats");
+      setStats(res.data);
+    } catch (err) {
+      console.error("Lỗi khi tải thống kê thiết kế", err);
+    } finally {
+      setLoadingStats(false);
+    }
+  };
+
   const handleDelete = async (id: number, name: string) => {
     if (!window.confirm(`Xóa thiết kế "${name}"?`)) return;
     try {
       setDeletingId(id);
       await axiosClient.delete(`/designs/${id}`);
       setMergedDesigns((prev) => prev.filter((d) => d.id !== id));
+      fetchStats(); // Cập nhật lại stats sau khi xóa
     } catch (err) {
       alert("Không thể xóa thiết kế này.");
     } finally {
@@ -80,13 +106,10 @@ const SellerDesignManager = () => {
     }
   };
 
-  // --- HELPER: LẤY ẢNH ĐẠI DIỆN ---
   const getThumbnail = (design: MergedDesign) => {
     if (!design.product || !design.product.images) return null;
     const primaryImg = design.product.images.find((img) => img.isPrimary);
-    const displayImg = primaryImg
-      ? primaryImg.url
-      : design.product.images[0]?.url;
+    const displayImg = primaryImg ? primaryImg.url : design.product.images[0]?.url;
     return displayImg ? `${BASE_URL}${displayImg}` : null;
   };
 
@@ -104,14 +127,42 @@ const SellerDesignManager = () => {
         </h1>
         <button
           onClick={() => navigate("add")}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-medium text-sm rounded-md hover:bg-blue-700 transition-all"
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-medium text-sm rounded-md hover:bg-blue-700 transition-all shadow-sm"
         >
           <Plus size={16} /> Tạo thiết kế
         </button>
       </div>
 
+      {/* STATS SECTION */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <StatCard
+          label="Tổng thiết kế"
+          value={stats?.total || 0}
+          icon={<Layers />}
+          loading={loadingStats}
+        />
+        {/* <StatCard
+          label="Đã hoàn tất"
+          value={stats?.activeDesigns || 0}
+          icon={<CheckCircle />}
+          loading={loadingStats}
+        />
+        <StatCard
+          label="Chưa có Artwork"
+          value={stats?.pendingDesigns || 0}
+          icon={<AlertCircle />}
+          loading={loadingStats}
+        />
+        <StatCard
+          label="Độ phủ sản phẩm"
+          value={stats?.designedProducts || 0}
+          icon={<Box />}
+          loading={loadingStats}
+        /> */}
+      </div>
+
       {/* TOOLBAR */}
-      <div className="bg-white p-4 border border-gray-200 rounded-lg mb-6 flex flex-col md:flex-row items-center justify-between gap-4">
+      <div className="bg-white p-4 border border-gray-200 rounded-lg mb-6 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm">
         <div className="relative w-full max-w-md">
           <Search
             className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
@@ -120,7 +171,7 @@ const SellerDesignManager = () => {
           <input
             type="text"
             placeholder="Tìm theo tên thiết kế..."
-            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-blue-500 outline-none"
+            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-blue-500 outline-none transition-all"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -128,13 +179,13 @@ const SellerDesignManager = () => {
         <div className="flex border border-gray-300 rounded-md overflow-hidden bg-white">
           <button
             onClick={() => setViewMode("grid")}
-            className={`p-2 ${viewMode === "grid" ? "bg-blue-50 text-blue-600" : "text-gray-400"}`}
+            className={`p-2 transition-colors ${viewMode === "grid" ? "bg-blue-50 text-blue-600" : "text-gray-400 hover:text-gray-600"}`}
           >
             <LayoutGrid size={18} />
           </button>
           <button
             onClick={() => setViewMode("list")}
-            className={`p-2 border-l border-gray-300 ${viewMode === "list" ? "bg-blue-50 text-blue-600" : "text-gray-400"}`}
+            className={`p-2 border-l border-gray-300 transition-colors ${viewMode === "list" ? "bg-blue-50 text-blue-600" : "text-gray-400 hover:text-gray-600"}`}
           >
             <ListIcon size={18} />
           </button>
@@ -143,11 +194,12 @@ const SellerDesignManager = () => {
 
       {/* CONTENT */}
       {loading ? (
-        <div className="p-12 text-center text-gray-500">
-          Đang tải dữ liệu...
+        <div className="p-12 text-center text-gray-500 flex flex-col items-center gap-3 bg-white border border-gray-200 rounded-lg">
+          <div className="animate-spin w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full" />
+          <span className="text-sm font-medium">Đang tải dữ liệu...</span>
         </div>
       ) : filteredDesigns.length === 0 ? (
-        <div className="bg-white border border-gray-200 rounded-lg p-12 text-center">
+        <div className="bg-white border border-gray-200 rounded-lg p-12 text-center shadow-sm">
           <ImageIcon size={48} className="mx-auto text-gray-200 mb-2" />
           <p className="text-gray-500 text-sm">Chưa có thiết kế nào phù hợp.</p>
         </div>
@@ -172,24 +224,22 @@ const SellerDesignManager = () => {
                     <ImageIcon className="text-gray-200" size={40} />
                   )}
 
-                  {/* Badge Specs */}
                   <div className="absolute bottom-3 left-3 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-md text-[10px] font-bold text-gray-700 border border-gray-100 flex items-center gap-1">
                     <Maximize size={10} className="text-blue-600" />
                     {printArea.width}x{printArea.height}px
                   </div>
 
-                  {/* Actions Overlay */}
                   <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
                     <button
                       onClick={() => thumb && window.open(thumb, "_blank")}
-                      className="p-3 bg-white rounded-full shadow-lg text-gray-700 hover:text-blue-600"
+                      className="p-3 bg-white rounded-full shadow-lg text-gray-700 hover:text-blue-600 transition-transform hover:scale-110"
                     >
                       <ExternalLink size={18} />
                     </button>
                     <button
                       onClick={() => handleDelete(design.id, design.designName)}
                       disabled={deletingId === design.id}
-                      className="p-3 bg-white rounded-full shadow-lg text-red-500 hover:text-red-700"
+                      className="p-3 bg-white rounded-full shadow-lg text-red-500 hover:text-red-700 transition-transform hover:scale-110"
                     >
                       {deletingId === design.id ? (
                         <div className="animate-spin w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full" />
@@ -200,7 +250,7 @@ const SellerDesignManager = () => {
                   </div>
                 </div>
 
-                <div className="p-4 flex flex-col flex-1">
+                <div className="p-4 flex flex-col flex-1 bg-white">
                   <h3 className="text-sm font-bold text-gray-900 line-clamp-2 mb-2 min-h-[40px]">
                     {design.designName}
                   </h3>
@@ -228,27 +278,19 @@ const SellerDesignManager = () => {
         <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-widest">
-                  Sản phẩm
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-widest">
-                  Thông số in
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-widest">
-                  Ngày gộp
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-widest">
-                  Thao tác
-                </th>
+              <tr className="text-left text-xs font-bold text-gray-500 uppercase tracking-widest">
+                <th className="px-6 py-4">Sản phẩm</th>
+                <th className="px-6 py-4">Thông số in</th>
+                <th className="px-6 py-4">Ngày gộp</th>
+                <th className="px-6 py-4 text-right">Thao tác</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="divide-y divide-gray-200 bg-white">
               {filteredDesigns.map((design) => {
                 const thumb = getThumbnail(design);
                 const printArea = design.artwork.layersJson.printArea;
                 return (
-                  <tr key={design.id} className="hover:bg-gray-50">
+                  <tr key={design.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 flex items-center gap-3">
                       <div className="w-12 h-12 rounded border border-gray-100 bg-gray-50 flex items-center justify-center overflow-hidden">
                         {thumb ? (

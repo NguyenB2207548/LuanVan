@@ -54,6 +54,7 @@ import ShipperOrderManager from "./pages/shipper/ShipperOrderManager";
 import ShipperMyOrders from "./pages/shipper/ShipperMyOrders";
 import ShipperSettings from "./pages/shipper/ShipperSettings";
 import SellerRevenuePage from "./pages/seller/SellerRevenuePage";
+import EditArtworkPage from "./pages/seller/EditArtworkPage";
 
 function App() {
   return (
@@ -108,7 +109,7 @@ function App() {
                 <Route path="products/edit/:id" element={<EditProductPage />} />
                 <Route path="artworks" element={<SellerArtworkManager />} />
                 <Route path="artworks/add" element={<AddArtworkPage />} />
-                <Route path="artworks/edit/:id" element={<AddArtworkPage />} />
+                <Route path="artworks/edit/:id" element={<EditArtworkPage />} />
                 <Route path="designs" element={<SellerDesignManager />} />
                 <Route path="designs/add" element={<AddDesignPage />} />
                 <Route path="orders" element={<SellerOrderManager />} />

@@ -17,6 +17,7 @@ import { UpdateMockupDto } from './dto/update-mockup.dto';
 import { CreatePrintAreaDto } from './dto/create-print-area.dto';
 import { User, UserRole } from '../users/entities/user.entity';
 import { CreateArtworkDto } from './dto/create-artwork.dto';
+import { UpdateArtworkDto } from './dto/update-artwork.dto';
 
 @Injectable()
 export class DesignService {
@@ -26,7 +27,7 @@ export class DesignService {
     @InjectRepository(Variant) private variantRepo: Repository<Variant>,
     @InjectRepository(Design) private designRepo: Repository<Design>,
     @InjectRepository(Artwork) private artworkRepo: Repository<Artwork>, // thêm dòng này
-  ) {}
+  ) { }
 
   // ======================= MOCKUP =========================
   async updateVariantMockup(
@@ -223,6 +224,96 @@ export class DesignService {
     }
   }
 
+  async getArtworkById(id: number, sellerId: number) {
+    // 1. Tìm Artwork và kiểm tra quyền sở hữu qua seller_id
+    // Sử dụng relations để lấy luôn thông tin Mockup và PrintArea nếu cần hiển thị trên Canvas
+    const artwork = await this.artworkRepo.findOne({
+      where: {
+        id: id,
+        seller: { id: sellerId } // Khớp với @JoinColumn({ name: 'seller_id' })
+      },
+      // Nếu thiết kế của ông yêu cầu load cả Mockup/PrintArea từ bảng khác:
+      // relations: ['designs', 'designs.product', 'designs.product.mockup', 'designs.product.mockup.printArea']
+    });
+
+    if (!artwork) {
+      throw new NotFoundException(
+        `Không tìm thấy Artwork ID ${id} hoặc bạn không có quyền chỉnh sửa thiết kế này.`
+      );
+    }
+
+    // 2. Format lại dữ liệu trả về cho Frontend
+    // Vì layersJson trong Entity Artwork của ông là kiểu 'json', 
+    // TypeORM sẽ tự động parse thành Object/Array, không cần JSON.parse nữa.
+
+    return {
+      id: artwork.id,
+      artworkName: artwork.artworkName,
+      layers: artwork.layersJson?.details || [], // Lấy mảng layers từ object chi tiết
+      mockupUrl: artwork.layersJson?.mockup || '', // URL ảnh nền mockup
+      printArea: artwork.layersJson?.printArea || {
+        x: 0,
+        y: 0,
+        width: 0,
+        height: 0,
+        visible: false
+      },
+      updatedAt: artwork.updatedAt
+    };
+  }
+
+  async updateArtwork(id: number, sellerId: number, updateDto: UpdateArtworkDto) {
+    const artwork = await this.artworkRepo.findOne({
+      where: {
+        id: id,
+        seller: { id: sellerId }
+      },
+    });
+
+    if (!artwork) {
+      throw new NotFoundException(`Không tìm thấy Artwork ID ${id} hoặc bạn không có quyền sửa.`);
+    }
+
+    if (updateDto.artworkName) {
+      artwork.artworkName = updateDto.artworkName;
+    }
+
+    if (updateDto.layersJson) {
+      artwork.layersJson = updateDto.layersJson;
+    }
+
+    const updatedArtwork = await this.artworkRepo.save(artwork);
+
+    return {
+      message: 'Cập nhật thiết kế thành công',
+      id: updatedArtwork.id,
+      artworkName: updatedArtwork.artworkName
+    };
+  }
+
+  async getSellerArtworkStats(sellerId: number) {
+    const [total, usedInDesign] = await Promise.all([
+      this.artworkRepo.createQueryBuilder('artwork')
+        .where('artwork.seller = :sellerId', { sellerId })
+        .getCount(),
+
+      this.artworkRepo.createQueryBuilder('artwork')
+        .innerJoin('artwork.designs', 'design')
+        .where('artwork.seller = :sellerId', { sellerId })
+        .distinct(true)
+        .getCount(),
+    ]);
+
+
+    const unused = total - usedInDesign;
+
+    return {
+      total,
+      usedInDesign,
+      unused,
+    };
+  }
+
   // ======================= DESIGN =========================
 
   async createDesign(sellerId: number, dto: CreateDesignDto) {
@@ -359,5 +450,36 @@ export class DesignService {
     } finally {
       await queryRunner.release();
     }
+  }
+
+  async getSellerDesignStats(sellerId: number) {
+    const [total, linkedToArtwork, attachedToProduct] = await Promise.all([
+      // 1. Tổng số bản ghi Design của seller (thông qua product)
+      this.designRepo.createQueryBuilder('design')
+        .innerJoin('design.product', 'product')
+        .where('product.seller = :sellerId', { sellerId })
+        .getCount(),
+
+      // 2. Số Design có gắn Artwork (đã được thiết kế)
+      this.designRepo.createQueryBuilder('design')
+        .innerJoin('design.product', 'product')
+        .where('product.seller = :sellerId', { sellerId })
+        .andWhere('design.artwork IS NOT NULL')
+        .getCount(),
+
+      // 3. Đếm số sản phẩm độc nhất đã có thiết kế
+      this.designRepo.createQueryBuilder('design')
+        .innerJoin('design.product', 'product')
+        .where('product.seller = :sellerId', { sellerId })
+        .select('DISTINCT(design.product_id)')
+        .getCount(),
+    ]);
+
+    return {
+      total,              // Tổng số cấu hình thiết kế
+      activeDesigns: linkedToArtwork, // Thiết kế đã hoàn tất (có Artwork)
+      pendingDesigns: total - linkedToArtwork, // Thiết kế chưa có Artwork (cần xử lý)
+      designedProducts: attachedToProduct // Số sản phẩm đã có ít nhất 1 thiết kế
+    };
   }
 }

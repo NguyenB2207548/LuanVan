@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Search,
@@ -8,10 +8,12 @@ import {
   Palette,
   Calendar,
   Edit,
+  CheckCircle,
+  FileEdit,
+  Clock
 } from "lucide-react";
 import axiosClient from "@/api/axiosClient";
-
-const BaseURL = "http://localhost:3000";
+import StatCard from "@/components/common/StatCard";
 
 interface Artwork {
   id: number;
@@ -20,17 +22,21 @@ interface Artwork {
   thumbnailUrl?: string;
 }
 
+interface ArtworkStats {
+  total: number;
+  usedInDesign: number;
+  unused: number;
+}
+
 const SellerArtworkManager = () => {
   const [artworks, setArtworks] = useState<Artwork[]>([]);
+  const [stats, setStats] = useState<ArtworkStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadingStats, setLoadingStats] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const navigate = useNavigate();
-
-  useEffect(() => {
-    fetchArtworks();
-  }, []);
 
   const fetchArtworks = async () => {
     try {
@@ -44,6 +50,23 @@ const SellerArtworkManager = () => {
     }
   };
 
+  const fetchStats = async () => {
+    try {
+      setLoadingStats(true);
+      const res = await axiosClient.get("designs/seller/artworks/stats");
+      setStats(res.data);
+    } catch (err) {
+      console.error("Lỗi fetch stats", err);
+    } finally {
+      setLoadingStats(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchArtworks();
+    fetchStats();
+  }, []);
+
   const handleDelete = async (id: number, name: string) => {
     const confirmDelete = window.confirm(
       `Bạn có chắc chắn muốn xóa bản vẽ "${name || "không tên"}"?`,
@@ -54,6 +77,7 @@ const SellerArtworkManager = () => {
       setDeletingId(id);
       await axiosClient.delete(`designs/artworks/${id}`);
       setArtworks((prev) => prev.filter((a) => a.id !== id));
+      fetchStats(); // Cập nhật lại thống kê sau khi xóa
     } catch (err) {
       alert("Không thể xóa thiết kế này.");
     } finally {
@@ -85,8 +109,31 @@ const SellerArtworkManager = () => {
         </button>
       </div>
 
+      {/* STATS SECTION */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <StatCard
+          label="Tổng Artwork"
+          value={stats?.total || 0}
+          icon={<Palette />}
+          loading={loadingStats}
+        />
+        <StatCard
+          label="Đã liên kết sản phẩm"
+          value={stats?.usedInDesign || 0}
+          icon={<CheckCircle />}
+          loading={loadingStats}
+        />
+        <StatCard
+          label="Bản nháp"
+          value={stats?.unused || 0}
+          icon={<FileEdit />}
+          loading={loadingStats}
+        />
+
+      </div>
+
       {/* FILTER TOOLBAR */}
-      <div className="bg-white p-4 border border-gray-200 rounded-lg mb-6">
+      <div className="bg-white p-4 border border-gray-200 rounded-lg mb-6 shadow-sm">
         <div className="relative w-full max-w-md">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <Search className="text-gray-400" size={16} />
@@ -101,29 +148,32 @@ const SellerArtworkManager = () => {
         </div>
       </div>
 
-      {/* CONTENT - TABLE ONLY */}
-      {loading ? (
-        <div className="bg-white border border-gray-200 rounded-lg p-12 text-center text-gray-500 text-sm italic">
-          Đang tải danh sách bản vẽ...
-        </div>
-      ) : filteredArtworks.length === 0 ? (
-        <div className="bg-white border border-gray-200 rounded-lg p-12 text-center">
-          <ImageIcon size={48} className="mx-auto text-gray-200 mb-4" />
-          <p className="text-gray-500 text-sm">
-            Không tìm thấy thiết kế nào trong thư viện.
-          </p>
-        </div>
-      ) : (
-        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+      {/* CONTENT - TABLE */}
+      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+        {loading ? (
+          <div className="p-12 text-center text-gray-500 text-sm italic">
+            <div className="flex justify-center items-center gap-2">
+              <div className="animate-spin w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+              Đang tải danh sách bản vẽ...
+            </div>
+          </div>
+        ) : filteredArtworks.length === 0 ? (
+          <div className="p-12 text-center">
+            <ImageIcon size={48} className="mx-auto text-gray-200 mb-4" />
+            <p className="text-gray-500 text-sm">
+              Không tìm thấy thiết kế nào trong thư viện.
+            </p>
+          </div>
+        ) : (
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
-              <tr className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              <tr className="text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
                 <th className="px-6 py-4">Artwork</th>
                 <th className="px-6 py-4">Ngày tạo</th>
                 <th className="px-6 py-4 text-right">Hành động</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200 text-sm">
+            <tbody className="divide-y divide-gray-200 text-sm bg-white">
               {filteredArtworks.map((art) => (
                 <tr key={art.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4">
@@ -168,8 +218,8 @@ const SellerArtworkManager = () => {
               ))}
             </tbody>
           </table>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };

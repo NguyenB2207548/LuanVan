@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { Save, Layers, ImageIcon, Eye, EyeOff, Move, FileCode, Sparkles } from "lucide-react";
+import { Save, Layers, ImageIcon, Eye, EyeOff, Move, FileCode, Sparkles, RefreshCw } from "lucide-react";
 import AssetManagerModal from "../admin/AssetManagerModal";
 import AddLayerButtons from "./AddLayerButtons";
 import LayerListManager from "./LayerListManager";
@@ -24,10 +24,11 @@ interface DesignerControlPanelProps {
   setActiveFilter: (filter: string) => void;
   onSave: (layersData: any) => Promise<void>;
   isExtractingPsd: boolean;
-  setIsExtractingPsd: (loading: boolean) => void; // Thêm prop này để control loading từ bên ngoài nếu cần
+  setIsExtractingPsd: (loading: boolean) => void;
   virtualPrintArea: any;
   setVirtualPrintArea: (area: any) => void;
   onOpenBgSelect: () => void;
+  isEditMode?: boolean; // Thêm prop xác định chế độ chỉnh sửa
 }
 
 const DesignerControlPanel: React.FC<DesignerControlPanelProps> = ({
@@ -48,6 +49,7 @@ const DesignerControlPanel: React.FC<DesignerControlPanelProps> = ({
   virtualPrintArea,
   setVirtualPrintArea,
   onOpenBgSelect,
+  isEditMode = false, // Mặc định là false
 }) => {
   const selectedLayer = layers.find((l) => l.id === selectedId);
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
@@ -72,21 +74,17 @@ const DesignerControlPanel: React.FC<DesignerControlPanelProps> = ({
 
     setIsExtractingPsd(true);
     try {
-      // Gọi tới endpoint bóc tách PSD của bạn
       const response = await axiosClient.post("/psd/extract", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      console.log("PSD Data:", response.data);
-
       const { mockup, details, printArea: psdPrintArea } = response.data;
 
-      // Cập nhật các trạng thái từ file PSD
       if (mockup) setBackgroundUrl(mockup);
       if (psdPrintArea) setVirtualPrintArea(psdPrintArea);
       if (details && details.length > 0) {
         setLayers(details);
-        setSelectedId(details[details.length - 1].id); // Chọn layer trên cùng
+        setSelectedId(details[details.length - 1].id);
       }
 
       alert("Bóc tách PSD thành công!");
@@ -95,18 +93,12 @@ const DesignerControlPanel: React.FC<DesignerControlPanelProps> = ({
       alert("Lỗi khi bóc tách file PSD. Vui lòng kiểm tra định dạng.");
     } finally {
       setIsExtractingPsd(false);
-      e.target.value = ""; // Reset input
+      e.target.value = "";
     }
   };
 
   const handleApplyAiLayers = (aiLayers: any[]) => {
-    // Option 1: Ghi đè toàn bộ layer cũ
-    // setLayers(aiLayers); 
-
-    // Option 2: Thêm nối tiếp vào layer hiện có
     setLayers(prev => [...prev, ...aiLayers]);
-
-    // Thông thường layer cuối cùng của AI là background
     if (aiLayers.length > 0) {
       setSelectedId(aiLayers[aiLayers.length - 1].id);
     }
@@ -169,15 +161,13 @@ const DesignerControlPanel: React.FC<DesignerControlPanelProps> = ({
 
   return (
     <div className="w-[320px] bg-white h-full flex flex-col border-l border-gray-300 relative text-gray-800">
-      {/* HEADER - Sharp edges */}
       <div className="p-3 border-b border-gray-300 bg-gray-100 flex justify-between items-center">
         <h1 className="text-xs font-bold uppercase flex items-center gap-2">
-          <Layers size={16} /> Designer Panel
+          <Layers size={16} /> {isEditMode ? "Edit Artwork" : "Designer Panel"}
         </h1>
       </div>
 
       <div className="flex-1 overflow-y-auto p-3 space-y-5 custom-scrollbar pb-20">
-        {/* BASIC INFO SECTION */}
         <section className="space-y-4">
           <div className="space-y-1">
             <label className="text-[11px] font-bold text-gray-600 uppercase">
@@ -190,7 +180,6 @@ const DesignerControlPanel: React.FC<DesignerControlPanelProps> = ({
             />
           </div>
 
-          {/* Hidden PSD Input */}
           <input
             id="hidden-psd-input"
             type="file"
@@ -200,7 +189,6 @@ const DesignerControlPanel: React.FC<DesignerControlPanelProps> = ({
           />
 
           <div className="flex gap-2 w-full">
-            {/* Nút Import PSD */}
             <button
               onClick={() => document.getElementById("hidden-psd-input")?.click()}
               disabled={isExtractingPsd}
@@ -217,7 +205,6 @@ const DesignerControlPanel: React.FC<DesignerControlPanelProps> = ({
               )}
             </button>
 
-            {/* Nút AI Layer Tool */}
             <button
               onClick={() => setIsAiModalOpen(true)}
               className="flex-1 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-[10px] font-bold uppercase rounded-sm hover:from-purple-700 hover:to-indigo-700 transition-all flex items-center justify-center gap-2 shadow-sm"
@@ -225,7 +212,7 @@ const DesignerControlPanel: React.FC<DesignerControlPanelProps> = ({
               <Sparkles size={14} /> AI Tool
             </button>
           </div>
-          {/* MOCKUP AREA - Minimal radius */}
+
           <div className="space-y-1">
             <label className="text-[11px] font-bold text-gray-600 uppercase">
               Mockup
@@ -251,7 +238,6 @@ const DesignerControlPanel: React.FC<DesignerControlPanelProps> = ({
             </div>
           </div>
 
-          {/* PRINT AREA - Clean table style */}
           <div className="p-3 border border-gray-300 bg-white space-y-3">
             <div className="flex justify-between items-center border-b border-gray-100 pb-2">
               <label className="text-[11px] font-bold uppercase flex items-center gap-2">
@@ -357,13 +343,16 @@ const DesignerControlPanel: React.FC<DesignerControlPanelProps> = ({
         )}
       </div>
 
-      {/* SAVE BUTTON - Solid and sharp */}
       <div className="p-3 border-t border-gray-300 bg-gray-100 absolute bottom-0 w-full">
         <button
           onClick={handleSaveDesign}
-          className="w-full bg-blue-700 text-white py-2.5 rounded-sm font-bold text-xs uppercase hover:bg-blue-800 transition-colors"
+          className={`w-full ${isEditMode ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-blue-700 hover:bg-blue-800'} text-white py-2.5 rounded-sm font-bold text-xs uppercase transition-colors`}
         >
-          <Save size={16} className="inline mr-2" /> Save Design
+          {isEditMode ? (
+            <><RefreshCw size={16} className="inline mr-2" /> Update Design</>
+          ) : (
+            <><Save size={16} className="inline mr-2" /> Save Design</>
+          )}
         </button>
       </div>
 
