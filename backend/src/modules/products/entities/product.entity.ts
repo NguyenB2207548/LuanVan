@@ -34,7 +34,7 @@ export class Product {
 
   @Column({
     type: 'enum',
-    enum: ['active', 'inactive', 'out_of_stock'],
+    enum: ['active', 'inactive', 'out_of_stock', 'banned'],
     default: 'active',
   })
   status: string;

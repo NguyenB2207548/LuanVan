@@ -23,7 +23,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/entities/user.entity';
 
 @Controller('orders')
-@UseGuards(JwtAuthGuard, RolesGuard) // Áp dụng bảo vệ cho toàn bộ controller
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class OrdersController {
   exportService: any;
   constructor(private readonly ordersService: OrdersService) { }
@@ -39,12 +39,6 @@ export class OrdersController {
       createOrderDto,
     );
   }
-
-  // @Get('my-orders')
-  // @Roles(UserRole.USER)
-  // getMyOrders(@Request() req) {
-  //   return this.ordersService.getOrdersByRole('user', req.user.id);
-  // }
 
   @Get('my-orders')
   @Roles(UserRole.USER)
@@ -76,6 +70,13 @@ export class OrdersController {
     return this.ordersService.sellerConfirmOrder(orderId, req.user.id);
   }
 
+  @Get('seller/stats')
+  @UseGuards(JwtAuthGuard)
+  async getOrderStats(@Request() req) {
+    // req.user.id lấy từ JWT của Seller
+    return await this.ordersService.getSellerOrderStats(req.user.id);
+  }
+
   // --- SHIPPER ---
 
   @Get('shipper/available')
@@ -102,7 +103,6 @@ export class OrdersController {
     return this.ordersService.shipperCompleteOrder(orderId, req.user.id);
   }
 
-
   @Patch('shipper/:id/fail')
   @Roles(UserRole.SHIPPER)
   async failOrder(
@@ -113,18 +113,25 @@ export class OrdersController {
     return this.ordersService.shipperFailOrder(orderId, req.user.id, reason);
   }
 
-  @Get('seller/stats')
-  @UseGuards(JwtAuthGuard)
-  async getOrderStats(@Request() req) {
-    // req.user.id lấy từ JWT của Seller
-    return await this.ordersService.getSellerOrderStats(req.user.id);
+  @Get('shipper/history')
+  @Roles(UserRole.SHIPPER)
+  getShipperHistory(
+    @Request() req,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.ordersService.getShipperHistory(
+      req.user.id,
+      page ? +page : 1,
+      limit ? +limit : 10,
+    );
   }
 
-
-  // @Get(':id')
-  // getOrderById(@Param('id', ParseIntPipe) orderId: number) {
-  //   return this.ordersService.getOrderById(orderId);
-  // }
+  @Get('shipper/stats')
+  @Roles(UserRole.SHIPPER)
+  getShipperStats(@Request() req) {
+    return this.ordersService.getShipperStats(req.user.id);
+  }
 
   @Get(':id')
   @UseGuards(JwtAuthGuard)
@@ -182,5 +189,34 @@ export class OrdersController {
       `attachment; filename=print-file-${orderItemId}.png`,
     );
     res.send(imageBuffer);
+  }
+
+  // ADMIN
+  @Get('admin/stats')
+  @Roles(UserRole.ADMIN) // Chỉ Admin mới được xem
+  async getAdminStats() {
+    return await this.ordersService.getAdminGlobalStats();
+  }
+
+  // API lấy danh sách đơn hàng cho Admin
+  @Get('admin/all')
+  @Roles(UserRole.ADMIN)
+  async getAllOrdersAdmin(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+    @Query('status') status?: string,
+    @Query('search') search?: string,
+  ) {
+    return this.ordersService.findAllOrdersAdmin(page, limit, status, search);
+  }
+
+  // API Admin can thiệp trạng thái đơn
+  @Patch('admin/:id/force-update-status')
+  @Roles(UserRole.ADMIN)
+  async forceUpdateStatus(
+    @Param('id', ParseIntPipe) id: number,
+    @Body('status') status: string,
+  ) {
+    return this.ordersService.adminForceUpdateStatus(id, status);
   }
 }

@@ -57,6 +57,10 @@ import SellerRevenuePage from "./pages/seller/SellerRevenuePage";
 import EditArtworkPage from "./pages/seller/EditArtworkPage";
 import EditDesignPage from "./pages/seller/EditDesignPage";
 import DashboardSeller from "./pages/seller/DashboardSeller";
+import ShipperHistoryPage from "./pages/shipper/ShipperHistoryPage";
+import DashboardShipper from "./pages/shipper/DashboardShipper";
+import AdminProductManager from "./pages/admin/AdminProductManager";
+import AdminOrderManagement from "./pages/admin/AdminOrderManagement";
 
 function App() {
   return (
@@ -98,6 +102,8 @@ function App() {
                 <Route path="categories/add" element={<CategoryEditorPage />} />
                 <Route path="categories/edit/:id" element={<CategoryEditorPage />} />
                 <Route path="attributes" element={<AttributeManagementPage />} />
+                <Route path="products" element={<AdminProductManager />} />
+                <Route path="orders" element={<AdminOrderManagement />} />
               </Route>
             </Route>
 
@@ -127,10 +133,10 @@ function App() {
             <Route element={<ProtectedRoute allowedRoles={["shipper"]} />}>
               <Route path="/shipper" element={<ShipperLayout />}>
                 <Route index element={<Navigate to="orders" replace />} />
-                <Route path="dashboard" element={<div>Dashboard Shipper</div>} />
+                <Route path="dashboard" element={<DashboardShipper />} />
                 <Route path="orders" element={<ShipperOrderManager />} />
                 <Route path="my-orders" element={<ShipperMyOrders />} />
-                <Route path="history" element={<div>Lịch sử giao hàng</div>} />
+                <Route path="history" element={<ShipperHistoryPage />} />
                 <Route path="settings" element={<ShipperSettings />} />
               </Route>
             </Route>

@@ -59,4 +59,11 @@ export class ApprovalController {
   async reject(@Param('id') id: number) {
     return this.approvalService.updateStatus(id, RequestStatus.REJECTED);
   }
+
+  @Get('admin/stats')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  async getStats() {
+    return await this.approvalService.getApprovalStats();
+  }
 }

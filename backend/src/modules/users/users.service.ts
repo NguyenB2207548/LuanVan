@@ -71,37 +71,6 @@ export class UsersService {
     return await this.userRepository.findOne({ where: { email } });
   }
 
-  // Vô hiệu hóa người dùng
-  async deactivate(id: number) {
-    const user = await this.findOne(id);
-    if (!user) {
-      throw new NotFoundException('Không tìm thấy người dùng để vô hiệu hóa.');
-    }
-
-    if (!user.isActive) {
-      throw new BadRequestException(
-        'Tài khoản này đã bị vô hiệu hóa từ trước.',
-      );
-    }
-
-    await this.userRepository.update(id, { isActive: false });
-    return { message: `Tài khoản ${user.email} đã được vô hiệu hóa.` };
-  }
-
-  // Khôi phục người dùng
-  async activate(id: number) {
-    const user = await this.findOne(id);
-    if (!user) {
-      throw new NotFoundException('Không tìm thấy người dùng để khôi phục.');
-    }
-
-    if (user.isActive) {
-      throw new BadRequestException('Tài khoản này hiện đang hoạt động.');
-    }
-
-    await this.userRepository.update(id, { isActive: true });
-    return { message: `Tài khoản ${user.email} đã được khôi phục thành công.` };
-  }
 
   async changePassword(id: number, dto: ChangePasswordDto) {
     const user = await this.userRepository.findOne({ where: { id } });
@@ -191,6 +160,67 @@ export class UsersService {
     Object.assign(profile, otherData);
 
     return await this.shipperRepository.save(profile);
+  }
+
+  async getUserStats() {
+    const [total, active, inactive, rolesCount] = await Promise.all([
+      // 1. Tổng số người dùng
+      this.userRepository.count(),
+
+      // 2. Tài khoản đang hoạt động
+      this.userRepository.count({ where: { isActive: true } }),
+
+      // 3. Tài khoản bị vô hiệu hóa
+      this.userRepository.count({ where: { isActive: false } }),
+
+      // 4. Thống kê số lượng theo vai trò (Role)
+      // Giả sử ông dùng trường role là số (0: user/admin, 1: seller, 2: shipper...) 
+      // hoặc string. Tui sẽ dùng query builder để group cho linh hoạt:
+      this.userRepository
+        .createQueryBuilder('user')
+        .select('user.role', 'role')
+        .addSelect('COUNT(user.id)', 'count')
+        .groupBy('user.role')
+        .getRawMany(),
+    ]);
+
+    return {
+      total,
+      active,
+      inactive,
+      roles: rolesCount,
+    };
+  }
+
+  // Vô hiệu hóa người dùng (Admin call)
+  async deactivate(id: number) {
+    const user = await this.userRepository.findOne({ where: { id } });
+    if (!user) {
+      throw new NotFoundException('Người dùng không tồn tại.');
+    }
+
+    // Không cho phép Admin tự khóa chính mình (Bảo mật cơ bản)
+    // if (user.role === 'admin') throw new BadRequestException('Không thể khóa tài khoản Admin.');
+
+    await this.userRepository.update(id, { isActive: false });
+    return {
+      success: true,
+      message: `Đã khóa tài khoản ${user.email} thành công.`
+    };
+  }
+
+  // Khôi phục người dùng (Admin call)
+  async activate(id: number) {
+    const user = await this.userRepository.findOne({ where: { id } });
+    if (!user) {
+      throw new NotFoundException('Người dùng không tồn tại.');
+    }
+
+    await this.userRepository.update(id, { isActive: true });
+    return {
+      success: true,
+      message: `Tài khoản ${user.email} đã được mở khóa.`
+    };
   }
 
 }

@@ -15,7 +15,7 @@ export class CategoriesService {
   constructor(
     @InjectRepository(Category)
     private categoryRepository: Repository<Category>,
-  ) {}
+  ) { }
 
   async findAll(): Promise<Category[]> {
     return this.categoryRepository.find();
@@ -83,5 +83,32 @@ export class CategoriesService {
     }
 
     await this.categoryRepository.delete(id);
+  }
+
+  async getCategoryStats() {
+    const stats = await this.categoryRepository
+      .createQueryBuilder('category')
+      .leftJoin('category.products', 'product') // Giả sử quan hệ trong Entity là 'products'
+      .select('category.id', 'id')
+      .addSelect('category.categoryName', 'name')
+      .addSelect('COUNT(product.id)', 'productCount')
+      .groupBy('category.id')
+      .getRawMany();
+
+    // Tính toán thêm tổng số danh mục và danh mục "hot" (nhiều SP nhất)
+    const totalCategories = stats.length;
+    const totalProductsMapped = stats.reduce((sum, item) => sum + parseInt(item.productCount), 0);
+    const mostPopulated = [...stats].sort((a, b) => b.productCount - a.productCount)[0];
+
+    return {
+      total: totalCategories,
+      totalProductsMapped,
+      mostPopulated: mostPopulated || null,
+      details: stats.map(s => ({
+        id: s.id,
+        name: s.name,
+        productCount: parseInt(s.productCount),
+      })),
+    };
   }
 }

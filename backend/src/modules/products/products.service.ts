@@ -158,7 +158,7 @@ export class ProductsService {
       .leftJoinAndSelect('variant.mockup', 'variantMockup')
       .leftJoinAndSelect('variantMockup.printAreas', 'variantPrintArea')
 
-      .where('product.sellerId = :sellerId', { sellerId })
+      .where('product.seller = :sellerId', { sellerId })
       .getMany();
   }
 
@@ -637,5 +637,109 @@ export class ProductsService {
     ]);
 
     return { total, active, outOfStock };
+  }
+
+  // ADMIN
+  async findAllByAdmin(page: number, limit: number, status?: string, sellerId?: number) {
+    const skip = (page - 1) * limit;
+    const queryBuilder = this.productRepository.createQueryBuilder('product')
+      .leftJoinAndSelect('product.seller', 'seller')
+      .leftJoinAndSelect('product.images', 'image', 'image.isPrimary = :isPrimary', { isPrimary: true })
+      .leftJoinAndSelect('product.categories', 'category')
+      .select([
+        'product.id',
+        'product.productName',
+        'product.status',
+        'product.createdAt',
+        'seller.id',
+        'seller.fullName',
+        'seller.email',
+        'image.url',
+        'category.categoryName'
+      ]);
+
+    if (status) {
+      queryBuilder.andWhere('product.status = :status', { status });
+    }
+
+    if (sellerId) {
+      queryBuilder.andWhere('seller.id = :sellerId', { sellerId });
+    }
+
+    const [items, total] = await queryBuilder
+      .orderBy('product.createdAt', 'DESC')
+      .skip(skip)
+      .take(limit)
+      .getManyAndCount();
+
+    return {
+      data: items,
+      meta: {
+        total,
+        page,
+        lastPage: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async getAdminProductStats() {
+    const [total, active, banned, sellerCount] = await Promise.all([
+      // Tổng số sản phẩm
+      this.productRepository.count(),
+
+      // Sản phẩm đang hoạt động
+      this.productRepository.count({ where: { status: 'active' } }),
+
+      // Sản phẩm bị khóa (Giả sử ông có status 'banned')
+      this.productRepository.count({ where: { status: 'banned' } }),
+
+      // Đếm số lượng Seller đang kinh doanh (có ít nhất 1 sản phẩm)
+      this.productRepository.createQueryBuilder('product')
+        .select('COUNT(DISTINCT(product.seller))', 'count')
+        .getRawOne(),
+    ]);
+
+    return {
+      total,
+      active,
+      inactive: total - active - banned,
+      banned,
+      totalSellers: parseInt(sellerCount.count),
+    };
+  }
+
+  async updateStatusByAdmin(id: number, status: string) {
+    const product = await this.productRepository.findOne({ where: { id } });
+    if (!product) {
+      throw new NotFoundException(`Sản phẩm #${id} không tồn tại`);
+    }
+
+    const validStatuses = ['active', 'inactive', 'banned'];
+    if (!validStatuses.includes(status)) {
+      throw new BadRequestException('Trạng thái không hợp lệ');
+    }
+
+    await this.productRepository.update(id, { status });
+    return {
+      message: `Cập nhật trạng thái sản phẩm #${id} thành ${status.toUpperCase()} thành công.`,
+      newStatus: status
+    };
+  }
+
+  async permanentRemove(id: number) {
+    const product = await this.productRepository.findOne({
+      where: { id },
+      withDeleted: true // Tìm cả trong thùng rác
+    });
+
+    if (!product) {
+      throw new NotFoundException(`Không tìm thấy sản phẩm #${id} để xóa vĩnh viễn`);
+    }
+
+    // Lưu ý: TypeORM delete sẽ xóa vật lý. 
+    // Nếu có quan hệ ràng buộc (ForeignKey) mà không để CASCADE, nó sẽ báo lỗi.
+    await this.productRepository.delete(id);
+
+    return { message: `Sản phẩm #${id} đã được xóa vĩnh viễn khỏi hệ thống.` };
   }
 }

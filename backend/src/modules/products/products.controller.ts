@@ -114,4 +114,41 @@ export class ProductsController {
       message: 'Xóa sản phẩm thành công',
     };
   }
+
+  // ADMIN
+  @Get('admin/all')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  async findAllByAdmin(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+    @Query('status') status?: string,
+    @Query('sellerId') sellerId?: number,
+  ) {
+    return this.productsService.findAllByAdmin(page, limit, status, sellerId);
+  }
+
+  @Get('admin/stats')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  async getAdminStats() {
+    return this.productsService.getAdminProductStats();
+  }
+
+  @Patch('admin/:id/status')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  async updateStatusByAdmin(
+    @Param('id', ParseIntPipe) id: number,
+    @Body('status') status: string, // 'active', 'inactive', 'banned'
+  ) {
+    return this.productsService.updateStatusByAdmin(id, status);
+  }
+
+  @Delete('admin/:id/permanent')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  async permanentRemove(@Param('id', ParseIntPipe) id: number) {
+    return this.productsService.permanentRemove(id);
+  }
 }

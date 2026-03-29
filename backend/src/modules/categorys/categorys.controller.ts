@@ -18,7 +18,7 @@ import { UserRole } from '../users/entities/user.entity';
 
 @Controller('categories')
 export class CategoriesController {
-  constructor(private readonly categoriesService: CategoriesService) {}
+  constructor(private readonly categoriesService: CategoriesService) { }
 
   @Get()
   findAll() {
@@ -64,5 +64,12 @@ export class CategoriesController {
     return {
       message: 'Xóa danh mục thành công',
     };
+  }
+
+  @Get('admin/stats')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  async getStats() {
+    return await this.categoriesService.getCategoryStats();
   }
 }

@@ -90,27 +90,6 @@ export class ApprovalService {
     return await this.approvalRepo.save(newRequest);
   }
 
-  // async create(userId: number, createDto: CreateApprovalRequestDto) {
-  //   const existingRequest = await this.approvalRepo.findOne({
-  //     where: {
-  //       user: { id: userId },
-  //       status: RequestStatus.PENDING,
-  //     },
-  //   });
-
-  //   if (existingRequest) {
-  //     throw new BadRequestException('Bạn đã có một yêu cầu đang chờ xử lý.');
-  //   }
-
-  //   const newRequest = this.approvalRepo.create({
-  //     userId,
-  //     ...createDto,
-  //   });
-
-  //   return this.approvalRepo.save(newRequest);
-  // }
-
-  // Cập nhật trạng thái (Dùng chung cho Duyệt và Từ chối)
   async updateStatus(requestId: number, status: RequestStatus) {
     const request = await this.approvalRepo.findOne({
       where: { id: requestId },
@@ -197,5 +176,53 @@ export class ApprovalService {
   // Giữ lại hàm này nếu bạn vẫn muốn gọi trực tiếp từ Controller mà không qua updateStatus
   async approveRequest(requestId: number) {
     return this.updateStatus(requestId, RequestStatus.APPROVED);
+  }
+
+  async getApprovalStats() {
+    const [statusCounts, roleCounts] = await Promise.all([
+      // 1. Thống kê theo trạng thái (Pending, Approved, Rejected)
+      this.approvalRepo
+        .createQueryBuilder('request')
+        .select('request.status', 'status')
+        .addSelect('COUNT(request.id)', 'count')
+        .groupBy('request.status')
+        .getRawMany(),
+
+      // 2. Thống kê theo vai trò được yêu cầu (Chỉ tính những yêu cầu đang PENDING)
+      // Giúp admin biết họ đang phải xử lý nhiều đơn đăng ký làm Seller hay Shipper hơn
+      this.approvalRepo
+        .createQueryBuilder('request')
+        .select('request.requestedRole', 'role')
+        .addSelect('COUNT(request.id)', 'count')
+        .where('request.status = :status', { status: RequestStatus.PENDING })
+        .groupBy('request.requestedRole')
+        .getRawMany(),
+    ]);
+
+    // Format lại dữ liệu cho Frontend dễ dùng
+    const stats = {
+      pending: 0,
+      approved: 0,
+      rejected: 0,
+      total: 0,
+      pendingSeller: 0,
+      pendingShipper: 0,
+    };
+
+    statusCounts.forEach((item) => {
+      const count = parseInt(item.count);
+      if (item.status === RequestStatus.PENDING) stats.pending = count;
+      if (item.status === RequestStatus.APPROVED) stats.approved = count;
+      if (item.status === RequestStatus.REJECTED) stats.rejected = count;
+      stats.total += count;
+    });
+
+    roleCounts.forEach((item) => {
+      const count = parseInt(item.count);
+      if (item.role === UserRole.SELLER) stats.pendingSeller = count;
+      if (item.role === UserRole.SHIPPER) stats.pendingShipper = count;
+    });
+
+    return stats;
   }
 }

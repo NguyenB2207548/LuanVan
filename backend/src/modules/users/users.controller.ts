@@ -92,20 +92,6 @@ export class UsersController {
     return this.usersService.remove(+id);
   }
 
-  @Patch(':id/deactivate')
-  @Roles(UserRole.ADMIN)
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  async deactivate(@Param('id') id: string) {
-    return this.usersService.deactivate(+id);
-  }
-
-  @Patch(':id/activate')
-  @Roles(UserRole.ADMIN)
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  async activate(@Param('id') id: string) {
-    return this.usersService.activate(+id);
-  }
-
   @UseGuards(JwtAuthGuard)
   @Patch('change-password/:id')
   @HttpCode(HttpStatus.OK)
@@ -122,6 +108,27 @@ export class UsersController {
     return this.usersService.resetPassword(resetPasswordDto);
   }
 
+  // ADMIN
 
+  @Get('admin/stats')
+  @UseGuards(JwtAuthGuard, RolesGuard) // Nhớ check quyền Admin ở đây
+  @Roles(UserRole.ADMIN)
+  async getStats() {
+    return await this.usersService.getUserStats();
+  }
+
+  @Patch(':id/deactivate')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  async deactivate(@Param('id') id: string) {
+    return await this.usersService.deactivate(+id);
+  }
+
+  @Patch(':id/activate')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  async activate(@Param('id') id: string) {
+    return await this.usersService.activate(+id);
+  }
 
 }

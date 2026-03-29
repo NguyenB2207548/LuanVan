@@ -4,11 +4,12 @@ import {
   LayoutDashboard,
   Users,
   Package,
+  ShoppingBag,
   LogOut,
   ChevronUp,
-  UserCheck, // Import icon phù hợp cho phê duyệt
-  Layers,    // Icon cho danh mục
-  Settings2  // Icon cho thuộc tính
+  UserCheck,
+  Layers,
+  Settings2
 } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
 
@@ -68,6 +69,14 @@ const AdminLayout = () => {
           {/* Sửa tên ngắn gọn và icon phù hợp */}
           <NavLink to="/admin/approvals" className={getLinkClass}>
             <UserCheck size={20} /> Phê duyệt đối tác
+          </NavLink>
+
+          <NavLink to="/admin/products" className={getLinkClass}>
+            <Package size={20} /> Quản lý sản phẩm
+          </NavLink>
+
+          <NavLink to="/admin/orders" className={getLinkClass}>
+            <ShoppingBag size={20} /> Quản lý đơn hàng
           </NavLink>
 
           <NavLink to="/admin/categories" className={getLinkClass}>

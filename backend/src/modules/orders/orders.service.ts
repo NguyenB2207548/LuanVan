@@ -488,4 +488,198 @@ export class OrdersService {
 
     return stats;
   }
+
+  // Thêm 2 method này vào OrdersService
+
+  async getShipperHistory(
+    shipperId: number,
+    page: number = 1,
+    limit: number = 10,
+  ) {
+    const query = this.dataSource.manager
+      .createQueryBuilder(Order, 'order')
+      .leftJoinAndSelect('order.items', 'items')
+      .leftJoinAndSelect('items.variant', 'variant')
+      .leftJoinAndSelect('variant.product', 'product')
+      .leftJoinAndSelect('variant.images', 'vImages', 'vImages.isPrimary = :isPrimary', { isPrimary: true })
+      .leftJoinAndSelect('product.images', 'pImages', 'pImages.isPrimary = :isPrimary', { isPrimary: true })
+      .leftJoinAndSelect('order.seller', 'seller')
+      .where('order.shipper_id = :shipperId', { shipperId })
+      // Chỉ lấy đơn đã kết thúc (thành công hoặc thất bại)
+      .andWhere('order.status IN (:...statuses)', { statuses: ['success', 'failed'] })
+      .orderBy('order.updatedAt', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit);
+
+    const [items, total] = await query.getManyAndCount();
+
+    return {
+      data: items,
+      meta: {
+        total,
+        page,
+        lastPage: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async getShipperStats(shipperId: number) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+
+    // Query tổng hợp tất cả trạng thái của shipper này
+    const raw = await this.dataSource.manager
+      .createQueryBuilder(Order, 'order')
+      .select([
+        // Đang giao
+        `COUNT(CASE WHEN order.status = 'shipping' THEN 1 END) AS shipping`,
+        // Hoàn thành hôm nay
+        `COUNT(CASE WHEN order.status = 'success' AND order.updatedAt >= :today AND order.updatedAt < :tomorrow THEN 1 END) AS completedToday`,
+        // Tổng hoàn thành
+        `COUNT(CASE WHEN order.status = 'success' THEN 1 END) AS totalCompleted`,
+        // Tổng thất bại
+        `COUNT(CASE WHEN order.status = 'failed' THEN 1 END) AS totalFailed`,
+        // Tổng đã từng nhận (để tính tỷ lệ)
+        `COUNT(CASE WHEN order.status IN ('success', 'failed') THEN 1 END) AS totalDone`,
+      ])
+      .where('order.shipper_id = :shipperId', { shipperId })
+      .setParameters({ today, tomorrow })
+      .getRawOne();
+
+    const totalDone = Number(raw.totalDone) || 0;
+    const totalCompleted = Number(raw.totalCompleted) || 0;
+
+    return {
+      shipping: Number(raw.shipping) || 0,
+      completedToday: Number(raw.completedToday) || 0,
+      totalCompleted,
+      totalFailed: Number(raw.totalFailed) || 0,
+      // Tỷ lệ giao thành công (%), null nếu chưa có đơn nào
+      successRate: totalDone > 0
+        ? Math.round((totalCompleted / totalDone) * 100 * 10) / 10
+        : null,
+    };
+  }
+
+  // ADMIN
+  async findAllOrdersAdmin(page: number, limit: number, status?: string, search?: string) {
+    const skip = (page - 1) * limit;
+    const query = this.orderRepository.createQueryBuilder('order')
+      .leftJoin('order.user', 'customer') // Sử dụng Join thay vì JoinAndSelect để tùy biến select
+      .leftJoin('order.seller', 'seller')
+      .leftJoin('order.shipper', 'shipper')
+      .leftJoin('order.items', 'items')
+      .select([
+        'order.id',
+        'order.orderNumber',
+        'order.totalAmount',
+        'order.status',
+        'order.paymentStatus',
+        'order.createdAt',
+        'customer.fullName', // Lấy từ alias customer
+        'customer.email',
+        'seller.fullName',   // Lấy từ alias seller
+        'seller.email',
+        'shipper.fullName',  // Lấy từ alias shipper
+      ]);
+
+    // Các logic andWhere giữ nguyên...
+    if (status) {
+      query.andWhere('order.status = :status', { status });
+    }
+
+    if (search) {
+      query.andWhere(
+        '(order.orderNumber LIKE :search OR customer.fullName LIKE :search OR seller.fullName LIKE :search)',
+        { search: `%${search}%` }
+      );
+    }
+
+    const [items, total] = await query
+      .orderBy('order.createdAt', 'DESC')
+      .skip(skip)
+      .take(limit)
+      .getManyAndCount();
+
+    // Mapping lại dữ liệu vì QueryBuilder khi dùng .select cụ thể đôi khi map customer vào trường 'user'
+    const mappedData = items.map(item => ({
+      ...item,
+      customer: (item as any).user || (item as any).customer, // Đảm bảo luôn có object customer
+    }));
+
+    return {
+      data: mappedData,
+      meta: {
+        total,
+        page,
+        lastPage: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async adminForceUpdateStatus(id: number, status: string) {
+    const order = await this.orderRepository.findOne({ where: { id } });
+    if (!order) {
+      throw new NotFoundException(`Không tìm thấy đơn hàng #${id}`);
+    }
+
+    // Danh sách status hợp lệ (ông có thể import từ Entity nếu dùng Enum)
+    const validStatuses = ['pending', 'confirmed', 'shipped', 'success', 'failed', 'cancelled'];
+    if (!validStatuses.includes(status)) {
+      throw new BadRequestException('Trạng thái không hợp lệ');
+    }
+
+    // Nếu chuyển thành 'success' và thanh toán COD thì cập nhật luôn paymentStatus
+    if (status === 'success' && order.paymentMethod === 'COD') {
+      order.paymentStatus = 'paid';
+    }
+
+    order.status = status as any;
+    await this.orderRepository.save(order);
+
+    return {
+      message: `Admin đã cập nhật trạng thái đơn hàng #${id} thành ${status.toUpperCase()}`,
+      data: order
+    };
+  }
+
+  async getAdminGlobalStats() {
+    const [statusStats, revenueData, generalCount] = await Promise.all([
+      // 1. Đếm đơn hàng theo từng trạng thái trên toàn sàn
+      this.orderRepository.createQueryBuilder('order')
+        .select('order.status', 'status')
+        .addSelect('COUNT(order.id)', 'count')
+        .groupBy('order.status')
+        .getRawMany(),
+
+      // 2. Tổng doanh thu từ các đơn thành công toàn hệ thống
+      this.orderRepository.createQueryBuilder('order')
+        .select('SUM(order.totalAmount)', 'totalRevenue')
+        .where('order.status = :status', { status: 'success' })
+        .getRawOne(),
+
+      // 3. Tổng số khách hàng đã từng đặt hàng
+      this.orderRepository.createQueryBuilder('order')
+        .select('COUNT(DISTINCT(order.user))', 'customerCount')
+        .getRawOne()
+    ]);
+
+    const stats = {
+      pending: 0, confirmed: 0, shipping: 0, success: 0,
+      failed: 0, cancelled: 0,
+      totalOrders: 0,
+      totalRevenue: parseFloat(revenueData?.totalRevenue || 0),
+      totalCustomers: parseInt(generalCount?.customerCount || 0)
+    };
+
+    statusStats.forEach(item => {
+      const count = parseInt(item.count);
+      stats[item.status] = count;
+      stats.totalOrders += count;
+    });
+
+    return stats;
+  }
 }
