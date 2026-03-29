@@ -11,6 +11,7 @@ import {
   Query,
   Request,
   Delete,
+  BadRequestException,
 } from '@nestjs/common';
 import { DesignService } from './designs.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -133,6 +134,18 @@ export class DesignController {
   @UseGuards(JwtAuthGuard)
   async getDesignStats(@Request() req) {
     return await this.designService.getSellerDesignStats(req.user.id);
+  }
+
+  @Get('seller/designs/:id')
+  @UseGuards(JwtAuthGuard)
+  async getDesignDetail(@Param('id') id: string, @Request() req) {
+    const designId = parseInt(id, 10);
+
+    if (isNaN(designId)) {
+      throw new BadRequestException('ID thiết kế không hợp lệ');
+    }
+
+    return await this.designService.getDesignByIdForEdit(designId, req.user.id);
   }
 
   @Get('admin/all')

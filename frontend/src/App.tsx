@@ -55,6 +55,8 @@ import ShipperMyOrders from "./pages/shipper/ShipperMyOrders";
 import ShipperSettings from "./pages/shipper/ShipperSettings";
 import SellerRevenuePage from "./pages/seller/SellerRevenuePage";
 import EditArtworkPage from "./pages/seller/EditArtworkPage";
+import EditDesignPage from "./pages/seller/EditDesignPage";
+import DashboardSeller from "./pages/seller/DashboardSeller";
 
 function App() {
   return (
@@ -103,7 +105,7 @@ function App() {
             <Route element={<ProtectedRoute allowedRoles={["seller"]} />}>
               <Route path="/seller" element={<SellerLayout />}>
                 <Route index element={<Navigate to="dashboard" replace />} />
-                <Route path="dashboard" element={<div>Dashboard Seller</div>} />
+                <Route path="dashboard" element={<DashboardSeller />} />
                 <Route path="products" element={<SellerProductManager />} />
                 <Route path="products/add" element={<AddProductPage />} />
                 <Route path="products/edit/:id" element={<EditProductPage />} />
@@ -112,6 +114,7 @@ function App() {
                 <Route path="artworks/edit/:id" element={<EditArtworkPage />} />
                 <Route path="designs" element={<SellerDesignManager />} />
                 <Route path="designs/add" element={<AddDesignPage />} />
+                <Route path="designs/edit/:id" element={<EditDesignPage />} />
                 <Route path="orders" element={<SellerOrderManager />} />
                 <Route path="revenue" element={<SellerRevenuePage />} />
                 <Route path="settings" element={<SellerSettings />} />

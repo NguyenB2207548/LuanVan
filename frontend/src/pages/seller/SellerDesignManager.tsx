@@ -4,20 +4,21 @@ import {
   Plus,
   Search,
   Trash2,
-  LayoutGrid,
-  List as ListIcon,
   Image as ImageIcon,
   Layers,
   Clock,
   ExternalLink,
   Box,
-  Maximize,
   CheckCircle,
   AlertCircle,
+  Edit,
+  RefreshCw,
+  FileDown
 } from "lucide-react";
 import axiosClient from "@/api/axiosClient";
 import { format } from "date-fns";
 import StatCard from "@/components/common/StatCard";
+import toast, { Toaster } from "react-hot-toast";
 
 const BASE_URL = "http://localhost:3000";
 
@@ -53,14 +54,20 @@ interface DesignStats {
   designedProducts: number;
 }
 
+const FILTER_TABS = [
+  { value: "all", label: "Tất cả" },
+  { value: "active", label: "Đã hoàn tất" },
+  { value: "pending", label: "Chờ Artwork" },
+];
+
 const SellerDesignManager = () => {
   const navigate = useNavigate();
   const [mergedDesigns, setMergedDesigns] = useState<MergedDesign[]>([]);
   const [stats, setStats] = useState<DesignStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingStats, setLoadingStats] = useState(true);
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
   useEffect(() => {
@@ -74,7 +81,7 @@ const SellerDesignManager = () => {
       const res = await axiosClient.get("/designs/seller/list");
       setMergedDesigns(res.data || []);
     } catch (err) {
-      console.error("Lỗi khi tải danh sách thiết kế", err);
+      toast.error("Không thể tải danh sách thiết kế");
     } finally {
       setLoading(false);
     }
@@ -86,21 +93,23 @@ const SellerDesignManager = () => {
       const res = await axiosClient.get("/designs/seller/designs/stats");
       setStats(res.data);
     } catch (err) {
-      console.error("Lỗi khi tải thống kê thiết kế", err);
+      console.error("Lỗi fetch stats");
     } finally {
       setLoadingStats(false);
     }
   };
 
   const handleDelete = async (id: number, name: string) => {
-    if (!window.confirm(`Xóa thiết kế "${name}"?`)) return;
+    if (!window.confirm(`Xác nhận xóa thiết kế "${name}"?`)) return;
+    const t = toast.loading("Đang xóa...");
     try {
       setDeletingId(id);
       await axiosClient.delete(`/designs/${id}`);
+      toast.success("Xóa thành công", { id: t });
       setMergedDesigns((prev) => prev.filter((d) => d.id !== id));
-      fetchStats(); // Cập nhật lại stats sau khi xóa
+      fetchStats();
     } catch (err) {
-      alert("Không thể xóa thiết kế này.");
+      toast.error("Không thể xóa thiết kế này", { id: t });
     } finally {
       setDeletingId(null);
     }
@@ -113,240 +122,204 @@ const SellerDesignManager = () => {
     return displayImg ? `${BASE_URL}${displayImg}` : null;
   };
 
-  const filteredDesigns = mergedDesigns.filter((d) =>
-    d.designName.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
+  const filtered = mergedDesigns.filter((d) => {
+    const matchSearch = (d.designName || "").toLowerCase().includes(searchTerm.toLowerCase());
+    // Thêm logic filter status nếu backend hỗ trợ, ở đây tui giữ cấu trúc cho đồng bộ UI
+    return matchSearch;
+  });
+
+  const countByStatus = (s: string) => {
+    if (s === "all") return mergedDesigns.length;
+    if (s === "active") return stats?.activeDesigns || 0;
+    if (s === "pending") return stats?.pendingDesigns || 0;
+    return 0;
+  };
 
   return (
-    <div className="w-full">
-      {/* HEADER */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <Box className="text-blue-600" size={26} />
-          Quản lý thiết kế
-        </h1>
-        <button
-          onClick={() => navigate("add")}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-medium text-sm rounded-md hover:bg-blue-700 transition-all shadow-sm"
-        >
-          <Plus size={16} /> Tạo thiết kế
-        </button>
+    <div className="w-full min-h-screen bg-gray-50 pb-16">
+      <Toaster position="top-right" />
+
+      {/* PAGE HEADER */}
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-semibold text-gray-900">Quản lý thiết kế</h1>
+
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => { fetchMergedDesigns(); fetchStats(); }}
+            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+            title="Làm mới"
+          >
+            <RefreshCw size={16} />
+          </button>
+          <button
+            onClick={() => navigate("add")}
+            className="flex items-center gap-1.5 px-3 py-2 text-sm text-white bg-gray-900 rounded-lg hover:bg-black transition-colors shadow-sm"
+          >
+            <Plus size={16} /> Tạo thiết kế
+          </button>
+        </div>
       </div>
 
       {/* STATS SECTION */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <StatCard
-          label="Tổng thiết kế"
-          value={stats?.total || 0}
-          icon={<Layers />}
-          loading={loadingStats}
-        />
-        {/* <StatCard
-          label="Đã hoàn tất"
-          value={stats?.activeDesigns || 0}
-          icon={<CheckCircle />}
-          loading={loadingStats}
-        />
-        <StatCard
-          label="Chưa có Artwork"
-          value={stats?.pendingDesigns || 0}
-          icon={<AlertCircle />}
-          loading={loadingStats}
-        />
-        <StatCard
-          label="Độ phủ sản phẩm"
-          value={stats?.designedProducts || 0}
-          icon={<Box />}
-          loading={loadingStats}
-        /> */}
+        <StatCard label="Tổng thiết kế" value={stats?.total || 0} icon={<Layers />} loading={loadingStats} />
+        <StatCard label="Đã hoàn tất" value={stats?.activeDesigns || 0} icon={<CheckCircle />} loading={loadingStats} />
+        <StatCard label="Chờ Artwork" value={stats?.pendingDesigns || 0} icon={<AlertCircle />} loading={loadingStats} />
+        <StatCard label="Độ phủ sản phẩm" value={stats?.designedProducts || 0} icon={<Box />} loading={loadingStats} />
       </div>
 
-      {/* TOOLBAR */}
-      <div className="bg-white p-4 border border-gray-200 rounded-lg mb-6 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm">
-        <div className="relative w-full max-w-md">
-          <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-            size={16}
-          />
-          <input
-            type="text"
-            placeholder="Tìm theo tên thiết kế..."
-            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-blue-500 outline-none transition-all"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        <div className="flex border border-gray-300 rounded-md overflow-hidden bg-white">
-          <button
-            onClick={() => setViewMode("grid")}
-            className={`p-2 transition-colors ${viewMode === "grid" ? "bg-blue-50 text-blue-600" : "text-gray-400 hover:text-gray-600"}`}
-          >
-            <LayoutGrid size={18} />
-          </button>
-          <button
-            onClick={() => setViewMode("list")}
-            className={`p-2 border-l border-gray-300 transition-colors ${viewMode === "list" ? "bg-blue-50 text-blue-600" : "text-gray-400 hover:text-gray-600"}`}
-          >
-            <ListIcon size={18} />
-          </button>
-        </div>
-      </div>
+      {/* MAIN CARD: Toolbar + Table */}
+      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
 
-      {/* CONTENT */}
-      {loading ? (
-        <div className="p-12 text-center text-gray-500 flex flex-col items-center gap-3 bg-white border border-gray-200 rounded-lg">
-          <div className="animate-spin w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full" />
-          <span className="text-sm font-medium">Đang tải dữ liệu...</span>
-        </div>
-      ) : filteredDesigns.length === 0 ? (
-        <div className="bg-white border border-gray-200 rounded-lg p-12 text-center shadow-sm">
-          <ImageIcon size={48} className="mx-auto text-gray-200 mb-2" />
-          <p className="text-gray-500 text-sm">Chưa có thiết kế nào phù hợp.</p>
-        </div>
-      ) : viewMode === "grid" ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredDesigns.map((design) => {
-            const thumb = getThumbnail(design);
-            const printArea = design.artwork.layersJson.printArea;
-            return (
-              <div
-                key={design.id}
-                className="group bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition-all flex flex-col"
+        {/* Toolbar */}
+        <div className="px-5 py-3 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+          <div className="relative w-full sm:w-56">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+            <input
+              type="text"
+              placeholder="Tìm tên thiết kế..."
+              className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg outline-none focus:border-gray-400 transition-colors bg-gray-50"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+
+          <div className="flex items-center gap-1 flex-wrap">
+            {FILTER_TABS.map(tab => (
+              <button
+                key={tab.value}
+                onClick={() => setStatusFilter(tab.value)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border font-medium transition-colors ${statusFilter === tab.value
+                  ? "bg-gray-900 text-white border-gray-900"
+                  : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
+                  }`}
               >
-                <div className="aspect-square bg-gray-50 relative flex items-center justify-center p-4">
-                  {thumb ? (
-                    <img
-                      src={thumb}
-                      className="max-w-full max-h-full object-contain transition-transform group-hover:scale-110 duration-500"
-                      alt=""
-                    />
-                  ) : (
-                    <ImageIcon className="text-gray-200" size={40} />
-                  )}
+                {tab.label}
+                <span className={`text-[10px] min-w-[16px] text-center rounded ${statusFilter === tab.value ? "text-white/70" : "text-gray-400"
+                  }`}>
+                  {countByStatus(tab.value)}
+                </span>
+              </button>
+            ))}
+          </div>
 
-                  <div className="absolute bottom-3 left-3 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-md text-[10px] font-bold text-gray-700 border border-gray-100 flex items-center gap-1">
-                    <Maximize size={10} className="text-blue-600" />
-                    {printArea.width}x{printArea.height}px
-                  </div>
-
-                  <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                    <button
-                      onClick={() => thumb && window.open(thumb, "_blank")}
-                      className="p-3 bg-white rounded-full shadow-lg text-gray-700 hover:text-blue-600 transition-transform hover:scale-110"
-                    >
-                      <ExternalLink size={18} />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(design.id, design.designName)}
-                      disabled={deletingId === design.id}
-                      className="p-3 bg-white rounded-full shadow-lg text-red-500 hover:text-red-700 transition-transform hover:scale-110"
-                    >
-                      {deletingId === design.id ? (
-                        <div className="animate-spin w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full" />
-                      ) : (
-                        <Trash2 size={18} />
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="p-4 flex flex-col flex-1 bg-white">
-                  <h3 className="text-sm font-bold text-gray-900 line-clamp-2 mb-2 min-h-[40px]">
-                    {design.designName}
-                  </h3>
-                  <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">
-                    Phôi: {design.product?.productName || "N/A"}
-                  </div>
-
-                  <div className="mt-auto flex items-center justify-between">
-                    <div className="flex items-center gap-1 text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded">
-                      <Layers size={10} />{" "}
-                      {design.artwork.layersJson.details?.length || 0} Layers
-                    </div>
-                    <div className="flex items-center gap-1 text-[10px] text-gray-400 font-bold">
-                      <Clock size={10} />{" "}
-                      {format(new Date(design.createdAt), "dd/MM/yyyy")}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+          <div className="sm:ml-auto">
+            <button className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-emerald-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+              <FileDown size={14} /> Xuất Excel
+            </button>
+          </div>
         </div>
-      ) : (
-        /* LIST VIEW */
-        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr className="text-left text-xs font-bold text-gray-500 uppercase tracking-widest">
-                <th className="px-6 py-4">Sản phẩm</th>
-                <th className="px-6 py-4">Thông số in</th>
-                <th className="px-6 py-4">Ngày gộp</th>
-                <th className="px-6 py-4 text-right">Thao tác</th>
+
+        {/* Table */}
+        <div className="overflow-x-auto">
+          <table className="min-w-full">
+            <thead>
+              <tr className="border-t border-b border-gray-100 bg-gray-50/60">
+                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-700">Thông tin thiết kế</th>
+                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-700">Thông số in</th>
+                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-700">Ngày gộp</th>
+                <th className="px-5 py-3 text-right text-xs font-semibold text-gray-700">Thao tác</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200 bg-white">
-              {filteredDesigns.map((design) => {
-                const thumb = getThumbnail(design);
-                const printArea = design.artwork.layersJson.printArea;
-                return (
-                  <tr key={design.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 flex items-center gap-3">
-                      <div className="w-12 h-12 rounded border border-gray-100 bg-gray-50 flex items-center justify-center overflow-hidden">
-                        {thumb ? (
-                          <img
-                            src={thumb}
-                            className="w-full h-full object-contain"
-                          />
-                        ) : (
-                          <ImageIcon className="text-gray-200" size={20} />
-                        )}
-                      </div>
-                      <div>
-                        <div className="text-sm font-bold text-gray-900 line-clamp-1">
-                          {design.designName}
+            <tbody className="divide-y divide-gray-50 bg-white">
+              {loading ? (
+                <tr>
+                  <td colSpan={4} className="px-5 py-16 text-center text-sm text-gray-400">
+                    <div className="flex justify-center items-center gap-2">
+                      <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+                      Đang tải dữ liệu...
+                    </div>
+                  </td>
+                </tr>
+              ) : filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="px-5 py-16 text-center">
+                    <ImageIcon className="mx-auto text-gray-200 mb-3" size={36} />
+                    <p className="text-sm text-gray-400">Không tìm thấy thiết kế nào</p>
+                  </td>
+                </tr>
+              ) : (
+                filtered.map((design) => {
+                  const thumb = getThumbnail(design);
+                  const printArea = design.artwork?.layersJson?.printArea || { width: 0, height: 0 };
+
+                  return (
+                    <tr key={design.id} className="hover:bg-gray-50/70 transition-colors cursor-pointer" onClick={() => navigate(`edit/${design.id}`)}>
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-11 h-11 rounded-lg border border-gray-100 bg-gray-50 overflow-hidden shrink-0 flex items-center justify-center">
+                            {thumb ? (
+                              <img src={thumb} className="w-full h-full object-contain" alt="" />
+                            ) : (
+                              <ImageIcon size={16} className="text-gray-300" />
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-gray-900 truncate max-w-[250px]">{design.designName}</p>
+                            <p className="text-[11px] text-blue-600 font-bold uppercase tracking-tight mt-0.5">
+                              Phôi: {design.product?.productName || "N/A"}
+                            </p>
+                          </div>
                         </div>
-                        <div className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">
-                          Phôi: {design.product?.productName}
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="text-xs font-medium text-gray-700">
+                          {printArea.width}x{printArea.height}px
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-xs font-bold text-gray-700">
-                        {printArea.width}x{printArea.height}px
-                      </div>
-                      <div className="text-[10px] text-gray-400 font-mono">
-                        X:{printArea.x} Y:{printArea.y}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-xs text-gray-500 font-bold">
-                      {format(new Date(design.createdAt), "dd/MM/yyyy")}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex justify-end gap-3">
-                        <button
-                          onClick={() => thumb && window.open(thumb, "_blank")}
-                          className="text-gray-400 hover:text-blue-600 transition-colors"
-                        >
-                          <ExternalLink size={18} />
-                        </button>
-                        <button
-                          onClick={() =>
-                            handleDelete(design.id, design.designName)
-                          }
-                          className="text-gray-400 hover:text-red-600 transition-colors"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
+                        <div className="text-[10px] text-gray-400 mt-0.5">Vùng in ảo</div>
+                      </td>
+                      <td className="px-5 py-4 text-sm text-gray-500 font-medium">
+                        {format(new Date(design.createdAt), "dd/MM/yyyy")}
+                      </td>
+                      <td className="px-5 py-4 text-right">
+                        <div className="flex justify-end gap-1" onClick={e => e.stopPropagation()}>
+                          <button
+                            onClick={() => navigate(`edit/${design.id}`)}
+                            className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                            title="Chỉnh sửa"
+                          >
+                            <Edit size={16} />
+                          </button>
+                          <button
+                            onClick={() => thumb && window.open(thumb, "_blank")}
+                            className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
+                            title="Xem ảnh"
+                          >
+                            <ExternalLink size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(design.id, design.designName)}
+                            disabled={deletingId === design.id}
+                            className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors"
+                            title="Xóa"
+                          >
+                            {deletingId === design.id ? (
+                              <div className="w-3.5 h-3.5 border-2 border-gray-300 border-t-rose-500 rounded-full animate-spin" />
+                            ) : (
+                              <Trash2 size={16} />
+                            )}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
-      )}
+
+        {/* Footer */}
+        {!loading && filtered.length > 0 && (
+          <div className="px-5 py-3 border-t border-gray-100 bg-gray-50/30">
+            <p className="text-xs text-gray-400">
+              Hiển thị <span className="font-medium text-gray-600">{filtered.length}</span> / {mergedDesigns.length} thiết kế
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

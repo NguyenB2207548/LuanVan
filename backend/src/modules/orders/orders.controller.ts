@@ -12,6 +12,7 @@ import {
   Request,
   Req,
   BadRequestException,
+  Query,
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { OrdersService } from './orders.service';
@@ -39,10 +40,16 @@ export class OrdersController {
     );
   }
 
+  // @Get('my-orders')
+  // @Roles(UserRole.USER)
+  // getMyOrders(@Request() req) {
+  //   return this.ordersService.getOrdersByRole('user', req.user.id);
+  // }
+
   @Get('my-orders')
   @Roles(UserRole.USER)
-  getMyOrders(@Request() req) {
-    return this.ordersService.getOrdersByRole('user', req.user.id);
+  getMyOrders(@Request() req, @Query('limit') limit?: string) {
+    return this.ordersService.getOrdersByRole('user', req.user.id, 1, limit ? +limit : 10);
   }
 
   @Patch(':id/cancel')
@@ -60,10 +67,9 @@ export class OrdersController {
 
   @Get('seller')
   @Roles(UserRole.SELLER)
-  getSellerOrders(@Request() req) {
-    return this.ordersService.getOrdersByRole('seller', req.user.userId);
+  getSellerOrders(@Request() req, @Query('limit') limit?: string) {
+    return this.ordersService.getOrdersByRole('seller', req.user.userId, 1, limit ? +limit : 10);
   }
-
   @Patch(':id/seller-confirm')
   @Roles(UserRole.SELLER)
   confirmOrder(@Param('id', ParseIntPipe) orderId: number, @Request() req) {

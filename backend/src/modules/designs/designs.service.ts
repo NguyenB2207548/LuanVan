@@ -398,7 +398,6 @@ export class DesignService {
         seller: {
           id: design.product.seller?.id,
           name: design.product.seller?.fullName,
-          //   shopName: design.product.seller?.shopName, // Nếu bạn có trường này
         },
         product: {
           id: design.product.id,
@@ -454,20 +453,17 @@ export class DesignService {
 
   async getSellerDesignStats(sellerId: number) {
     const [total, linkedToArtwork, attachedToProduct] = await Promise.all([
-      // 1. Tổng số bản ghi Design của seller (thông qua product)
       this.designRepo.createQueryBuilder('design')
         .innerJoin('design.product', 'product')
         .where('product.seller = :sellerId', { sellerId })
         .getCount(),
 
-      // 2. Số Design có gắn Artwork (đã được thiết kế)
       this.designRepo.createQueryBuilder('design')
         .innerJoin('design.product', 'product')
         .where('product.seller = :sellerId', { sellerId })
         .andWhere('design.artwork IS NOT NULL')
         .getCount(),
 
-      // 3. Đếm số sản phẩm độc nhất đã có thiết kế
       this.designRepo.createQueryBuilder('design')
         .innerJoin('design.product', 'product')
         .where('product.seller = :sellerId', { sellerId })
@@ -476,10 +472,49 @@ export class DesignService {
     ]);
 
     return {
-      total,              // Tổng số cấu hình thiết kế
-      activeDesigns: linkedToArtwork, // Thiết kế đã hoàn tất (có Artwork)
-      pendingDesigns: total - linkedToArtwork, // Thiết kế chưa có Artwork (cần xử lý)
-      designedProducts: attachedToProduct // Số sản phẩm đã có ít nhất 1 thiết kế
+      total,
+      activeDesigns: linkedToArtwork,
+      pendingDesigns: total - linkedToArtwork,
+      designedProducts: attachedToProduct
+    };
+  }
+
+  async getDesignByIdForEdit(id: number, sellerId: number) {
+    const design = await this.designRepo.findOne({
+      where: { id },
+      relations: [
+        'product',
+        'product.seller',
+        'product.mockup',
+        'product.mockup.printArea',
+        'product.variants',
+        'product.variants.mockup',
+        'product.variants.mockup.printArea',
+        'product.images',
+        'artwork'
+      ],
+    });
+    console.log(design)
+    if (!design || design.product?.seller?.id !== sellerId) {
+      throw new NotFoundException(`Không tìm thấy thiết kế hoặc bạn không có quyền truy cập.`);
+    }
+
+    return {
+      id: design.id,
+      designName: design.designName,
+      createdAt: design.createdAt,
+      product: {
+        id: design.product.id,
+        productName: design.product.productName,
+        images: design.product.images,
+        mockup: design.product.mockup,
+        variants: design.product.variants,
+      },
+      artwork: {
+        id: design.artwork.id,
+        artworkName: design.artwork.artworkName,
+        layersJson: design.artwork.layersJson,
+      },
     };
   }
 }

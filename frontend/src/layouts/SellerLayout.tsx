@@ -49,13 +49,12 @@ const SellerLayout = () => {
     { to: "/seller/orders", icon: ShoppingCart, label: "Đơn hàng" },
     { to: "/seller/revenue", icon: TrendingUp, label: "Doanh thu" },
     { to: "/seller/settings", icon: Settings, label: "Cài đặt cửa hàng" },
-    { to: "/seller/help", icon: HelpCircle, label: "Trợ giúp" },
   ];
 
   return (
-    <div className="flex min-h-screen bg-[#F8F9FA]">
+    <div className="flex min-h-screen bg-gray-100">
       {/* Sidebar */}
-      <aside className="w-56 bg-white border-r border-gray-200 flex flex-col fixed left-0 top-0 h-full z-30">
+      <aside className="w-56 bg-white border-r border-gray-200 shadow-sm flex flex-col fixed left-0 top-0 h-full z-30">
         {/* Logo */}
         <div className="h-11 flex items-center px-5 border-b border-gray-200">
           <div className="flex items-center gap-2">
@@ -79,7 +78,7 @@ const SellerLayout = () => {
         </nav>
 
         {/* User area */}
-        <div className="px-3 py-3 border-t border-gray-100">
+        <div className="px-3 py-3 border-t border-gray-200">
           <div className="relative">
             {showUserMenu && (
               <div className="absolute bottom-full left-0 w-full mb-1.5 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-50">
@@ -117,7 +116,7 @@ const SellerLayout = () => {
       {/* Main */}
       <div className="flex-1 flex flex-col pl-56">
         {/* Header */}
-        <header className="h-11 bg-white border-b border-gray-200 sticky top-0 z-30 flex items-center justify-end px-6 gap-2">
+        <header className="h-11 bg-white border-b border-gray-200 shadow-sm sticky top-0 z-30 flex items-center justify-end px-6 gap-2">
           <button className="w-8 h-8 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-50 transition-colors relative">
             <Bell size={16} />
             {/* Badge thông báo chưa đọc — xóa nếu không cần */}
