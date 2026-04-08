@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuthStore } from "../../store/useAuthStore";
 import { useCartStore } from "../../store/useCartStore";
+import NotificationBell from "@/components/common/NotificationBell";
 import {
   ShoppingCart,
   LogOut,
@@ -144,6 +145,11 @@ const Header = () => {
 
         <div className="flex items-center gap-2">
           <Toaster position="top-right" />
+          {/* 
+          {isAuthenticated && user?.role === "user" && (
+            <NotificationBell />
+          )} */}
+
           <Button variant="ghost" size="icon" className="relative text-slate-600 hover:bg-blue-50 hover:text-blue-600 rounded-full h-11 w-11" asChild>
             <Link to="/cart">
               <ShoppingCart size={22} />

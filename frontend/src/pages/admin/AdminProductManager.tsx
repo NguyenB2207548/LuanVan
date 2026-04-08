@@ -142,7 +142,6 @@ const AdminProductManager = () => {
                         <Package className="text-blue-600" size={24} />
                         Quản trị sản phẩm toàn sàn
                     </h1>
-                    <p className="text-sm text-gray-500 mt-0.5">Giám sát hàng hóa từ tất cả các Seller</p>
                 </div>
                 <button
                     onClick={() => { fetchData(); fetchStats(); }}
@@ -204,7 +203,7 @@ const AdminProductManager = () => {
                         <thead>
                             <tr className="border-t border-b border-gray-100 bg-gray-50/60">
                                 <th className="px-5 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Thông tin sản phẩm</th>
-                                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Chủ cửa hàng (Seller)</th>
+                                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Chủ cửa hàng</th>
                                 <th className="px-5 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Trạng thái</th>
                                 <th className="px-5 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Ngày đăng</th>
                                 <th className="px-5 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Hành động</th>

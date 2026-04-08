@@ -183,7 +183,7 @@ const SellerOrderManager = () => {
     s === "all" ? orders.length : orders.filter(o => o.status === s).length;
 
   return (
-    <div className="w-full min-h-screen bg-gray-50 pb-16">
+    <div className="w-full min-h-screen pb-16">
       <Toaster position="top-right" />
       <OrderDetailModal
         order={selectedOrder}

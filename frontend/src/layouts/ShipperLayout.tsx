@@ -1,16 +1,11 @@
 import { useState } from "react";
 import { Outlet, NavLink, Navigate, useNavigate } from "react-router-dom";
 import {
-  LayoutDashboard,
-  LogOut,
-  ChevronUp,
-  Truck,
-  History,
-  ClipboardList,
-  Bell,
-  UserCircle,
+  LayoutDashboard, LogOut, ChevronUp, Truck,
+  History, ClipboardList, UserCircle,
 } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
+import NotificationBell from "@/components/common/NotificationBell";
 
 const ShipperLayout = () => {
   const navigate = useNavigate();
@@ -49,8 +44,6 @@ const ShipperLayout = () => {
     <div className="flex min-h-screen bg-gray-100">
       {/* Sidebar */}
       <aside className="w-56 bg-white border-r border-gray-200 flex flex-col fixed left-0 top-0 h-full z-30">
-
-        {/* Logo — điểm nhấn emerald */}
         <div className="h-11 flex items-center px-5 border-b border-gray-200">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 bg-emerald-600 rounded-md flex items-center justify-center shrink-0">
@@ -62,7 +55,6 @@ const ShipperLayout = () => {
           </div>
         </div>
 
-        {/* Nav */}
         <nav className="flex-1 px-3 py-4 overflow-y-auto space-y-3">
           {navItems.map(({ to, icon: Icon, label }) => (
             <NavLink key={to} to={to} className={getLinkClass}>
@@ -72,7 +64,6 @@ const ShipperLayout = () => {
           ))}
         </nav>
 
-        {/* User area */}
         <div className="px-3 py-3 border-t border-gray-200">
           <div className="relative">
             {showUserMenu && (
@@ -81,8 +72,7 @@ const ShipperLayout = () => {
                   onClick={handleLogout}
                   className="w-full text-left px-3 py-2 text-sm text-red-500 hover:bg-gray-50 flex items-center gap-2 transition-colors"
                 >
-                  <LogOut size={14} />
-                  Đăng xuất
+                  <LogOut size={14} /> Đăng xuất
                 </button>
               </div>
             )}
@@ -90,7 +80,6 @@ const ShipperLayout = () => {
               onClick={() => setShowUserMenu(!showUserMenu)}
               className="w-full flex items-center gap-2.5 px-2 py-2 rounded-md hover:bg-gray-50 transition-colors"
             >
-              {/* Avatar — emerald thay vì gray-900 */}
               <div className="w-7 h-7 rounded-md bg-emerald-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
                 {getInitials(user.fullName || user.email)}
               </div>
@@ -98,14 +87,11 @@ const ShipperLayout = () => {
                 <p className="text-xs font-semibold text-gray-800 truncate">
                   {user.fullName || "Shipper"}
                 </p>
-                <p className="text-[10px] text-emerald-600 font-medium">
-                  Đang sẵn sàng
-                </p>
+                <p className="text-[10px] text-emerald-600 font-medium">Đang sẵn sàng</p>
               </div>
               <ChevronUp
                 size={13}
-                className={`text-gray-400 transition-transform duration-200 ${showUserMenu ? "" : "rotate-180"
-                  }`}
+                className={`text-gray-400 transition-transform duration-200 ${showUserMenu ? "" : "rotate-180"}`}
               />
             </button>
           </div>
@@ -114,12 +100,8 @@ const ShipperLayout = () => {
 
       {/* Main */}
       <div className="flex-1 flex flex-col pl-56">
-        {/* Header */}
         <header className="h-11 bg-white border-b border-gray-200 sticky top-0 z-20 flex items-center justify-end px-5 gap-1">
-          <button className="w-8 h-8 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors relative">
-            <Bell size={16} />
-            <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-red-500 rounded-full" />
-          </button>
+          <NotificationBell />  {/* ← thay button Bell cũ */}
           <button
             onClick={handleLogout}
             className="w-8 h-8 flex items-center justify-center rounded-md text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"

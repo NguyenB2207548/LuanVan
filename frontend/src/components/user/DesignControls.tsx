@@ -89,25 +89,115 @@ const DesignControls: React.FC<DesignControlsProps> = ({
 
           // --- 2. XỬ LÝ TEXT INPUT (Nhập chữ) ---
           if (layer.type === "text") {
-            const currentValue = designChoices[layer.id] || "";
+            const currentText =
+              designChoices[layer.id] !== undefined
+                ? designChoices[layer.id]
+                : "";
+            const currentFont =
+              designChoices[`${layer.id}_fontFamily`] || layer.fontFamily;
+            const currentColor =
+              designChoices[`${layer.id}_color`] || layer.color;
+
             return (
-              <div key={layer.id} className="w-full">
-                <label className="block text-[11px] font-extrabold mb-2 uppercase italic text-gray-600">
-                  {layer.label} <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder={`Enter ${layer.label.toLowerCase()}...`}
-                  className="w-full bg-white border border-gray-300 p-3 rounded focus:ring-2 focus:ring-[#ff4d6d] outline-none text-sm shadow-sm transition-all"
-                  value={currentValue}
-                  onChange={(e) => {
-                    setDesignChoices((prev) => ({
-                      ...prev,
-                      [layer.id]: e.target.value,
-                    }));
-                    setShowPreview(true);
-                  }}
-                />
+              <div
+                key={layer.id}
+                className="w-full space-y-4 bg-gray-50 p-4 border border-gray-100 rounded-lg"
+              >
+                {/* A. NHẬP NỘI DUNG CHỮ */}
+                <div>
+                  <label className="block text-[11px] font-extrabold mb-2 uppercase italic text-gray-600">
+                    {layer.label} <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder={`Enter ${layer.label.toLowerCase()}...`}
+                    className="w-full bg-white border border-gray-300 p-3 rounded focus:ring-2 focus:ring-[#ff4d6d] outline-none text-sm shadow-sm transition-all"
+                    value={currentText}
+                    onChange={(e) => {
+                      setDesignChoices((prev) => ({
+                        ...prev,
+                        [layer.id]: e.target.value,
+                      }));
+                      setShowPreview(true);
+                    }}
+                  />
+                </div>
+
+                {/* B. CHỌN FONT CHỮ (DROPDOWN) - Chỉ hiện khi có data */}
+                {layer.availableFonts && layer.availableFonts.length > 0 && (
+                  <div>
+                    <label className="block text-[10px] font-bold mb-1.5 uppercase text-gray-500">
+                      Select Font
+                    </label>
+                    <div className="relative">
+                      <select
+                        className="w-full bg-white border border-gray-300 p-2.5 rounded appearance-none focus:ring-2 focus:ring-[#ff4d6d] outline-none text-sm shadow-sm transition-all cursor-pointer"
+                        style={{ fontFamily: currentFont }}
+                        value={currentFont}
+                        onChange={(e) => {
+                          setDesignChoices((prev) => ({
+                            ...prev,
+                            [`${layer.id}_fontFamily`]: e.target.value,
+                          }));
+                          setShowPreview(true);
+                        }}
+                      >
+                        {layer.availableFonts.map((font: string) => (
+                          <option
+                            key={font}
+                            value={font}
+                            style={{ fontFamily: font }}
+                          >
+                            {font}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
+                        <svg
+                          className="fill-current h-4 w-4"
+                          viewBox="0 0 20 20"
+                        >
+                          <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* C. CHỌN MÀU SẮC (NÚT BẤM) - Chỉ hiện khi có data */}
+                {layer.availableColors && layer.availableColors.length > 0 && (
+                  <div>
+                    <label className="block text-[10px] font-bold mb-2 uppercase text-gray-500">
+                      Select Color
+                    </label>
+                    <div className="flex flex-wrap gap-2.5">
+                      {layer.availableColors.map((colorHex: string) => {
+                        const isSelected = currentColor === colorHex;
+                        return (
+                          <button
+                            key={colorHex}
+                            type="button"
+                            onClick={() => {
+                              setDesignChoices((prev) => ({
+                                ...prev,
+                                [`${layer.id}_color`]: colorHex,
+                              }));
+                              setShowPreview(true);
+                            }}
+                            className={`w-8 h-8 rounded-full border-2 transition-transform shadow-sm ${
+                              isSelected
+                                ? "border-[#ff4d6d] scale-110"
+                                : "border-gray-200 hover:scale-105"
+                            }`}
+                            style={{ backgroundColor: colorHex }}
+                            title={colorHex}
+                            aria-label={`Select color ${colorHex}`}
+                          />
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             );
           }

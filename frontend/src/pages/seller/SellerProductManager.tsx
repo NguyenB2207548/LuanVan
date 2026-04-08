@@ -97,7 +97,7 @@ const SellerProductManager = () => {
     s === "all" ? products.length : products.filter(p => p.status === s).length;
 
   return (
-    <div className="w-full min-h-screen bg-gray-50 pb-16">
+    <div className="w-full min-h-screen pb-16">
       <Toaster position="top-right" />
 
       {/* Page header */}
@@ -180,7 +180,7 @@ const SellerProductManager = () => {
             <thead>
               <tr className="border-t border-b border-gray-100 bg-gray-50/60">
                 <th className="px-5 py-3 text-left text-xs font-semibold text-gray-700">Thông tin sản phẩm</th>
-                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-700">Thiết kế</th>
+                {/* <th className="px-5 py-3 text-left text-xs font-semibold text-gray-700">Thiết kế</th> */}
                 <th className="px-5 py-3 text-left text-xs font-semibold text-gray-700">Trạng thái</th>
                 <th className="px-5 py-3 text-left text-xs font-semibold text-gray-700">Biến thể</th>
                 <th className="px-5 py-3 text-right text-xs font-semibold text-gray-700">Hành động</th>
@@ -226,7 +226,7 @@ const SellerProductManager = () => {
                       </td>
 
                       {/* Thiết kế */}
-                      <td className="px-5 py-4">
+                      {/* <td className="px-5 py-4">
                         {product.design ? (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-blue-50 text-blue-600 border border-blue-100">
                             <PaletteIcon size={10} /> {product.design.name}
@@ -234,7 +234,7 @@ const SellerProductManager = () => {
                         ) : (
                           <span className="text-xs text-gray-300 italic">Chưa có thiết kế</span>
                         )}
-                      </td>
+                      </td> */}
 
                       {/* Trạng thái */}
                       <td className="px-5 py-4">

@@ -194,7 +194,7 @@ const CheckoutPage = () => {
                   <div className="ml-3 flex-1">
                     <div className="flex items-center gap-2">
                       <CreditCard size={20} className="text-gray-600" />
-                      <span className="block text-sm font-medium text-gray-900">Thanh toán Online (VNPay / Thẻ ATM)</span>
+                      <span className="block text-sm font-medium text-gray-900">Thanh toán online bằng Momo</span>
                     </div>
                   </div>
                 </label>

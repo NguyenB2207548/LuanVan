@@ -188,7 +188,7 @@ const AttributeManagementPage = () => {
           className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white font-medium text-sm rounded-md hover:bg-blue-700 transition-colors shadow-sm"
         >
           <Plus size={16} />
-          New Attribute
+          Thêm thuộc tính
         </button>
       </div>
 
@@ -364,7 +364,7 @@ const AttributeManagementPage = () => {
                   disabled={isSavingAttr}
                   className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-70 flex items-center gap-2"
                 >
-                  {isSavingAttr ? "Saving..." : "Save Attribute"}
+                  {isSavingAttr ? "Saving..." : "Tạo thuộc tính"}
                 </button>
               </div>
             </form>

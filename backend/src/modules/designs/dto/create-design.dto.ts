@@ -10,7 +10,7 @@ import {
 export class CreateDesignDto {
   @IsNotEmpty()
   @IsString()
-  designName: string;
+  designName!: string;
 
   @IsNotEmpty()
   @IsNumber()

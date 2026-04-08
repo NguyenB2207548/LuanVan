@@ -51,6 +51,10 @@ export interface DesignLayer {
   // Thuộc tính Image / Group
   image_url?: string;
   options?: LayerOption[];
+
+  availableFonts?: string[];
+  availableColors?: string[];
+  availableSizes?: (number | string)[];
 }
 
 export interface ModalTarget {

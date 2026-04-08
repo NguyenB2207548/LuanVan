@@ -15,6 +15,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
 import { StatisticsModule } from './modules/statistics/statistics.module';
 import { AiDesignModule } from './modules/ai-design/ai-design.module';
+import { NotificationModule } from './modules/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -33,7 +34,8 @@ import { AiDesignModule } from './modules/ai-design/ai-design.module';
     AuthModule,
     UploadsModule,
     StatisticsModule,
-    AiDesignModule
+    AiDesignModule,
+    NotificationModule
   ],
   controllers: [AppController],
   providers: [AppService],

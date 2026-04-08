@@ -87,7 +87,7 @@ const ShipperMyOrders = () => {
             <div className="mb-6 flex items-center justify-between">
                 <div>
                     <h1 className="text-xl font-semibold text-gray-900">Đơn hàng đang giao</h1>
-                    <p className="text-sm text-gray-500 mt-0.5">Quản lý và cập nhật trạng thái các đơn hàng của bạn</p>
+
                 </div>
                 <div className="flex items-center gap-3">
                     <span className="text-sm text-gray-500">
@@ -208,7 +208,7 @@ const ShipperMyOrders = () => {
                                                     onClick={() => handleCompleteOrder(order.id)}
                                                     className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-black transition-colors"
                                                 >
-                                                    <CheckCircle2 size={14} /> Hoàn tất giao
+                                                    <CheckCircle2 size={14} /> Hoàn tất
                                                 </button>
                                             </div>
                                         </div>

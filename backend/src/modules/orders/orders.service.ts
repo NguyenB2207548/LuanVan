@@ -14,18 +14,18 @@ import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { CartItem } from '../carts/entities/cart-item.entity';
 import { MomoService } from './momo.service';
 import { InjectRepository } from '@nestjs/typeorm';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationType } from '../notifications/entities/notification.entity';
 
 @Injectable()
 export class OrdersService {
   constructor(
-    // 1. Phải có DataSource ở đây để dùng transaction
     private readonly dataSource: DataSource,
 
     @InjectRepository(Order)
     private readonly orderRepository: Repository<Order>,
-
-    // 2. Inject MomoService
     private readonly momoService: MomoService,
+    private readonly notificationsService: NotificationsService,
   ) { }
 
   async getOrderItemWithDesign(orderItemId: number) {
@@ -164,6 +164,18 @@ export class OrdersService {
       // Dọn dẹp giỏ hàng
       await manager.delete(CartItem, { cart: { id: cart.id } });
 
+      await Promise.all(
+        createdOrders.map((order) =>
+          this.notificationsService.createWithManager(manager, {
+            recipientId: order.seller.id,
+            type: NotificationType.ORDER_PLACED,
+            title: 'Đơn hàng mới',
+            body: `Bạn có đơn hàng mới ${order.orderNumber} đang chờ xác nhận.`,
+            orderId: order.id,
+          }),
+        ),
+      );
+
       let payUrl = null;
       if (dto.paymentMethod === 'MOMO' && createdOrders.length > 0) {
         const orderIds = createdOrders.map((o) => o.id);
@@ -228,6 +240,15 @@ export class OrdersService {
 
       const savedOrder = await manager.save(Order, order);
 
+      await this.notificationsService.createWithManager(manager, {
+        recipientId: order.user.id,
+        type: NotificationType.ORDER_CONFIRMED,
+        title: 'Đơn hàng được xác nhận',
+        body: `Đơn hàng ${order.orderNumber} đã được người bán xác nhận và đang chuẩn bị hàng.`,
+        orderId: order.id,
+      });
+
+
       return {
         message: 'Xác nhận đơn hàng thành công!',
         data: savedOrder,
@@ -244,7 +265,7 @@ export class OrdersService {
           shipper: { id: shipperId },
           status: 'shipping',
         },
-        relations: ['items', 'items.variant'],
+        relations: ['items', 'items.variant', 'seller', 'user'],
         lock: { mode: 'pessimistic_write' },
       });
 
@@ -268,13 +289,29 @@ export class OrdersService {
 
       const savedOrder = await manager.save(Order, order);
 
+      await Promise.all([
+        this.notificationsService.createWithManager(manager, {
+          recipientId: order.seller.id,
+          type: NotificationType.ORDER_FAILED,
+          title: 'Giao hàng thất bại',
+          body: `Đơn hàng ${order.orderNumber} giao thất bại. Vui lòng liên hệ shipper để xử lý.`,
+          orderId: order.id,
+        }),
+        this.notificationsService.createWithManager(manager, {
+          recipientId: order.user.id,
+          type: NotificationType.ORDER_FAILED,
+          title: 'Giao hàng thất bại',
+          body: `Đơn hàng ${order.orderNumber} không thể giao đến bạn. Chúng tôi sẽ liên hệ sớm.`,
+          orderId: order.id,
+        }),
+      ]);
+
       return {
         message: 'Đã xác nhận giao hàng thất bại và hoàn kho thành công.',
         data: savedOrder,
       };
     });
   }
-
 
   async cancelOrder(orderId: number, userId: number, reason: string) {
     return await this.dataSource.transaction(async (manager) => {
@@ -336,11 +373,11 @@ export class OrdersService {
       order: { createdAt: 'DESC' },
     });
   }
-
   async shipperPickUpOrder(orderId: number, shipperId: number) {
     return await this.dataSource.transaction(async (manager) => {
       const order = await manager.findOne(Order, {
         where: { id: orderId, status: 'confirmed' },
+        relations: ['seller'], // ← thêm
         lock: { mode: 'pessimistic_write' },
       });
 
@@ -353,24 +390,56 @@ export class OrdersService {
       order.status = 'shipping';
       order.shipper = { id: shipperId } as any;
 
-      return await manager.save(Order, order);
+      const savedOrder = await manager.save(Order, order);
+
+      await this.notificationsService.createWithManager(manager, {
+        recipientId: order.seller.id,
+        type: NotificationType.SHIPPER_PICKED_UP,
+        title: 'Shipper đã nhận hàng',
+        body: `Shipper đã nhận đơn hàng ${order.orderNumber} và đang trên đường giao.`,
+        orderId: order.id,
+      });
+
+      return savedOrder;
     });
   }
 
   async shipperCompleteOrder(orderId: number, shipperId: number) {
-    const order = await this.dataSource.manager.findOne(Order, {
-      where: { id: orderId, shipper: { id: shipperId }, status: 'shipping' },
+    // Đổi sang transaction để dùng chung manager với notification
+    return await this.dataSource.transaction(async (manager) => {
+      const order = await manager.findOne(Order, {
+        where: { id: orderId, shipper: { id: shipperId }, status: 'shipping' },
+        relations: ['seller', 'user'], // ← thêm
+      });
+
+      if (!order) throw new NotFoundException('Đơn hàng không hợp lệ');
+
+      order.status = 'success';
+      if (order.paymentMethod === 'COD') {
+        order.paymentStatus = 'paid';
+      }
+
+      const savedOrder = await manager.save(Order, order);
+
+      await Promise.all([
+        this.notificationsService.createWithManager(manager, {
+          recipientId: order.seller.id,
+          type: NotificationType.ORDER_DELIVERED,
+          title: 'Giao hàng thành công',
+          body: `Đơn hàng ${order.orderNumber} đã được giao thành công đến khách hàng.`,
+          orderId: order.id,
+        }),
+        this.notificationsService.createWithManager(manager, {
+          recipientId: order.user.id,
+          type: NotificationType.ORDER_DELIVERED,
+          title: 'Đơn hàng đã được giao',
+          body: `Đơn hàng ${order.orderNumber} đã được giao thành công. Cảm ơn bạn đã mua hàng!`,
+          orderId: order.id,
+        }),
+      ]);
+
+      return savedOrder;
     });
-
-    if (!order) throw new NotFoundException('Đơn hàng không hợp lệ');
-
-    order.status = 'success';
-
-    if (order.paymentMethod === 'COD') {
-      order.paymentStatus = 'paid';
-    }
-
-    return await this.dataSource.manager.save(Order, order);
   }
 
   async getOrdersByRole(
@@ -563,6 +632,72 @@ export class OrdersService {
     };
   }
 
+  async getSellerCustomers(sellerId: number, page: number = 1, limit: number = 10) {
+    const skip = (page - 1) * limit;
+
+    // Query lấy danh sách khách hàng và thống kê con số của họ tại Shop
+    const query = this.orderRepository.createQueryBuilder('order')
+      .innerJoin('order.user', 'customer')
+      .select([
+        'customer.id AS id',
+        'customer.fullName AS fullName',
+        'customer.email AS email',
+        'customer.phoneNumber AS phoneNumber',
+        'COUNT(order.id) AS totalOrders',
+        'SUM(order.totalAmount) AS totalSpent',
+        'MAX(order.createdAt) AS lastOrderDate'
+      ])
+      .where('order.seller_id = :sellerId', { sellerId })
+      .groupBy('customer.id')
+      .orderBy('totalSpent', 'DESC') // Ưu tiên khách chi nhiều tiền nhất lên đầu
+      .limit(limit)
+      .offset(skip);
+
+    const customers = await query.getRawMany();
+
+    // Đếm tổng số khách duy nhất để phân trang
+    const totalRaw = await this.orderRepository.createQueryBuilder('order')
+      .select('COUNT(DISTINCT(order.user))', 'count')
+      .where('order.seller_id = :sellerId', { sellerId })
+      .getRawOne();
+
+    return {
+      data: customers.map(c => ({
+        ...c,
+        totalSpent: parseFloat(c.totalSpent),
+        totalOrders: parseInt(c.totalOrders)
+      })),
+      total: parseInt(totalRaw.count)
+    };
+  }
+
+  async getSellerCustomerStats(sellerId: number) {
+    const rawStats = await this.orderRepository.createQueryBuilder('order')
+      .select([
+        'COUNT(DISTINCT(order.user)) AS totalCustomers',
+        'SUM(order.totalAmount) AS totalRevenue'
+      ])
+      .where('order.seller_id = :sellerId', { sellerId })
+      .andWhere('order.status = :status', { status: 'success' })
+      .getRawOne();
+
+    // Đếm khách hàng quay lại (mua > 1 đơn)
+    const returningRaw = await this.orderRepository.createQueryBuilder('order')
+      .select('order.user')
+      .where('order.seller_id = :sellerId', { sellerId })
+      .groupBy('order.user')
+      .having('COUNT(order.id) > 1')
+      .getRawMany();
+
+    return {
+      totalCustomers: parseInt(rawStats.totalCustomers || 0),
+      returningCustomers: returningRaw.length,
+      avgCustomerValue: rawStats.totalCustomers > 0
+        ? parseFloat(rawStats.totalRevenue) / parseInt(rawStats.totalCustomers)
+        : 0
+    };
+  }
+
   // ADMIN
   async findAllOrdersAdmin(page: number, limit: number, status?: string, search?: string) {
     const skip = (page - 1) * limit;
@@ -681,5 +816,108 @@ export class OrdersService {
     });
 
     return stats;
+  }
+
+  // NOTIFICATION FUNCTION
+  // --- Khi USER đặt hàng → thông báo đến từng SELLER ---
+  // Thêm vào cuối method createOrderFromCart()
+  async notifyOrderPlaced(orderNumber: string, sellerIds: number[], orderId: number) {
+    await this.notificationsService.createMany(
+      sellerIds.map((sellerId) => ({
+        recipientId: sellerId,
+        type: NotificationType.ORDER_PLACED,
+        title: 'Đơn hàng mới',
+        body: `Bạn có đơn hàng mới ${orderNumber} đang chờ xác nhận.`,
+        orderId,
+      })),
+    );
+  }
+
+  // --- Khi SELLER xác nhận đơn → thông báo đến USER ---
+  // Thêm vào cuối method sellerConfirmOrder()
+  async notifyOrderConfirmed(orderNumber: string, userId: number, orderId: number) {
+    await this.notificationsService.create({
+      recipientId: userId,
+      type: NotificationType.ORDER_CONFIRMED,
+      title: 'Đơn hàng được xác nhận',
+      body: `Đơn hàng ${orderNumber} đã được người bán xác nhận và đang chuẩn bị hàng.`,
+      orderId,
+    });
+  }
+
+  // --- Khi USER/SELLER hủy đơn → thông báo đến bên còn lại ---
+  // Thêm vào cuối method cancelOrder()
+  async notifyCancelledByUser(orderNumber: string, sellerId: number, orderId: number) {
+    await this.notificationsService.create({
+      recipientId: sellerId,
+      type: NotificationType.ORDER_CANCELLED_BY_USER,
+      title: 'Đơn hàng bị hủy',
+      body: `Khách hàng đã hủy đơn hàng ${orderNumber}.`,
+      orderId,
+    });
+  }
+
+  async notifyCancelledBySeller(orderNumber: string, userId: number, orderId: number) {
+    await this.notificationsService.create({
+      recipientId: userId,
+      type: NotificationType.ORDER_CANCELLED_BY_SELLER,
+      title: 'Đơn hàng bị từ chối',
+      body: `Đơn hàng ${orderNumber} đã bị người bán từ chối.`,
+      orderId,
+    });
+  }
+
+  // --- Khi SHIPPER nhận đơn → thông báo đến SELLER ---
+  // Thêm vào cuối method shipperPickUpOrder()
+  async notifyShipperPickedUp(orderNumber: string, shipperName: string, sellerId: number, orderId: number) {
+    await this.notificationsService.create({
+      recipientId: sellerId,
+      type: NotificationType.SHIPPER_PICKED_UP,
+      title: 'Shipper đã nhận hàng',
+      body: `Shipper ${shipperName} đã nhận đơn hàng ${orderNumber} và đang trên đường giao.`,
+      orderId,
+    });
+  }
+
+  // --- Khi SHIPPER giao thành công → thông báo đến SELLER + USER ---
+  // Thêm vào cuối method shipperCompleteOrder()
+  async notifyOrderDelivered(orderNumber: string, sellerId: number, userId: number, orderId: number) {
+    await this.notificationsService.createMany([
+      {
+        recipientId: sellerId,
+        type: NotificationType.ORDER_DELIVERED,
+        title: 'Giao hàng thành công',
+        body: `Đơn hàng ${orderNumber} đã được giao thành công đến khách hàng.`,
+        orderId,
+      },
+      {
+        recipientId: userId,
+        type: NotificationType.ORDER_DELIVERED,
+        title: 'Đơn hàng đã được giao',
+        body: `Đơn hàng ${orderNumber} đã được giao thành công. Cảm ơn bạn đã mua hàng!`,
+        orderId,
+      },
+    ]);
+  }
+
+  // --- Khi SHIPPER giao thất bại → thông báo đến SELLER + USER ---
+  // Thêm vào cuối method shipperFailOrder()
+  async notifyOrderFailed(orderNumber: string, sellerId: number, userId: number, orderId: number) {
+    await this.notificationsService.createMany([
+      {
+        recipientId: sellerId,
+        type: NotificationType.ORDER_FAILED,
+        title: 'Giao hàng thất bại',
+        body: `Đơn hàng ${orderNumber} giao thất bại. Vui lòng liên hệ shipper để xử lý.`,
+        orderId,
+      },
+      {
+        recipientId: userId,
+        type: NotificationType.ORDER_FAILED,
+        title: 'Giao hàng thất bại',
+        body: `Đơn hàng ${orderNumber} không thể giao đến bạn. Chúng tôi sẽ liên hệ sớm.`,
+        orderId,
+      },
+    ]);
   }
 }

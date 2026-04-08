@@ -62,7 +62,7 @@ const ShipperOrderManager = () => {
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold text-gray-900">Đơn hàng sẵn sàng giao</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Các đơn đã được người bán xác nhận, chờ shipper nhận</p>
+
         </div>
         <div className="flex items-center gap-3">
           <span className="text-sm text-gray-500">

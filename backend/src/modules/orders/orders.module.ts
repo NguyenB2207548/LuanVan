@@ -5,10 +5,11 @@ import { MomoService } from './momo.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Order } from './entities/order.entity';
 import { OrderItem } from './entities/order-item.entity';
+import { NotificationModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Order, OrderItem])],
+  imports: [TypeOrmModule.forFeature([Order, OrderItem, NotificationModule]), NotificationModule],
   controllers: [OrdersController],
   providers: [OrdersService, MomoService],
 })
-export class OrdersModule {}
+export class OrdersModule { }

@@ -155,7 +155,7 @@ const DesignerCanvas: React.FC<DesignerCanvasProps> = ({
                 const { id, ...otherData } = l;
 
                 const commonProps = {
-                  // Bỏ key ra khỏi object này
+                  // // Bỏ key ra khỏi object này
                   x: (l.x || 0) * scale,
                   y: (l.y || 0) * scale,
                   draggable: mode === "artwork",
@@ -168,12 +168,15 @@ const DesignerCanvas: React.FC<DesignerCanvasProps> = ({
                 if (l.type.includes("text")) {
                   return (
                     <Text
-                      key={l.id} // Truyền TRỰC TIẾP ở đây
+                      key={l.id}
                       {...commonProps}
                       text={l.text}
                       fontSize={(l.fontSize || 20) * scale}
                       fill={l.color || "#000"}
                       fontFamily={l.fontFamily}
+                      align="center"
+                      width={(l.width || 200) * scale}
+                      offsetX={((l.width || 200) * scale) / 2}
                       onDragEnd={(e) => {
                         e.cancelBubble = true;
                         handleLayerChange(l.id, {
@@ -191,6 +194,8 @@ const DesignerCanvas: React.FC<DesignerCanvasProps> = ({
                     {...commonProps}
                     l={{
                       ...l,
+                      x: (l.x || 0) * scale,
+                      y: (l.y || 0) * scale,
                       width: (l.width || 100) * scale,
                       height: (l.height || 100) * scale,
                       url: l.image_url || l.url,

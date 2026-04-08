@@ -33,7 +33,6 @@ export class OrdersController {
   @Post('checkout')
   @Roles(UserRole.USER)
   checkout(@Request() req, @Body() createOrderDto: CreateOrderDto) {
-    console.log('ID truyền vào service:', req.user.userId);
     return this.ordersService.createOrderFromCart(
       req.user.userId,
       createOrderDto,
@@ -189,6 +188,18 @@ export class OrdersController {
       `attachment; filename=print-file-${orderItemId}.png`,
     );
     res.send(imageBuffer);
+  }
+
+  @Get('seller/customers')
+  @Roles(UserRole.SELLER)
+  async getMyCustomers(@Request() req, @Query('page') page: number) {
+    return this.ordersService.getSellerCustomers(req.user.id, page);
+  }
+
+  @Get('seller/customers/stats')
+  @Roles(UserRole.SELLER)
+  async getMyCustomerStats(@Request() req) {
+    return this.ordersService.getSellerCustomerStats(req.user.id);
   }
 
   // ADMIN

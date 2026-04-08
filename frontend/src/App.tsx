@@ -61,6 +61,7 @@ import ShipperHistoryPage from "./pages/shipper/ShipperHistoryPage";
 import DashboardShipper from "./pages/shipper/DashboardShipper";
 import AdminProductManager from "./pages/admin/AdminProductManager";
 import AdminOrderManagement from "./pages/admin/AdminOrderManagement";
+import SellerCustomerManagement from "./pages/seller/SellerCustomerManagement";
 
 function App() {
   return (
@@ -122,6 +123,7 @@ function App() {
                 <Route path="designs/add" element={<AddDesignPage />} />
                 <Route path="designs/edit/:id" element={<EditDesignPage />} />
                 <Route path="orders" element={<SellerOrderManager />} />
+                <Route path="customers" element={<SellerCustomerManagement />} />
                 <Route path="revenue" element={<SellerRevenuePage />} />
                 <Route path="settings" element={<SellerSettings />} />
                 <Route path="products/print-area-config" element={<PrintAreaConfigPage />} />

@@ -12,6 +12,32 @@ import type { DesignLayer, ModalTarget } from "../../types/designer";
 
 const BASE_URL = "http://localhost:3000";
 
+const PREDEFINED_FONTS = [
+  "Arial",
+  "Verdana",
+  "Times New Roman",
+  "Courier New",
+  "Georgia",
+  "Roboto",
+  "Oswald",
+  "Impact",
+  "Comic Sans MS",
+];
+
+const PREDEFINED_COLORS = [
+  "#000000",
+  "#FFFFFF",
+  "#FF0000",
+  "#00FF00",
+  "#0000FF",
+  "#FFFF00",
+  "#FF00FF",
+  "#00FFFF",
+  "#808080",
+  "#FFA500",
+  "#800080",
+];
+
 interface LayerPropertiesPanelProps {
   layer: DesignLayer;
   allGroupOptions: any[];
@@ -30,6 +56,19 @@ const LayerPropertiesPanel: React.FC<LayerPropertiesPanelProps> = ({
   const validConditionOptions = allGroupOptions.filter(
     (opt) => opt.groupId !== layer.id,
   );
+
+  const toggleArrayItem = (
+    currentArray: string[] | undefined,
+    item: string,
+    field: string,
+  ) => {
+    const arr = currentArray || [];
+    const newArr = arr.includes(item)
+      ? arr.filter((i) => i !== item)
+      : [...arr, item];
+    onUpdate(field, newArr);
+  };
+
   return (
     <section className="space-y-4 bg-blue-50/30 p-4 -mx-4 border-y border-blue-100 mt-4">
       {/* HEADER */}
@@ -236,91 +275,135 @@ const LayerPropertiesPanel: React.FC<LayerPropertiesPanelProps> = ({
       {/* SPECIFIC PROPS: TEXT */}
       {(layer.type === "text" || layer.type === "dynamic_text") && (
         <div className="space-y-3 pt-2 border-t border-blue-200">
-          <label className="text-[10px] uppercase text-gray-500 font-semibold mb-1 block">
-            Default Text
-          </label>
-          <input
-            className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none"
-            value={layer.text || ""}
-            onChange={(e) => onUpdate("text", e.target.value)}
-          />
-        </div>
-      )}
+          <div>
+            <label className="text-[10px] uppercase text-gray-500 font-semibold mb-1 block">
+              Default Text
+            </label>
+            <input
+              className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none"
+              value={layer.text || ""}
+              onChange={(e) => onUpdate("text", e.target.value)}
+            />
+          </div>
 
-      {/* SPECIFIC PROPS: DYNAMIC TEXT */}
-      {layer.type === "dynamic_text" && (
-        <div className="space-y-3 pt-2 border-t border-blue-200">
-          <label className="text-[10px] uppercase text-gray-500 font-semibold block">
-            Text Options ({layer.options?.length || 0})
-          </label>
-          {layer.options?.map((opt, index) => (
-            <div
-              key={opt.id}
-              className="flex gap-2 items-center bg-white p-2 rounded border border-gray-200"
-            >
-              <div className="flex-1 space-y-2">
-                <input
-                  placeholder="Option ID (e.g., quote_1)"
-                  className="w-full text-xs border-b border-gray-200 pb-1 focus:outline-none focus:border-blue-500"
-                  value={opt.id}
-                  onChange={(e) => {
-                    const newOptions = [...(layer.options || [])];
-                    newOptions[index].id = e.target.value;
-                    onUpdate("options", newOptions);
-                  }}
-                />
-                <input
-                  placeholder="Text Value (e.g., Best Friends Forever)"
-                  className="w-full text-xs border-b border-gray-200 pb-1 focus:outline-none focus:border-blue-500"
-                  value={opt.name}
-                  onChange={(e) => {
-                    const newOptions = [...(layer.options || [])];
-                    newOptions[index].name = e.target.value;
-                    onUpdate("options", newOptions);
-                  }}
-                />
-              </div>
+          {/* 1. STYLE HIỂN THỊ MẶC ĐỊNH TRÊN CANVAS */}
+          <div className="grid grid-cols-3 gap-2 mt-2">
+            <div>
+              <label className="text-[10px] uppercase text-gray-500 font-semibold mb-1 block">
+                Font
+              </label>
+              <select
+                className="w-full px-1 py-1.5 border border-gray-300 rounded text-xs focus:outline-none bg-white"
+                value={layer.fontFamily || "Arial"}
+                onChange={(e) => onUpdate("fontFamily", e.target.value)}
+              >
+                {PREDEFINED_FONTS.map((font) => (
+                  <option key={font} value={font}>
+                    {font}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-[10px] uppercase text-gray-500 font-semibold mb-1 block">
+                Size
+              </label>
+              <input
+                type="number"
+                className="w-full px-2 py-1.5 border border-gray-300 rounded text-xs focus:outline-none"
+                value={layer.fontSize || 20}
+                onChange={(e) => onUpdate("fontSize", Number(e.target.value))}
+              />
+            </div>
+            <div>
+              <label className="text-[10px] uppercase text-gray-500 font-semibold mb-1 block">
+                Color
+              </label>
+              <input
+                type="color"
+                className="w-full h-[28px] p-0 border border-gray-300 rounded cursor-pointer"
+                value={layer.color || "#000000"}
+                onChange={(e) => onUpdate("color", e.target.value)}
+              />
+            </div>
+          </div>
 
-              {/* CÁC NÚT THAO TÁC (XEM THỬ VÀ XÓA) */}
-              <div className="flex flex-col gap-1">
-                <button
-                  className={`p-1.5 rounded transition-colors ${
-                    layer.text === opt.name
-                      ? "bg-blue-100 text-blue-600"
-                      : "bg-gray-100 text-gray-400 hover:bg-gray-200"
-                  }`}
-                  title="Preview on Canvas"
-                  onClick={() => onUpdate("text", opt.name)} // Bấm vào để hiện text này lên Canvas
-                >
-                  <Eye size={14} />
-                </button>
-                <button
-                  className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                  onClick={() =>
-                    onUpdate(
-                      "options",
-                      layer.options?.filter((_, i) => i !== index),
-                    )
-                  }
-                >
-                  <XCircle size={14} />
-                </button>
+          {/* 2. DANH SÁCH LỰA CHỌN (LƯU VÀO JSON CHO CLIENT DÙNG LẠI) */}
+          <div className="space-y-4 mt-3 pt-3 border-t border-dashed border-gray-300">
+            <label className="text-[10px] uppercase text-blue-800 font-bold block">
+              Danh sách tùy chọn cho khách hàng
+            </label>
+
+            {/* CHỌN FONTS TỪ LIST CÓ SẴN */}
+            <div>
+              <label className="text-[9px] uppercase text-gray-500 mb-1 block">
+                Fonts (Click để chọn/bỏ chọn)
+              </label>
+              <div className="flex flex-wrap gap-1.5">
+                {PREDEFINED_FONTS.map((font) => {
+                  const isSelected = (layer.availableFonts || []).includes(
+                    font,
+                  );
+                  return (
+                    <button
+                      key={font}
+                      type="button"
+                      onClick={() =>
+                        toggleArrayItem(
+                          layer.availableFonts,
+                          font,
+                          "availableFonts",
+                        )
+                      }
+                      className={`px-2 py-1 text-[10px] rounded border transition-colors ${
+                        isSelected
+                          ? "bg-blue-500 text-white border-blue-500"
+                          : "bg-gray-100 text-gray-600 border-gray-300 hover:bg-gray-200"
+                      }`}
+                      style={{ fontFamily: font }}
+                    >
+                      {font}
+                    </button>
+                  );
+                })}
               </div>
             </div>
-          ))}
 
-          {/* NÚT THÊM OPTION TEXT MỚI */}
-          <button
-            onClick={() =>
-              onUpdate("options", [
-                ...(layer.options || []),
-                { id: `opt_${Date.now()}`, name: "New Quote" },
-              ])
-            }
-            className="w-full py-1.5 border border-dashed border-blue-400 text-blue-600 rounded text-xs hover:bg-blue-50 flex items-center justify-center gap-1"
-          >
-            <PlusCircle size={14} /> Add Text Option
-          </button>
+            {/* CHỌN COLORS TỪ LIST CÓ SẴN */}
+            <div>
+              <label className="text-[9px] uppercase text-gray-500 mb-1 block">
+                Colors (Click để chọn/bỏ chọn)
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {PREDEFINED_COLORS.map((color) => {
+                  const isSelected = (layer.availableColors || []).includes(
+                    color,
+                  );
+                  return (
+                    <div
+                      key={color}
+                      onClick={() =>
+                        toggleArrayItem(
+                          layer.availableColors,
+                          color,
+                          "availableColors",
+                        )
+                      }
+                      className={`w-6 h-6 rounded-full cursor-pointer border-2 transition-transform ${
+                        isSelected
+                          ? "border-blue-500 scale-110 shadow-sm"
+                          : "border-gray-300 hover:scale-105"
+                      }`}
+                      style={{ backgroundColor: color }}
+                      title={color}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Ghi chú: Phần nhập Size đã được gỡ bỏ hoàn toàn */}
+          </div>
         </div>
       )}
 

@@ -8,13 +8,14 @@ import {
   Palette,
   Settings,
   Store,
-  HelpCircle,
+  Users,
   Image as ImageIcon,
   Box,
   Bell,
   TrendingUp
 } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
+import NotificationBell from "@/components/common/NotificationBell";
 
 const SellerLayout = () => {
   const navigate = useNavigate();
@@ -47,6 +48,7 @@ const SellerLayout = () => {
     { to: "/seller/artworks", icon: ImageIcon, label: "Thư viện Artwork" },
     { to: "/seller/designs", icon: Palette, label: "Thiết kế" },
     { to: "/seller/orders", icon: ShoppingCart, label: "Đơn hàng" },
+    { to: "/seller/customers", icon: Users, label: "Khách hàng" },
     { to: "/seller/revenue", icon: TrendingUp, label: "Doanh thu" },
     { to: "/seller/settings", icon: Settings, label: "Cài đặt cửa hàng" },
   ];
@@ -117,12 +119,7 @@ const SellerLayout = () => {
       <div className="flex-1 flex flex-col pl-56">
         {/* Header */}
         <header className="h-11 bg-white border-b border-gray-200 shadow-sm sticky top-0 z-30 flex items-center justify-end px-6 gap-2">
-          <button className="w-8 h-8 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-50 transition-colors relative">
-            <Bell size={16} />
-            {/* Badge thông báo chưa đọc — xóa nếu không cần */}
-            <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-red-500 rounded-full" />
-          </button>
-
+          <NotificationBell />  {/* ← thay thế button Bell cũ */}
           <button
             onClick={handleLogout}
             className="w-8 h-8 flex items-center justify-center rounded-md text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
