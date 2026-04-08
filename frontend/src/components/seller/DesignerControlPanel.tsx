@@ -1,5 +1,15 @@
-import React, { useState, useMemo } from "react";
-import { Save, Layers, ImageIcon, Eye, EyeOff, Move, FileCode, Sparkles, RefreshCw } from "lucide-react";
+import React, { useState, useMemo, useEffect } from "react";
+import {
+  Save,
+  Layers,
+  ImageIcon,
+  Eye,
+  EyeOff,
+  Move,
+  FileCode,
+  Sparkles,
+  RefreshCw,
+} from "lucide-react";
 import AssetManagerModal from "../admin/AssetManagerModal";
 import AddLayerButtons from "./AddLayerButtons";
 import LayerListManager from "./LayerListManager";
@@ -64,6 +74,22 @@ const DesignerControlPanel: React.FC<DesignerControlPanelProps> = ({
     target: ModalTarget | null;
   }>({ isOpen: false, multiple: false, target: null });
 
+  useEffect(() => {
+    const handleOpenAssetModal = (e: any) => {
+      const { type } = e.detail;
+      setModalConfig({
+        isOpen: true,
+        multiple: type === "dynamic_image",
+        target: { type },
+      });
+    };
+
+    window.addEventListener("OPEN_ASSET_MODAL", handleOpenAssetModal);
+    return () => {
+      window.removeEventListener("OPEN_ASSET_MODAL", handleOpenAssetModal);
+    };
+  }, []);
+
   // --- IMPORT PSD ---
   const handlePsdUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -98,7 +124,7 @@ const DesignerControlPanel: React.FC<DesignerControlPanelProps> = ({
   };
 
   const handleApplyAiLayers = (aiLayers: any[]) => {
-    setLayers(prev => [...prev, ...aiLayers]);
+    setLayers((prev) => [...prev, ...aiLayers]);
     if (aiLayers.length > 0) {
       setSelectedId(aiLayers[aiLayers.length - 1].id);
     }
@@ -128,8 +154,11 @@ const DesignerControlPanel: React.FC<DesignerControlPanelProps> = ({
         ...(selectedLayer.options || []),
         ...newOptions,
       ]);
-      if (!selectedLayer.image_url && urls.length > 0)
+      // if (!selectedLayer.image_url && urls.length > 0)
+      //   updateSelectedLayer("image_url", urls[0]);
+      if (urls.length > 0) {
         updateSelectedLayer("image_url", urls[0]);
+      }
     } else if (type === "static_image" && selectedLayer) {
       updateSelectedLayer("image_url", urls[0]);
     }
@@ -190,7 +219,9 @@ const DesignerControlPanel: React.FC<DesignerControlPanelProps> = ({
 
           <div className="flex gap-2 w-full">
             <button
-              onClick={() => document.getElementById("hidden-psd-input")?.click()}
+              onClick={() =>
+                document.getElementById("hidden-psd-input")?.click()
+              }
               disabled={isExtractingPsd}
               className="flex-1 py-2 bg-gray-800 text-white text-[10px] font-bold uppercase rounded-sm hover:bg-black transition-colors disabled:bg-gray-400 flex items-center justify-center gap-2"
             >
@@ -346,12 +377,16 @@ const DesignerControlPanel: React.FC<DesignerControlPanelProps> = ({
       <div className="p-3 border-t border-gray-300 bg-gray-100 absolute bottom-0 w-full">
         <button
           onClick={handleSaveDesign}
-          className={`w-full ${isEditMode ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-blue-700 hover:bg-blue-800'} text-white py-2.5 rounded-sm font-bold text-xs uppercase transition-colors`}
+          className={`w-full ${isEditMode ? "bg-emerald-600 hover:bg-emerald-700" : "bg-blue-700 hover:bg-blue-800"} text-white py-2.5 rounded-sm font-bold text-xs uppercase transition-colors`}
         >
           {isEditMode ? (
-            <><RefreshCw size={16} className="inline mr-2" /> Update Design</>
+            <>
+              <RefreshCw size={16} className="inline mr-2" /> Update Design
+            </>
           ) : (
-            <><Save size={16} className="inline mr-2" /> Lưu Artwork</>
+            <>
+              <Save size={16} className="inline mr-2" /> Lưu Artwork
+            </>
           )}
         </button>
       </div>

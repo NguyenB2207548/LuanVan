@@ -155,13 +155,28 @@ const DesignerCanvas: React.FC<DesignerCanvasProps> = ({
                 const { id, ...otherData } = l;
 
                 const commonProps = {
-                  // // Bỏ key ra khỏi object này
                   x: (l.x || 0) * scale,
                   y: (l.y || 0) * scale,
                   draggable: mode === "artwork",
                   onClick: (e: any) => {
                     e.cancelBubble = true;
                     setSelectedId(l.id);
+                  },
+
+                  onDblClick: (e: any) => {
+                    e.cancelBubble = true;
+                    setSelectedId(l.id);
+
+                    if (
+                      l.type === "static_image" ||
+                      l.type === "dynamic_image"
+                    ) {
+                      window.dispatchEvent(
+                        new CustomEvent("OPEN_ASSET_MODAL", {
+                          detail: { type: l.type },
+                        }),
+                      );
+                    }
                   },
                 };
 
@@ -215,7 +230,7 @@ const DesignerCanvas: React.FC<DesignerCanvasProps> = ({
                 );
               })}
 
-            {/* 3. VIRTUAL PRINT AREA (Vẽ lên trên cùng để làm khung hướng dẫn) */}
+            {/* 3. VIRTUAL PRINT AREA */}
             {(virtualPrintArea.visible ?? true) && (
               <Rect
                 ref={printAreaRef}
@@ -232,9 +247,11 @@ const DesignerCanvas: React.FC<DesignerCanvasProps> = ({
                 }
                 strokeWidth={mode === "client" ? 0 : 2}
                 dash={[10, 5]}
-                fill="transparent" // Không dùng fill để không che mất layer bên dưới
+                // 1. THÊM DÒNG NÀY: Biến khung thành "Bóng ma", chuột sẽ xuyên thẳng qua khung để chạm vào Layer bên dưới
+                listening={mode === "print-area"}
                 name="print_area_rect"
-                draggable={mode !== "client"}
+                // 2. SỬA DÒNG NÀY: Chỉ cho phép kéo thả ở đúng trang Cài đặt Print Area
+                draggable={mode === "print-area"}
                 onDragEnd={handlePrintAreaDragEnd}
                 onTransformEnd={handlePrintAreaTransformEnd}
                 onClick={(e) => {

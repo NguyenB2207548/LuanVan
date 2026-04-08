@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Settings,
   Trash2,
@@ -53,6 +53,9 @@ const LayerPropertiesPanel: React.FC<LayerPropertiesPanelProps> = ({
   onDelete,
   onOpenModal,
 }) => {
+  const [newFont, setNewFont] = useState(PREDEFINED_FONTS[0] || "Arial");
+  const [newColor, setNewColor] = useState("#000000");
+
   const validConditionOptions = allGroupOptions.filter(
     (opt) => opt.groupId !== layer.id,
   );
@@ -331,78 +334,145 @@ const LayerPropertiesPanel: React.FC<LayerPropertiesPanelProps> = ({
           {/* 2. DANH SÁCH LỰA CHỌN (LƯU VÀO JSON CHO CLIENT DÙNG LẠI) */}
           <div className="space-y-4 mt-3 pt-3 border-t border-dashed border-gray-300">
             <label className="text-[10px] uppercase text-blue-800 font-bold block">
-              Danh sách tùy chọn cho khách hàng
+              Danh sách tùy chọn
             </label>
 
-            {/* CHỌN FONTS TỪ LIST CÓ SẴN */}
+            {/* A. THÊM FONT (DROPDOWN) */}
             <div>
               <label className="text-[9px] uppercase text-gray-500 mb-1 block">
-                Fonts (Click để chọn/bỏ chọn)
+                Fonts
               </label>
-              <div className="flex flex-wrap gap-1.5">
-                {PREDEFINED_FONTS.map((font) => {
-                  const isSelected = (layer.availableFonts || []).includes(
-                    font,
-                  );
-                  return (
-                    <button
-                      key={font}
-                      type="button"
-                      onClick={() =>
-                        toggleArrayItem(
-                          layer.availableFonts,
-                          font,
-                          "availableFonts",
-                        )
-                      }
-                      className={`px-2 py-1 text-[10px] rounded border transition-colors ${
-                        isSelected
-                          ? "bg-blue-500 text-white border-blue-500"
-                          : "bg-gray-100 text-gray-600 border-gray-300 hover:bg-gray-200"
-                      }`}
-                      style={{ fontFamily: font }}
-                    >
+              <div className="flex gap-2">
+                <select
+                  className="flex-1 px-2 py-1.5 border border-gray-300 rounded text-xs focus:outline-none"
+                  value={newFont}
+                  onChange={(e) => setNewFont(e.target.value)}
+                >
+                  {PREDEFINED_FONTS.map((font) => (
+                    <option key={font} value={font}>
                       {font}
-                    </button>
-                  );
-                })}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const arr = layer.availableFonts || [];
+                    if (!arr.includes(newFont)) {
+                      onUpdate("availableFonts", [...arr, newFont]);
+                    }
+                  }}
+                  className="px-3 py-1.5 bg-blue-50 text-blue-600 font-semibold text-[10px] uppercase rounded border border-blue-200 hover:bg-blue-100 transition-colors"
+                >
+                  Thêm
+                </button>
               </div>
-            </div>
 
-            {/* CHỌN COLORS TỪ LIST CÓ SẴN */}
-            <div>
-              <label className="text-[9px] uppercase text-gray-500 mb-1 block">
-                Colors (Click để chọn/bỏ chọn)
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {PREDEFINED_COLORS.map((color) => {
-                  const isSelected = (layer.availableColors || []).includes(
-                    color,
-                  );
-                  return (
+              {/* Hiển thị các Font đã được thêm */}
+              {layer.availableFonts && layer.availableFonts.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {layer.availableFonts.map((font) => (
                     <div
-                      key={color}
-                      onClick={() =>
-                        toggleArrayItem(
-                          layer.availableColors,
-                          color,
-                          "availableColors",
-                        )
-                      }
-                      className={`w-6 h-6 rounded-full cursor-pointer border-2 transition-transform ${
-                        isSelected
-                          ? "border-blue-500 scale-110 shadow-sm"
-                          : "border-gray-300 hover:scale-105"
-                      }`}
-                      style={{ backgroundColor: color }}
-                      title={color}
-                    />
-                  );
-                })}
-              </div>
+                      key={font}
+                      className="flex items-center gap-1.5 bg-gray-100 px-2 py-1 rounded border border-gray-200"
+                    >
+                      <span
+                        className="text-[10px]"
+                        style={{ fontFamily: font }}
+                      >
+                        {font}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          toggleArrayItem(
+                            layer.availableFonts,
+                            font,
+                            "availableFonts",
+                          )
+                        }
+                        className="text-gray-400 hover:text-red-500 transition-colors flex items-center justify-center"
+                        title="Xóa font này"
+                      >
+                        <XCircle size={12} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
-            {/* Ghi chú: Phần nhập Size đã được gỡ bỏ hoàn toàn */}
+            {/* B. THÊM COLOR (TÙY CHỈNH HEX HOẶC BẢNG MÀU) */}
+            <div className="pt-2">
+              <label className="text-[9px] uppercase text-gray-500 mb-1 block">
+                Colors
+              </label>
+              <div className="flex gap-2 items-center">
+                {/* Ô chọn màu trực quan */}
+                <input
+                  type="color"
+                  className="w-8 h-8 p-0 border border-gray-300 rounded cursor-pointer shrink-0"
+                  value={newColor}
+                  onChange={(e) => setNewColor(e.target.value)}
+                />
+                {/* Ô nhập text cho mã HEX */}
+                <input
+                  type="text"
+                  className="flex-1 px-2 py-1.5 border border-gray-300 rounded text-xs focus:outline-none uppercase font-mono"
+                  value={newColor}
+                  onChange={(e) => setNewColor(e.target.value)}
+                  placeholder="#000000"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    // Kiểm tra sơ bộ mã HEX hợp lệ
+                    const isValidHex = /^#([0-9A-F]{3}){1,2}$/i.test(newColor);
+                    if (!isValidHex) {
+                      return alert(
+                        "Mã màu không hợp lệ! Vui lòng dùng định dạng #HEX (ví dụ: #FF0000)",
+                      );
+                    }
+                    const arr = layer.availableColors || [];
+                    if (!arr.includes(newColor)) {
+                      onUpdate("availableColors", [...arr, newColor]);
+                    }
+                  }}
+                  className="px-3 py-1.5 bg-blue-50 text-blue-600 font-semibold text-[10px] uppercase rounded border border-blue-200 hover:bg-blue-100 transition-colors"
+                >
+                  Thêm
+                </button>
+              </div>
+
+              {/* Hiển thị các Color đã được thêm */}
+              {layer.availableColors && layer.availableColors.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {layer.availableColors.map((colorHex) => (
+                    <div
+                      key={colorHex}
+                      className="relative group w-7 h-7 rounded-full border-2 border-gray-200 shadow-sm flex-shrink-0"
+                      style={{ backgroundColor: colorHex }}
+                      title={colorHex}
+                    >
+                      <button
+                        type="button"
+                        onClick={() =>
+                          toggleArrayItem(
+                            layer.availableColors,
+                            colorHex,
+                            "availableColors",
+                          )
+                        }
+                        className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-white text-red-500 rounded-full border border-gray-200 shadow-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="Xóa màu này"
+                      >
+                        <XCircle size={10} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

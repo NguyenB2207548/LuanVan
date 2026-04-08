@@ -11,7 +11,8 @@ export interface URLImageProps {
   isSelected: boolean;
   onSelect: () => void;
   onChange: (newProps: any) => void;
-  onUploadClick?: () => void; // Dấu ? giúp nó không bắt buộc
+  onDblClick?: (e: any) => void;
+  // onUploadClick?: () => void;
   draggable: boolean; // Thuộc tính đang bị báo lỗi
 }
 
@@ -20,12 +21,12 @@ const URLImage: React.FC<URLImageProps> = ({
   isSelected,
   onSelect,
   onChange,
-  onUploadClick,
+  onDblClick,
   draggable,
 }) => {
   const finalUrl = l.image_url || l.url;
 
-  const [img] = useImage(
+  const [img, status] = useImage(
     finalUrl
       ? finalUrl.startsWith("http")
         ? finalUrl
@@ -36,6 +37,12 @@ const URLImage: React.FC<URLImageProps> = ({
 
   const shapeRef = useRef<Konva.Image>(null);
   const trRef = useRef<Konva.Transformer>(null);
+
+  useEffect(() => {
+    if (status === "loaded" && shapeRef.current) {
+      shapeRef.current.getLayer()?.batchDraw();
+    }
+  }, [status]);
 
   useEffect(() => {
     if (isSelected && trRef.current && shapeRef.current) {
@@ -56,7 +63,8 @@ const URLImage: React.FC<URLImageProps> = ({
         draggable={draggable}
         onClick={onSelect}
         onTap={onSelect}
-        onDblClick={onUploadClick}
+        onDblClick={onDblClick}
+        // onDblClick={onUploadClick}
         // Chặn nổi bọt triệt để ở cả 3 giai đoạn kéo
         onDragStart={(e) => {
           e.cancelBubble = true;

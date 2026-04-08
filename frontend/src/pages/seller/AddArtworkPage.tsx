@@ -17,6 +17,8 @@ const AddArtworkPage = () => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
 
+  const [activeFilter, setActiveFilter] = useState("ALL");
+
   // Thêm state này để quản lý trạng thái bóc tách PSD
   const [isExtractingPsd, setIsExtractingPsd] = useState(false);
 
@@ -63,6 +65,7 @@ const AddArtworkPage = () => {
         setVirtualPrintArea={setVirtualPrintArea}
         selectedId={selectedId}
         setSelectedId={setSelectedId}
+        activeFilter={activeFilter}
         mode="artwork"
         maxWidth={650}
       />
@@ -80,8 +83,8 @@ const AddArtworkPage = () => {
             prev.map((l) => (l.id === selectedId ? { ...l, [f]: v } : l)),
           )
         }
-        activeFilter="ALL"
-        setActiveFilter={() => { }}
+        // activeFilter="ALL"
+        // setActiveFilter={() => {}}
         onSave={handleSaveArtwork}
         // Truyền đầy đủ props cho chức năng Import PSD
         isExtractingPsd={isExtractingPsd}
@@ -89,6 +92,8 @@ const AddArtworkPage = () => {
         virtualPrintArea={virtualPrintArea}
         setVirtualPrintArea={setVirtualPrintArea}
         onOpenBgSelect={() => setIsAssetModalOpen(true)}
+        activeFilter={activeFilter}
+        setActiveFilter={setActiveFilter}
       />
       <AssetManagerModal
         isOpen={isAssetModalOpen}
