@@ -17,6 +17,7 @@ import {
 import axiosClient from "@/api/axiosClient";
 import StatCard from "@/components/common/StatCard";
 import toast, { Toaster } from "react-hot-toast";
+import { showErrorToast, showSuccessToast } from "@/components/common/toast";
 
 interface Artwork {
   id: number;
@@ -56,7 +57,7 @@ const SellerArtworkManager = () => {
       const res = await axiosClient.get("designs/seller/artworks");
       setArtworks(res.data || []);
     } catch (err) {
-      toast.error("Không thể tải danh sách artwork");
+      showErrorToast("Không thể tải danh sách artwork");
     } finally {
       setLoading(false);
     }
@@ -80,24 +81,33 @@ const SellerArtworkManager = () => {
   }, []);
 
   const handleDelete = async (id: number, name: string) => {
-    if (!window.confirm(`Bạn có chắc chắn muốn xóa bản vẽ "${name || "không tên"}"?`)) return;
-    const t = toast.loading("Đang xóa...");
+    if (
+      !window.confirm(
+        `Bạn có chắc chắn muốn xóa bản vẽ "${name || "không tên"}"?`,
+      )
+    )
+      return;
+    const loadingToast = toast.loading("Đang xóa...");
     try {
       setDeletingId(id);
-      await axiosClient.delete(`designs/artworks/${id}`);
-      toast.success("Xóa thành công", { id: t });
+      await axiosClient.delete(`designs/seller/artworks/${id}`);
+      toast.dismiss(loadingToast);
+      showSuccessToast("Xóa thành công");
       setArtworks((prev) => prev.filter((a) => a.id !== id));
       fetchStats();
     } catch (err) {
-      toast.error("Không thể xóa thiết kế này", { id: t });
+      toast.dismiss(loadingToast);
+      showErrorToast("Không thể xóa thiết kế này");
     } finally {
       setDeletingId(null);
     }
   };
 
   const filtered = artworks.filter((art) => {
-    const matchSearch = (art.artworkName || "").toLowerCase().includes(searchTerm.toLowerCase());
-    // Giả sử logic lọc: usedInDesign được tính dựa trên backend, 
+    const matchSearch = (art.artworkName || "")
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase());
+    // Giả sử logic lọc: usedInDesign được tính dựa trên backend,
     // ở đây tui lọc tạm theo search để giữ cấu trúc filter tab cho đẹp
     return matchSearch;
   });
@@ -109,12 +119,17 @@ const SellerArtworkManager = () => {
       {/* PAGE HEADER */}
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">Thư viện Artwork</h1>
+          <h1 className="text-xl font-semibold text-gray-900">
+            Thư viện Artwork
+          </h1>
         </div>
 
         <div className="flex items-center gap-2">
           <button
-            onClick={() => { fetchArtworks(); fetchStats(); }}
+            onClick={() => {
+              fetchArtworks();
+              fetchStats();
+            }}
             className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
             title="Làm mới"
           >
@@ -149,17 +164,18 @@ const SellerArtworkManager = () => {
           icon={<FileEdit />}
           loading={loadingStats}
         />
-
       </div>
 
       {/* MAIN CARD: Toolbar + Table */}
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-
         {/* Toolbar */}
         <div className="px-5 py-3 flex flex-col sm:flex-row items-start sm:items-center gap-3">
           {/* Search */}
           <div className="relative w-full sm:w-56">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+            <Search
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+              size={14}
+            />
             <input
               type="text"
               placeholder="Tìm tên bản vẽ..."
@@ -171,14 +187,15 @@ const SellerArtworkManager = () => {
 
           {/* Status filter tabs */}
           <div className="flex items-center gap-1 flex-wrap">
-            {FILTER_TABS.map(tab => (
+            {FILTER_TABS.map((tab) => (
               <button
                 key={tab.value}
                 onClick={() => setStatusFilter(tab.value)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border font-medium transition-colors ${statusFilter === tab.value
-                  ? "bg-gray-900 text-white border-gray-900"
-                  : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
-                  }`}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border font-medium transition-colors ${
+                  statusFilter === tab.value
+                    ? "bg-gray-900 text-white border-gray-900"
+                    : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
+                }`}
               >
                 {tab.label}
               </button>
@@ -197,10 +214,18 @@ const SellerArtworkManager = () => {
           <table className="min-w-full">
             <thead>
               <tr className="border-t border-b border-gray-100 bg-gray-50/60">
-                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-700">Tên bản vẽ</th>
-                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-700">Ngày tạo</th>
-                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-700">Trạng thái</th>
-                <th className="px-5 py-3 text-right text-xs font-semibold text-gray-700">Hành động</th>
+                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-700">
+                  Tên bản vẽ
+                </th>
+                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-700">
+                  Ngày tạo
+                </th>
+                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-700">
+                  Trạng thái
+                </th>
+                <th className="px-5 py-3 text-right text-xs font-semibold text-gray-700">
+                  Hành động
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -216,13 +241,22 @@ const SellerArtworkManager = () => {
               ) : filtered.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="px-5 py-16 text-center">
-                    <ImageIcon className="mx-auto text-gray-200 mb-3" size={36} />
-                    <p className="text-sm text-gray-400">Không tìm thấy bản vẽ nào</p>
+                    <ImageIcon
+                      className="mx-auto text-gray-200 mb-3"
+                      size={36}
+                    />
+                    <p className="text-sm text-gray-400">
+                      Không tìm thấy bản vẽ nào
+                    </p>
                   </td>
                 </tr>
               ) : (
                 filtered.map((art) => (
-                  <tr key={art.id} className="hover:bg-gray-50/70 transition-colors cursor-pointer" onClick={() => navigate(`/seller/artworks/edit/${art.id}`)}>
+                  <tr
+                    key={art.id}
+                    className="hover:bg-gray-50/70 transition-colors cursor-pointer"
+                    onClick={() => navigate(`/seller/artworks/edit/${art.id}`)}
+                  >
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg border border-gray-100 bg-gray-50 overflow-hidden flex items-center justify-center shrink-0">
@@ -240,14 +274,21 @@ const SellerArtworkManager = () => {
                       </div>
                     </td>
                     <td className="px-5 py-4">
-                      <span className={`inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-0.5 rounded border bg-blue-50 text-blue-700 border-blue-100`}>
+                      <span
+                        className={`inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-0.5 rounded border bg-blue-50 text-blue-700 border-blue-100`}
+                      >
                         Mẫu thiết kế
                       </span>
                     </td>
                     <td className="px-5 py-4 text-right">
-                      <div className="flex justify-end gap-1" onClick={e => e.stopPropagation()}>
+                      <div
+                        className="flex justify-end gap-1"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <button
-                          onClick={() => navigate(`/seller/artworks/edit/${art.id}`)}
+                          onClick={() =>
+                            navigate(`/seller/artworks/edit/${art.id}`)
+                          }
                           className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
                           title="Chỉnh sửa"
                         >
@@ -278,7 +319,11 @@ const SellerArtworkManager = () => {
         {!loading && filtered.length > 0 && (
           <div className="px-5 py-3 border-t border-gray-100 bg-gray-50/30">
             <p className="text-xs text-gray-400">
-              Hiển thị <span className="font-medium text-gray-600">{filtered.length}</span> / {artworks.length} bản vẽ
+              Hiển thị{" "}
+              <span className="font-medium text-gray-600">
+                {filtered.length}
+              </span>{" "}
+              / {artworks.length} bản vẽ
             </p>
           </div>
         )}

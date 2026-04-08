@@ -52,7 +52,7 @@ const Header = () => {
   const handleLogout = () => {
     logout();
     updateCartCount(0);
-    navigate("/");
+    navigate("/login");
   };
 
   const handlePartnerNavigation = (targetPath: string) => {
@@ -68,7 +68,10 @@ const Header = () => {
   const renderPartnerSection = () => {
     if (isAuthenticated && user?.role === "admin") {
       return (
-        <Link to="/admin" className={`flex items-center gap-1.5 text-sm font-bold transition-all ${location.pathname.startsWith("/admin") ? "text-blue-600" : "text-purple-600 hover:opacity-80"}`}>
+        <Link
+          to="/admin"
+          className={`flex items-center gap-1.5 text-sm font-bold transition-all ${location.pathname.startsWith("/admin") ? "text-blue-600" : "text-purple-600 hover:opacity-80"}`}
+        >
           <LayoutDashboard size={16} /> Quản trị hệ thống
         </Link>
       );
@@ -76,7 +79,10 @@ const Header = () => {
 
     if (isAuthenticated && user?.role === "seller") {
       return (
-        <Link to="/seller/dashboard" className={`flex items-center gap-1.5 text-sm font-bold transition-all ${location.pathname.startsWith("/seller") ? "text-blue-600" : "text-blue-600 hover:opacity-80"}`}>
+        <Link
+          to="/seller/dashboard"
+          className={`flex items-center gap-1.5 text-sm font-bold transition-all ${location.pathname.startsWith("/seller") ? "text-blue-600" : "text-blue-600 hover:opacity-80"}`}
+        >
           <Store size={16} /> Kênh Người Bán
         </Link>
       );
@@ -84,7 +90,10 @@ const Header = () => {
 
     if (isAuthenticated && user?.role === "shipper") {
       return (
-        <Link to="/shipper/dashboard" className={`flex items-center gap-1.5 text-sm font-bold transition-all ${location.pathname.startsWith("/shipper") ? "text-blue-600" : "text-emerald-600 hover:opacity-80"}`}>
+        <Link
+          to="/shipper/dashboard"
+          className={`flex items-center gap-1.5 text-sm font-bold transition-all ${location.pathname.startsWith("/shipper") ? "text-blue-600" : "text-emerald-600 hover:opacity-80"}`}
+        >
           <Truck size={16} /> Kênh Vận Chuyển
         </Link>
       );
@@ -132,10 +141,16 @@ const Header = () => {
           </Link>
 
           <nav className="hidden md:flex items-center gap-6">
-            <Link to="/" className={`text-sm font-semibold transition-colors ${location.pathname === "/" ? "text-blue-600" : "text-slate-600 hover:text-blue-600"}`}>
+            <Link
+              to="/"
+              className={`text-sm font-semibold transition-colors ${location.pathname === "/" ? "text-blue-600" : "text-slate-600 hover:text-blue-600"}`}
+            >
               Trang chủ
             </Link>
-            <Link to="/products" className={`text-sm font-semibold transition-colors ${location.pathname === "/products" ? "text-blue-600" : "text-slate-600 hover:text-blue-600"}`}>
+            <Link
+              to="/products"
+              className={`text-sm font-semibold transition-colors ${location.pathname === "/products" ? "text-blue-600" : "text-slate-600 hover:text-blue-600"}`}
+            >
               Sản phẩm
             </Link>
             <div className="h-4 w-px bg-slate-200 mx-1" />
@@ -150,7 +165,12 @@ const Header = () => {
             <NotificationBell />
           )} */}
 
-          <Button variant="ghost" size="icon" className="relative text-slate-600 hover:bg-blue-50 hover:text-blue-600 rounded-full h-11 w-11" asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="relative text-slate-600 hover:bg-blue-50 hover:text-blue-600 rounded-full h-11 w-11"
+            asChild
+          >
             <Link to="/cart">
               <ShoppingCart size={22} />
               {cartCount > 0 && (
@@ -186,42 +206,71 @@ const Header = () => {
                   </div>
                 </div>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-64 p-2 mt-2 rounded-2xl shadow-xl border-slate-100">
+              <DropdownMenuContent
+                align="end"
+                className="w-64 p-2 mt-2 rounded-2xl shadow-xl border-slate-100"
+              >
                 <DropdownMenuLabel className="px-3 py-3">
                   <div className="flex flex-col gap-1">
-                    <p className="text-sm font-bold text-slate-900">{user.fullName}</p>
-                    <p className="text-xs text-slate-400 font-medium truncate">{user.email}</p>
+                    <p className="text-sm font-bold text-slate-900">
+                      {user.fullName}
+                    </p>
+                    <p className="text-xs text-slate-400 font-medium truncate">
+                      {user.email}
+                    </p>
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 {user.role === "seller" && (
-                  <DropdownMenuItem onClick={() => navigate("/seller/dashboard")} className="gap-3 py-3 cursor-pointer rounded-xl text-blue-600 bg-blue-50/50 mb-1">
+                  <DropdownMenuItem
+                    onClick={() => navigate("/seller/dashboard")}
+                    className="gap-3 py-3 cursor-pointer rounded-xl text-blue-600 bg-blue-50/50 mb-1"
+                  >
                     <Store size={18} />
                     <span className="font-bold text-sm">Quản lý gian hàng</span>
                   </DropdownMenuItem>
                 )}
                 {user.role === "shipper" && (
-                  <DropdownMenuItem onClick={() => navigate("/shipper/dashboard")} className="gap-3 py-3 cursor-pointer rounded-xl text-emerald-600 bg-emerald-50/50 mb-1">
+                  <DropdownMenuItem
+                    onClick={() => navigate("/shipper/dashboard")}
+                    className="gap-3 py-3 cursor-pointer rounded-xl text-emerald-600 bg-emerald-50/50 mb-1"
+                  >
                     <Truck size={18} />
                     <span className="font-bold text-sm">Quản lý giao hàng</span>
                   </DropdownMenuItem>
                 )}
                 {user.role === "admin" && (
-                  <DropdownMenuItem onClick={() => navigate("/admin")} className="gap-3 py-3 cursor-pointer rounded-xl text-purple-600 bg-purple-50/50 mb-1">
+                  <DropdownMenuItem
+                    onClick={() => navigate("/admin")}
+                    className="gap-3 py-3 cursor-pointer rounded-xl text-purple-600 bg-purple-50/50 mb-1"
+                  >
                     <LayoutDashboard size={18} />
-                    <span className="font-bold text-sm">Bảng điều khiển Admin</span>
+                    <span className="font-bold text-sm">
+                      Bảng điều khiển Admin
+                    </span>
                   </DropdownMenuItem>
                 )}
-                <DropdownMenuItem onClick={() => navigate("/profile")} className="gap-3 py-3 cursor-pointer rounded-xl">
+                <DropdownMenuItem
+                  onClick={() => navigate("/profile")}
+                  className="gap-3 py-3 cursor-pointer rounded-xl"
+                >
                   <User size={18} className="text-slate-400" />
                   <span className="font-semibold text-sm">Hồ sơ cá nhân</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/order-history")} className="gap-3 py-3 cursor-pointer rounded-xl">
+                <DropdownMenuItem
+                  onClick={() => navigate("/order-history")}
+                  className="gap-3 py-3 cursor-pointer rounded-xl"
+                >
                   <Package size={18} className="text-slate-400" />
-                  <span className="font-semibold text-sm">Đơn hàng của tôi</span>
+                  <span className="font-semibold text-sm">
+                    Đơn hàng của tôi
+                  </span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout} className="gap-3 py-3 cursor-pointer rounded-xl text-red-600 focus:bg-red-50 focus:text-red-600 transition-colors">
+                <DropdownMenuItem
+                  onClick={handleLogout}
+                  className="gap-3 py-3 cursor-pointer rounded-xl text-red-600 focus:bg-red-50 focus:text-red-600 transition-colors"
+                >
                   <LogOut size={18} />
                   <span className="font-bold text-sm">Đăng xuất</span>
                 </DropdownMenuItem>
@@ -229,15 +278,26 @@ const Header = () => {
             </DropdownMenu>
           ) : (
             <div className="flex items-center gap-3">
-              <Button variant="ghost" className="hidden sm:flex font-bold text-slate-600 hover:text-blue-600 rounded-xl" asChild>
+              <Button
+                variant="ghost"
+                className="hidden sm:flex font-bold text-slate-600 hover:text-blue-600 rounded-xl"
+                asChild
+              >
                 <Link to="/login">Đăng nhập</Link>
               </Button>
-              <Button className="bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-100 rounded-xl px-6 font-bold" asChild>
+              <Button
+                className="bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-100 rounded-xl px-6 font-bold"
+                asChild
+              >
                 <Link to="/register">Đăng ký</Link>
               </Button>
             </div>
           )}
-          <Button variant="ghost" size="icon" className="md:hidden rounded-full ml-1 text-slate-600">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden rounded-full ml-1 text-slate-600"
+          >
             <Menu size={24} />
           </Button>
         </div>

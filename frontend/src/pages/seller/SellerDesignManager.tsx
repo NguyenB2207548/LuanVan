@@ -13,7 +13,7 @@ import {
   AlertCircle,
   Edit,
   RefreshCw,
-  FileDown
+  FileDown,
 } from "lucide-react";
 import axiosClient from "@/api/axiosClient";
 import { format } from "date-fns";
@@ -118,12 +118,16 @@ const SellerDesignManager = () => {
   const getThumbnail = (design: MergedDesign) => {
     if (!design.product || !design.product.images) return null;
     const primaryImg = design.product.images.find((img) => img.isPrimary);
-    const displayImg = primaryImg ? primaryImg.url : design.product.images[0]?.url;
+    const displayImg = primaryImg
+      ? primaryImg.url
+      : design.product.images[0]?.url;
     return displayImg ? `${BASE_URL}${displayImg}` : null;
   };
 
   const filtered = mergedDesigns.filter((d) => {
-    const matchSearch = (d.designName || "").toLowerCase().includes(searchTerm.toLowerCase());
+    const matchSearch = (d.designName || "")
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase());
     // Thêm logic filter status nếu backend hỗ trợ, ở đây tui giữ cấu trúc cho đồng bộ UI
     return matchSearch;
   });
@@ -142,12 +146,16 @@ const SellerDesignManager = () => {
       {/* PAGE HEADER */}
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">Quản lý thiết kế</h1>
-
+          <h1 className="text-xl font-semibold text-gray-900">
+            Quản lý thiết kế
+          </h1>
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => { fetchMergedDesigns(); fetchStats(); }}
+            onClick={() => {
+              fetchMergedDesigns();
+              fetchStats();
+            }}
             className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
             title="Làm mới"
           >
@@ -164,19 +172,41 @@ const SellerDesignManager = () => {
 
       {/* STATS SECTION */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <StatCard label="Tổng thiết kế" value={stats?.total || 0} icon={<Layers />} loading={loadingStats} />
-        <StatCard label="Đã hoàn tất" value={stats?.activeDesigns || 0} icon={<CheckCircle />} loading={loadingStats} />
-        <StatCard label="Chờ Artwork" value={stats?.pendingDesigns || 0} icon={<AlertCircle />} loading={loadingStats} />
-        <StatCard label="Độ phủ sản phẩm" value={stats?.designedProducts || 0} icon={<Box />} loading={loadingStats} />
+        <StatCard
+          label="Tổng thiết kế"
+          value={stats?.total || 0}
+          icon={<Layers />}
+          loading={loadingStats}
+        />
+        <StatCard
+          label="Đã hoàn tất"
+          value={stats?.activeDesigns || 0}
+          icon={<CheckCircle />}
+          loading={loadingStats}
+        />
+        <StatCard
+          label="Chờ Artwork"
+          value={stats?.pendingDesigns || 0}
+          icon={<AlertCircle />}
+          loading={loadingStats}
+        />
+        <StatCard
+          label="Độ phủ sản phẩm"
+          value={stats?.designedProducts || 0}
+          icon={<Box />}
+          loading={loadingStats}
+        />
       </div>
 
       {/* MAIN CARD: Toolbar + Table */}
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-
         {/* Toolbar */}
         <div className="px-5 py-3 flex flex-col sm:flex-row items-start sm:items-center gap-3">
           <div className="relative w-full sm:w-56">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+            <Search
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+              size={14}
+            />
             <input
               type="text"
               placeholder="Tìm tên thiết kế..."
@@ -187,18 +217,24 @@ const SellerDesignManager = () => {
           </div>
 
           <div className="flex items-center gap-1 flex-wrap">
-            {FILTER_TABS.map(tab => (
+            {FILTER_TABS.map((tab) => (
               <button
                 key={tab.value}
                 onClick={() => setStatusFilter(tab.value)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border font-medium transition-colors ${statusFilter === tab.value
-                  ? "bg-gray-900 text-white border-gray-900"
-                  : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
-                  }`}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border font-medium transition-colors ${
+                  statusFilter === tab.value
+                    ? "bg-gray-900 text-white border-gray-900"
+                    : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
+                }`}
               >
                 {tab.label}
-                <span className={`text-[10px] min-w-[16px] text-center rounded ${statusFilter === tab.value ? "text-white/70" : "text-gray-400"
-                  }`}>
+                <span
+                  className={`text-[10px] min-w-[16px] text-center rounded ${
+                    statusFilter === tab.value
+                      ? "text-white/70"
+                      : "text-gray-400"
+                  }`}
+                >
                   {countByStatus(tab.value)}
                 </span>
               </button>
@@ -217,16 +253,27 @@ const SellerDesignManager = () => {
           <table className="min-w-full">
             <thead>
               <tr className="border-t border-b border-gray-100 bg-gray-50/60">
-                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-700">Thông tin thiết kế</th>
-                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-700">Thông số in</th>
-                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-700">Ngày gộp</th>
-                <th className="px-5 py-3 text-right text-xs font-semibold text-gray-700">Thao tác</th>
+                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-700">
+                  Thông tin thiết kế
+                </th>
+                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-700">
+                  Thông số in
+                </th>
+                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-700">
+                  Ngày gộp
+                </th>
+                <th className="px-5 py-3 text-right text-xs font-semibold text-gray-700">
+                  Thao tác
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50 bg-white">
               {loading ? (
                 <tr>
-                  <td colSpan={4} className="px-5 py-16 text-center text-sm text-gray-400">
+                  <td
+                    colSpan={4}
+                    className="px-5 py-16 text-center text-sm text-gray-400"
+                  >
                     <div className="flex justify-center items-center gap-2">
                       <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
                       Đang tải dữ liệu...
@@ -236,28 +283,46 @@ const SellerDesignManager = () => {
               ) : filtered.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="px-5 py-16 text-center">
-                    <ImageIcon className="mx-auto text-gray-200 mb-3" size={36} />
-                    <p className="text-sm text-gray-400">Không tìm thấy thiết kế nào</p>
+                    <ImageIcon
+                      className="mx-auto text-gray-200 mb-3"
+                      size={36}
+                    />
+                    <p className="text-sm text-gray-400">
+                      Không tìm thấy thiết kế nào
+                    </p>
                   </td>
                 </tr>
               ) : (
                 filtered.map((design) => {
                   const thumb = getThumbnail(design);
-                  const printArea = design.artwork?.layersJson?.printArea || { width: 0, height: 0 };
+                  const printArea = design.artwork?.layersJson?.printArea || {
+                    width: 0,
+                    height: 0,
+                  };
 
                   return (
-                    <tr key={design.id} className="hover:bg-gray-50/70 transition-colors cursor-pointer" onClick={() => navigate(`edit/${design.id}`)}>
+                    <tr
+                      key={design.id}
+                      className="hover:bg-gray-50/70 transition-colors cursor-pointer"
+                      onClick={() => navigate(`edit/${design.id}`)}
+                    >
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
                           <div className="w-11 h-11 rounded-lg border border-gray-100 bg-gray-50 overflow-hidden shrink-0 flex items-center justify-center">
                             {thumb ? (
-                              <img src={thumb} className="w-full h-full object-contain" alt="" />
+                              <img
+                                src={thumb}
+                                className="w-full h-full object-contain"
+                                alt=""
+                              />
                             ) : (
                               <ImageIcon size={16} className="text-gray-300" />
                             )}
                           </div>
                           <div className="min-w-0">
-                            <p className="text-sm font-semibold text-gray-900 truncate max-w-[250px]">{design.designName}</p>
+                            <p className="text-sm font-semibold text-gray-900 truncate max-w-[250px]">
+                              {design.designName}
+                            </p>
                             <p className="text-[11px] text-blue-600 font-bold uppercase tracking-tight mt-0.5">
                               Phôi: {design.product?.productName || "N/A"}
                             </p>
@@ -268,13 +333,18 @@ const SellerDesignManager = () => {
                         <div className="text-xs font-medium text-gray-700">
                           {printArea.width}x{printArea.height}px
                         </div>
-                        <div className="text-[10px] text-gray-400 mt-0.5">Vùng in ảo</div>
+                        <div className="text-[10px] text-gray-400 mt-0.5">
+                          Vùng in ảo
+                        </div>
                       </td>
                       <td className="px-5 py-4 text-sm text-gray-500 font-medium">
                         {format(new Date(design.createdAt), "dd/MM/yyyy")}
                       </td>
                       <td className="px-5 py-4 text-right">
-                        <div className="flex justify-end gap-1" onClick={e => e.stopPropagation()}>
+                        <div
+                          className="flex justify-end gap-1"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <button
                             onClick={() => navigate(`edit/${design.id}`)}
                             className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
@@ -282,15 +352,17 @@ const SellerDesignManager = () => {
                           >
                             <Edit size={16} />
                           </button>
-                          <button
+                          {/* <button
                             onClick={() => thumb && window.open(thumb, "_blank")}
                             className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
                             title="Xem ảnh"
                           >
                             <ExternalLink size={16} />
-                          </button>
+                          </button> */}
                           <button
-                            onClick={() => handleDelete(design.id, design.designName)}
+                            onClick={() =>
+                              handleDelete(design.id, design.designName)
+                            }
                             disabled={deletingId === design.id}
                             className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors"
                             title="Xóa"
@@ -315,7 +387,11 @@ const SellerDesignManager = () => {
         {!loading && filtered.length > 0 && (
           <div className="px-5 py-3 border-t border-gray-100 bg-gray-50/30">
             <p className="text-xs text-gray-400">
-              Hiển thị <span className="font-medium text-gray-600">{filtered.length}</span> / {mergedDesigns.length} thiết kế
+              Hiển thị{" "}
+              <span className="font-medium text-gray-600">
+                {filtered.length}
+              </span>{" "}
+              / {mergedDesigns.length} thiết kế
             </p>
           </div>
         )}

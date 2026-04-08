@@ -11,10 +11,13 @@ import {
   ImageIcon,
   Layers,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const BASE_URL = "http://localhost:3000";
 
 const AddDesignPage = () => {
+  const navigate = useNavigate();
+
   const [products, setProducts] = useState<any[]>([]);
   const [artworks, setArtworks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -113,11 +116,14 @@ const AddDesignPage = () => {
         productId: selectedProduct.id,
         artworkId: selectedArtwork.id,
       });
+
       setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 3000);
+
+      setTimeout(() => {
+        navigate("/seller/designs");
+      }, 1500);
     } catch {
       alert("Lỗi khi lưu thiết kế.");
-    } finally {
       setSaving(false);
     }
   };
@@ -154,8 +160,8 @@ const AddDesignPage = () => {
         <div className="flex-1 overflow-y-auto">
           {/* ── STEP 1: Product ── */}
           <div className="px-5 py-4 border-b border-gray-100">
-            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5 mb-3">
-              <Package size={11} /> Bước 1 · Chọn sản phẩm phôi
+            <p className="text-sm font-medium text-gray-700 flex items-center gap-1.5 mb-3">
+              <Package size={14} /> Chọn sản phẩm phôi
             </p>
             <div className="space-y-1.5">
               {products.map((p) => {
@@ -211,8 +217,8 @@ const AddDesignPage = () => {
           {/* ── STEP 2: Variant (chỉ hiện sau khi chọn product + artwork) ── */}
           {selectedProduct && selectedArtwork && variants.length > 0 && (
             <div className="px-5 py-4 border-b border-gray-100">
-              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5 mb-3">
-                <ChevronDown size={11} /> Bước 2 · Xem theo biến thể
+              <p className="text-sm font-medium text-gray-700 flex items-center gap-1.5 mb-3">
+                <ChevronDown size={14} /> Xem theo biến thể
               </p>
               <div className="grid grid-cols-3 gap-1.5">
                 {/* Option: mockup gốc của product */}
@@ -283,10 +289,8 @@ const AddDesignPage = () => {
 
           {/* ── STEP 3: Artwork ── */}
           <div className="px-5 py-4">
-            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5 mb-3">
-              <Palette size={11} />{" "}
-              {selectedProduct && variants.length > 0 ? "Bước 3" : "Bước 2"} ·
-              Chọn artwork
+            <p className="text-sm font-medium text-gray-700 flex items-center gap-1.5 mb-3">
+              <Palette size={14} /> Chọn artwork
             </p>
             {artworks.length === 0 ? (
               <p className="text-xs text-gray-400 italic">
@@ -439,7 +443,8 @@ const AddDesignPage = () => {
 
           {/* Empty state */}
           {(!selectedProduct || !selectedArtwork) && (
-            <div className="absolute inset-0 flex items-center justify-center bg-gray-100/80 backdrop-blur-[2px]">
+            // Đã xóa bg-gray-100/80 và backdrop-blur-[2px]
+            <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
               <div className="text-center">
                 <div className="w-14 h-14 bg-white border border-gray-200 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-sm">
                   <Layers size={24} className="text-gray-300" />

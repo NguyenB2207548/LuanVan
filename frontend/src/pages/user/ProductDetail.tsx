@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import axiosClient from "../../api/axiosClient";
-import { Loader2, Star, MessageSquare } from "lucide-react"; // Thêm Star, MessageSquare
+import { Loader2, Star, MessageSquare, Check } from "lucide-react"; // Thêm Star, MessageSquare
 import ImageOptionSelector from "../../components/user/ImageOptionSelector";
 import DesignControls from "../../components/user/DesignControls";
 import DesignerCanvas from "../../components/common/DesignerCanvas";
@@ -437,7 +437,7 @@ const ProductDetail = () => {
 
           <div className="mt-10 space-y-8">
             <ImageOptionSelector
-              label="Choose a product type"
+              label="Chọn loại sản phẩm"
               selectedId={selectedVariant?.id}
               onSelect={handleVariantSelect}
               options={product.variants.map((v: any) => ({
@@ -452,27 +452,45 @@ const ProductDetail = () => {
                   .join(" / "),
               }))}
             />
+
+            {/* Attributes */}
             {allAttributes.map((attr) => (
-              <div key={attr.id} className="space-y-3">
-                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+              <div key={attr.id} className="mt-8">
+                {/* Tiêu đề */}
+                <div className="font-semibold mb-3 text-sm text-gray-800">
                   {attr.name}
-                </label>
-                <div className="flex flex-wrap gap-2">
+                </div>
+
+                {/* Danh sách nút bấm */}
+                <div className="flex flex-wrap gap-2.5">
                   {attr.values.map((val) => {
                     const active = isValueActive(attr.name, val);
                     return (
                       <button
                         key={val}
                         onClick={() => handleAttributeClick(attr.name, val)}
-                        className={`px-4 py-2 text-sm rounded-md border transition-all duration-200 ${active ? "border-[#ff4d6d] bg-[#fff0f3] text-[#ff4d6d] font-bold shadow-sm" : "border-gray-200 text-gray-600 hover:border-gray-400"}`}
+                        // THÊM 'relative' VÀO ĐÂY ĐỂ ICON BÁM ĐÚNG GÓC NÚT
+                        className={`relative px-5 py-2 text-sm rounded-md border transition-all duration-200 ${
+                          active
+                            ? "border-[#27ae60] font-bold shadow-sm ring-1 ring-[#27ae60] text-gray-900"
+                            : "border-gray-200 bg-white text-gray-600 hover:border-gray-400 hover:bg-gray-50"
+                        }`}
                       >
                         {val}
+
+                        {/* Đoạn code hiển thị dấu tick tròn giống y hệt yêu cầu của bạn */}
+                        {active && (
+                          <div className="absolute -top-1 -right-1 bg-[#27ae60] text-white rounded-full shadow-md">
+                            <Check size={16} stroke="white" strokeWidth={3} />
+                          </div>
+                        )}
                       </button>
                     );
                   })}
                 </div>
               </div>
             ))}
+
             <DesignControls
               designData={designData}
               designChoices={designChoices}

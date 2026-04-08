@@ -1,5 +1,5 @@
 import React from "react";
-import { CheckCircle2 } from "lucide-react";
+import { Check, CheckCircle2 } from "lucide-react";
 
 interface OptionItem {
   id: string | number;
@@ -24,13 +24,9 @@ const ImageOptionSelector: React.FC<ImageOptionSelectorProps> = ({
 }) => {
   return (
     <div className="mt-8">
-      <div className="font-semibold mb-4 text-[11px] uppercase italic text-gray-600">
-        {label}
-      </div>
-
+      <div className="font-semibold mb-2 text-sm">{label}</div>
       <div className="flex flex-wrap -mx-1">
         {options.map((option) => {
-          // KIỂM TRA ACTIVE DỰA VÀO PROPS TỪ CHA
           const isActive = selectedId === option.id;
 
           return (
@@ -56,12 +52,8 @@ const ImageOptionSelector: React.FC<ImageOptionSelectorProps> = ({
                 </div>
 
                 {isActive && (
-                  <div className="absolute -top-1 -right-1 bg-[#27ae60] text-white rounded-full p-0.5 shadow-md">
-                    <CheckCircle2
-                      size={12}
-                      fill="currentColor"
-                      stroke="white"
-                    />
+                  <div className="absolute -top-1 -right-1 bg-[#27ae60] text-white rounded-full  shadow-md">
+                    <Check size={18} stroke="white" />
                   </div>
                 )}
               </div>

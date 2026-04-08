@@ -15,6 +15,7 @@ import toast, { Toaster } from "react-hot-toast";
 
 import axiosClient from "@/api/axiosClient";
 import AssetManagerModal from "../../components/admin/AssetManagerModal";
+import { showErrorToast, showSuccessToast } from "@/components/common/toast";
 
 const DEFAULT_PRINT_AREA = {
   x: 250,
@@ -57,35 +58,33 @@ const EditProductPage = () => {
   });
   const [productImages, setProductImages] = useState<string[]>([]);
   const [productMockup, setProductMockup] = useState<string | null>(null);
-  const [selectedAttributeIds, setSelectedAttributeIds] = useState<number[]>([]);
+  const [selectedAttributeIds, setSelectedAttributeIds] = useState<number[]>(
+    [],
+  );
   const [variants, setVariants] = useState<any[]>([]);
   const [assetModalOpen, setAssetModalOpen] = useState(false);
   const [assetTarget, setAssetTarget] = useState<any>(null);
 
-  // Flag để biết có đang quay về từ trang config hay không
-  // Nếu có, bỏ qua toàn bộ fetch DB để tránh ghi đè state đã restore
   const isReturningFromConfig = useRef(false);
 
   useEffect(() => {
-    // Trường hợp 1: Đang quay về từ PrintAreaConfigPage
-    // location.state.updatedPrintArea có nghĩa là vừa confirm từ config page
     if (location.state?.updatedPrintArea) {
       isReturningFromConfig.current = true;
 
       const { type, index, data } = location.state.updatedPrintArea;
 
-      // Restore toàn bộ form state từ snapshot được lưu lúc navigate đi
-      // Snapshot này chứa trạng thái form tại thời điểm người dùng bấm "Cấu hình vùng in"
-      if (location.state.productData) setProductData(location.state.productData);
-      if (location.state.productImages) setProductImages(location.state.productImages);
-      if (location.state.productMockup !== undefined) setProductMockup(location.state.productMockup);
+      if (location.state.productData)
+        setProductData(location.state.productData);
+      if (location.state.productImages)
+        setProductImages(location.state.productImages);
+      if (location.state.productMockup !== undefined)
+        setProductMockup(location.state.productMockup);
       if (location.state.variants) setVariants(location.state.variants);
-      if (location.state.selectedAttributeIds) setSelectedAttributeIds(location.state.selectedAttributeIds);
-      // Restore lookup data — không có chúng thì dropdown attributes/categories bị trống
+      if (location.state.selectedAttributeIds)
+        setSelectedAttributeIds(location.state.selectedAttributeIds);
       if (location.state.attributes) setAttributes(location.state.attributes);
       if (location.state.categories) setCategories(location.state.categories);
 
-      // Sau đó apply đúng print area mới trả về
       if (type === "product") {
         setProductData((prev) => ({
           ...(location.state.productData || prev),
@@ -93,7 +92,6 @@ const EditProductPage = () => {
         }));
       } else if (type === "variant" && index !== undefined) {
         setVariants((prevVariants) => {
-          // Dùng snapshot variants từ state (đã restore ở trên) làm base
           const base = location.state.variants || prevVariants;
           const updated = [...base];
           updated[index] = {
@@ -107,18 +105,15 @@ const EditProductPage = () => {
         });
       }
 
-      // Xóa updatedPrintArea khỏi history state để tránh re-trigger khi F5
       const cleanState = { ...location.state };
       delete cleanState.updatedPrintArea;
       window.history.replaceState(cleanState, document.title);
 
       setFetching(false);
-      return; // Không fetch DB
+      return;
     }
 
-    // Trường hợp 2: Load trang bình thường — fetch từ DB
     if (isReturningFromConfig.current) {
-      // Guard phòng trường hợp effect chạy lại sau khi đã xử lý return
       isReturningFromConfig.current = false;
       return;
     }
@@ -144,7 +139,9 @@ const EditProductPage = () => {
         });
 
         setProductImages(
-          p.images?.filter((img: any) => !img.variantId).map((img: any) => img.url) || []
+          p.images
+            ?.filter((img: any) => !img.variantId)
+            .map((img: any) => img.url) || [],
         );
         setProductMockup(p.mockup?.url || null);
 
@@ -197,7 +194,9 @@ const EditProductPage = () => {
     index: number,
   ) => {
     const prefix = generateSlug(productName || "PROD").slice(0, 4);
-    const suffix = selectedValues.map((v) => generateSlug(v).slice(0, 3)).join("-");
+    const suffix = selectedValues
+      .map((v) => generateSlug(v).slice(0, 3))
+      .join("-");
     const randomStr = Math.random().toString(36).substring(2, 6).toUpperCase();
     return `${prefix}-${suffix}-${index + 1}${randomStr}`;
   };
@@ -282,7 +281,10 @@ const EditProductPage = () => {
     ]);
   };
 
-  const handleNavigateToConfig = (type: "product" | "variant", index?: number) => {
+  const handleNavigateToConfig = (
+    type: "product" | "variant",
+    index?: number,
+  ) => {
     let url = "";
     let initialData = null;
 
@@ -291,7 +293,8 @@ const EditProductPage = () => {
       url = `http://localhost:3000${productMockup}`;
       initialData = productData.printArea;
     } else {
-      if (index === undefined || !variants[index].mockup) return alert("Chọn mockup biến thể!");
+      if (index === undefined || !variants[index].mockup)
+        return alert("Chọn mockup biến thể!");
       url = `http://localhost:3000${variants[index].mockup}`;
       const v = variants[index];
       initialData = v.width
@@ -331,7 +334,9 @@ const EditProductPage = () => {
       const payload = {
         productName: productData.productName,
         description: productData.description,
-        categoryId: productData.categoryId ? Number(productData.categoryId) : null,
+        categoryId: productData.categoryId
+          ? Number(productData.categoryId)
+          : null,
         productImages: productImages,
         variants: variants.map((v) => ({
           ...(v.id ? { id: v.id } : {}),
@@ -377,14 +382,17 @@ const EditProductPage = () => {
               });
             }
             return null;
-          })
+          }),
         );
       }
 
-      toast.success("Cập nhật thành công!", { id: loadingToast });
+      toast.dismiss(loadingToast);
+
+      showSuccessToast("Cập nhật thành công!");
       setTimeout(() => navigate("/seller/products"), 1500);
     } catch (error: any) {
-      toast.error("Lỗi khi lưu dữ liệu", { id: loadingToast });
+      toast.dismiss(loadingToast);
+      showErrorToast("Lỗi khi lưu dữ liệu");
     } finally {
       setLoading(false);
     }
@@ -392,7 +400,9 @@ const EditProductPage = () => {
 
   if (fetching)
     return (
-      <div className="p-20 text-center font-bold">Đang tải dữ liệu sản phẩm...</div>
+      <div className="p-20 text-center font-bold">
+        Đang tải dữ liệu sản phẩm...
+      </div>
     );
 
   return (
@@ -406,14 +416,22 @@ const EditProductPage = () => {
           >
             <ArrowLeft size={20} />
           </button>
-          <h1 className="text-xl font-bold text-gray-900">Chỉnh sửa sản phẩm</h1>
+          <h1 className="text-xl font-bold text-gray-900">
+            Chỉnh sửa sản phẩm
+          </h1>
         </div>
         <button
           onClick={handleUpdateProduct}
           disabled={loading}
           className={`flex items-center gap-2 px-6 py-2 bg-green-600 text-white text-sm font-bold rounded-md hover:bg-green-700 shadow-lg transition-all ${loading ? "opacity-70" : ""}`}
         >
-          {loading ? "Đang lưu..." : <><Save size={16} /> Cập nhật thay đổi</>}
+          {loading ? (
+            "Đang lưu..."
+          ) : (
+            <>
+              <Save size={16} /> Cập nhật thay đổi
+            </>
+          )}
         </button>
       </div>
 
@@ -436,7 +454,10 @@ const EditProductPage = () => {
                     className="w-full px-4 py-2 border border-gray-200 rounded-lg outline-none"
                     value={productData.productName}
                     onChange={(e) =>
-                      setProductData({ ...productData, productName: e.target.value })
+                      setProductData({
+                        ...productData,
+                        productName: e.target.value,
+                      })
                     }
                   />
                 </div>
@@ -449,7 +470,10 @@ const EditProductPage = () => {
                     className="w-full px-4 py-2 border border-gray-200 rounded-lg outline-none text-sm"
                     value={productData.description}
                     onChange={(e) =>
-                      setProductData({ ...productData, description: e.target.value })
+                      setProductData({
+                        ...productData,
+                        description: e.target.value,
+                      })
                     }
                   />
                 </div>
@@ -471,7 +495,9 @@ const EditProductPage = () => {
                       />
                       <button
                         onClick={() =>
-                          setProductImages(productImages.filter((_, idx) => idx !== i))
+                          setProductImages(
+                            productImages.filter((_, idx) => idx !== i),
+                          )
                         }
                         className="absolute top-1 right-1 bg-white p-1 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
                       >
@@ -492,7 +518,9 @@ const EditProductPage = () => {
 
           <section className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
             <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
-              <h2 className="text-sm font-bold text-gray-700">Biến thể & Thuộc tính</h2>
+              <h2 className="text-sm font-bold text-gray-700">
+                Biến thể & Thuộc tính
+              </h2>
             </div>
             <div className="p-6 space-y-8">
               <div>
@@ -504,12 +532,15 @@ const EditProductPage = () => {
                     <button
                       key={attr.id}
                       onClick={() => toggleAttribute(attr.id)}
-                      className={`px-4 py-2 rounded-full text-xs font-bold border transition-all flex items-center gap-2 ${selectedAttributeIds.includes(attr.id)
+                      className={`px-4 py-2 rounded-full text-xs font-bold border transition-all flex items-center gap-2 ${
+                        selectedAttributeIds.includes(attr.id)
                           ? "bg-blue-600 text-white border-blue-600"
                           : "bg-white text-gray-600 border-gray-200"
-                        }`}
+                      }`}
                     >
-                      {selectedAttributeIds.includes(attr.id) && <Check size={14} />}{" "}
+                      {selectedAttributeIds.includes(attr.id) && (
+                        <Check size={14} />
+                      )}{" "}
                       {attr.attributeName}
                     </button>
                   ))}
@@ -555,14 +586,19 @@ const EditProductPage = () => {
                             />
                             <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/m:opacity-100 transition-opacity gap-2">
                               <button
-                                onClick={() => handleNavigateToConfig("variant", vIdx)}
+                                onClick={() =>
+                                  handleNavigateToConfig("variant", vIdx)
+                                }
                                 className="p-1.5 bg-blue-600 text-white rounded"
                               >
                                 <Edit2 size={14} />
                               </button>
                               <button
                                 onClick={() =>
-                                  openAssetModal({ type: "variantMockup", index: vIdx })
+                                  openAssetModal({
+                                    type: "variantMockup",
+                                    index: vIdx,
+                                  })
                                 }
                                 className="p-1.5 bg-white rounded text-gray-600"
                               >
@@ -573,7 +609,10 @@ const EditProductPage = () => {
                         ) : (
                           <button
                             onClick={() =>
-                              openAssetModal({ type: "variantMockup", index: vIdx })
+                              openAssetModal({
+                                type: "variantMockup",
+                                index: vIdx,
+                              })
                             }
                             className="flex flex-col items-center gap-1"
                           >
@@ -599,8 +638,10 @@ const EditProductPage = () => {
                             <button
                               onClick={() => {
                                 const newVariants = [...variants];
-                                newVariants[vIdx].images = newVariants[vIdx].images.filter(
-                                  (_: any, i: number) => i !== iIdx
+                                newVariants[vIdx].images = newVariants[
+                                  vIdx
+                                ].images.filter(
+                                  (_: any, i: number) => i !== iIdx,
                                 );
                                 setVariants(newVariants);
                               }}
@@ -612,7 +653,10 @@ const EditProductPage = () => {
                         ))}
                         <button
                           onClick={() =>
-                            openAssetModal({ type: "variantGallery", index: vIdx })
+                            openAssetModal({
+                              type: "variantGallery",
+                              index: vIdx,
+                            })
                           }
                           className="w-10 h-10 border border-dashed border-gray-300 rounded flex items-center justify-center text-gray-400 hover:bg-white"
                         >
@@ -625,13 +669,20 @@ const EditProductPage = () => {
                       {selectedAttributeIds.map((attrId) => (
                         <div key={attrId}>
                           <label className="text-[10px] font-bold text-gray-400 block mb-1 uppercase">
-                            {attributes.find((a) => a.id === attrId)?.attributeName}
+                            {
+                              attributes.find((a) => a.id === attrId)
+                                ?.attributeName
+                            }
                           </label>
                           <select
                             className="w-full p-2 border border-gray-200 rounded-lg text-xs bg-white outline-none"
                             value={v.attributeValueIds[attrId] || ""}
                             onChange={(e) =>
-                              updateVariantData(vIdx, `attr_${attrId}`, e.target.value)
+                              updateVariantData(
+                                vIdx,
+                                `attr_${attrId}`,
+                                e.target.value,
+                              )
                             }
                           >
                             <option value="">Chọn</option>

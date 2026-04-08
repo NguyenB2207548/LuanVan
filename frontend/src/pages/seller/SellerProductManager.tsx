@@ -1,13 +1,23 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Package, Search, Edit, Trash2, Plus,
-  Palette as PaletteIcon, Image as ImageIcon,
-  CheckCircle, AlertTriangle, Clock, FileDown, RefreshCw
+  Package,
+  Search,
+  Edit,
+  Trash2,
+  Plus,
+  Palette as PaletteIcon,
+  Image as ImageIcon,
+  CheckCircle,
+  AlertTriangle,
+  Clock,
+  FileDown,
+  RefreshCw,
 } from "lucide-react";
 import axiosClient from "@/api/axiosClient";
 import StatCard from "@/components/common/StatCard";
 import toast, { Toaster } from "react-hot-toast";
+import { showErrorToast, showSuccessToast } from "@/components/common/toast";
 
 const BaseURL = "http://localhost:3000";
 
@@ -43,7 +53,7 @@ const SellerProductManager = () => {
       const res = await axiosClient.get("/products/seller");
       setProducts(res.data.data || []);
     } catch {
-      toast.error("Không thể tải danh sách sản phẩm");
+      showErrorToast("Không thể tải danh sách sản phẩm");
     } finally {
       setLoading(false);
     }
@@ -68,22 +78,28 @@ const SellerProductManager = () => {
 
   const handleDeleteProduct = async (id: number, name: string) => {
     if (!window.confirm(`Xác nhận xóa sản phẩm "${name}"?`)) return;
-    const t = toast.loading("Đang xóa...");
+    const loadingToast = toast.loading("Đang xóa...");
     try {
       setDeletingId(id);
       await axiosClient.delete(`/products/${id}`);
-      toast.success("Xóa thành công", { id: t });
+      toast.dismiss(loadingToast);
+
+      showSuccessToast("Xóa thành công");
       setProducts((prev) => prev.filter((p) => p.id !== id));
       fetchStats();
     } catch (err: any) {
-      toast.error(err.response?.data?.message || "Lỗi khi xóa", { id: t });
+      toast.dismiss(loadingToast);
+
+      showErrorToast(err.response?.data?.message || "Lỗi khi xóa");
     } finally {
       setDeletingId(null);
     }
   };
 
   const filtered = products.filter((p) => {
-    const matchesSearch = p.productName.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = p.productName
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "all" || p.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -94,7 +110,9 @@ const SellerProductManager = () => {
   };
 
   const countByStatus = (s: string) =>
-    s === "all" ? products.length : products.filter(p => p.status === s).length;
+    s === "all"
+      ? products.length
+      : products.filter((p) => p.status === s).length;
 
   return (
     <div className="w-full min-h-screen pb-16">
@@ -103,11 +121,16 @@ const SellerProductManager = () => {
       {/* Page header */}
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">Quản lý sản phẩm</h1>
+          <h1 className="text-xl font-semibold text-gray-900">
+            Quản lý sản phẩm
+          </h1>
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => { fetchProducts(); fetchStats(); }}
+            onClick={() => {
+              fetchProducts();
+              fetchStats();
+            }}
             className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
             title="Làm mới"
           >
@@ -124,43 +147,71 @@ const SellerProductManager = () => {
 
       {/* STATS SECTION */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <StatCard label="Tổng sản phẩm" value={stats?.total || 0} icon={<Package />} loading={loadingStats} />
-        <StatCard label="Đang hoạt động" value={stats?.active || 0} icon={<CheckCircle />} loading={loadingStats} />
-        <StatCard label="Hết hàng" value={stats?.outOfStock || 0} icon={<AlertTriangle />} loading={loadingStats} />
-        <StatCard label="Thiết kế sẵn" value={products.filter(p => p.design).length} icon={<PaletteIcon />} loading={loadingStats} />
+        <StatCard
+          label="Tổng sản phẩm"
+          value={stats?.total || 0}
+          icon={<Package />}
+          loading={loadingStats}
+        />
+        <StatCard
+          label="Đang hoạt động"
+          value={stats?.active || 0}
+          icon={<CheckCircle />}
+          loading={loadingStats}
+        />
+        <StatCard
+          label="Hết hàng"
+          value={stats?.outOfStock || 0}
+          icon={<AlertTriangle />}
+          loading={loadingStats}
+        />
+        <StatCard
+          label="Thiết kế sẵn"
+          value={products.filter((p) => p.design).length}
+          icon={<PaletteIcon />}
+          loading={loadingStats}
+        />
       </div>
 
       {/* MAIN CARD: Toolbar + Table */}
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-
         {/* Toolbar */}
         <div className="px-5 py-3 flex flex-col sm:flex-row items-start sm:items-center gap-3">
           {/* Search */}
           <div className="relative w-full sm:w-56">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+            <Search
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+              size={14}
+            />
             <input
               type="text"
               placeholder="Tìm tên sản phẩm..."
               className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg outline-none focus:border-gray-400 transition-colors bg-gray-50"
               value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
+              onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
 
           {/* Status filter tabs */}
           <div className="flex items-center gap-1 flex-wrap">
-            {FILTER_TABS.map(tab => (
+            {FILTER_TABS.map((tab) => (
               <button
                 key={tab.value}
                 onClick={() => setStatusFilter(tab.value)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border font-medium transition-colors ${statusFilter === tab.value
-                  ? "bg-gray-900 text-white border-gray-900"
-                  : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
-                  }`}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border font-medium transition-colors ${
+                  statusFilter === tab.value
+                    ? "bg-gray-900 text-white border-gray-900"
+                    : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
+                }`}
               >
                 {tab.label}
-                <span className={`text-[10px] min-w-[16px] text-center rounded ${statusFilter === tab.value ? "text-white/70" : "text-gray-400"
-                  }`}>
+                <span
+                  className={`text-[10px] min-w-[16px] text-center rounded ${
+                    statusFilter === tab.value
+                      ? "text-white/70"
+                      : "text-gray-400"
+                  }`}
+                >
                   {countByStatus(tab.value)}
                 </span>
               </button>
@@ -179,11 +230,19 @@ const SellerProductManager = () => {
           <table className="min-w-full">
             <thead>
               <tr className="border-t border-b border-gray-100 bg-gray-50/60">
-                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-700">Thông tin sản phẩm</th>
+                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-700">
+                  Thông tin sản phẩm
+                </th>
                 {/* <th className="px-5 py-3 text-left text-xs font-semibold text-gray-700">Thiết kế</th> */}
-                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-700">Trạng thái</th>
-                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-700">Biến thể</th>
-                <th className="px-5 py-3 text-right text-xs font-semibold text-gray-700">Hành động</th>
+                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-700">
+                  Trạng thái
+                </th>
+                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-700">
+                  Biến thể
+                </th>
+                <th className="px-5 py-3 text-right text-xs font-semibold text-gray-700">
+                  Hành động
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -200,27 +259,40 @@ const SellerProductManager = () => {
                 <tr>
                   <td colSpan={5} className="px-5 py-16 text-center">
                     <Package className="mx-auto text-gray-200 mb-3" size={36} />
-                    <p className="text-sm text-gray-400">Không tìm thấy sản phẩm nào</p>
+                    <p className="text-sm text-gray-400">
+                      Không tìm thấy sản phẩm nào
+                    </p>
                   </td>
                 </tr>
               ) : (
-                filtered.map(product => {
+                filtered.map((product) => {
                   const img = getPrimaryImage(product);
                   return (
-                    <tr key={product.id} className="hover:bg-gray-50/70 transition-colors">
+                    <tr
+                      key={product.id}
+                      className="hover:bg-gray-50/70 transition-colors"
+                    >
                       {/* Thông tin chính */}
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
                           <div className="w-11 h-11 rounded-lg border border-gray-100 bg-gray-50 overflow-hidden shrink-0 flex items-center justify-center">
                             {img ? (
-                              <img src={img} className="w-full h-full object-contain" alt="" />
+                              <img
+                                src={img}
+                                className="w-full h-full object-contain"
+                                alt=""
+                              />
                             ) : (
                               <ImageIcon size={16} className="text-gray-300" />
                             )}
                           </div>
                           <div className="min-w-0">
-                            <p className="text-sm font-medium text-gray-900 truncate max-w-[200px]">{product.productName}</p>
-                            <p className="text-[11px] text-gray-400 mt-0.5 font-mono">ID: #{product.id}</p>
+                            <p className="text-sm font-medium text-gray-900 truncate max-w-[200px]">
+                              {product.productName}
+                            </p>
+                            <p className="text-[11px] text-gray-400 mt-0.5 font-mono">
+                              ID: #{product.id}
+                            </p>
                           </div>
                         </div>
                       </td>
@@ -238,11 +310,16 @@ const SellerProductManager = () => {
 
                       {/* Trạng thái */}
                       <td className="px-5 py-4">
-                        <span className={`inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-0.5 rounded border ${product.status === "active"
-                          ? "bg-emerald-50 text-emerald-700 border-emerald-100"
-                          : "bg-gray-50 text-gray-500 border-gray-200"
-                          }`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${product.status === "active" ? "bg-emerald-500" : "bg-gray-400"}`} />
+                        <span
+                          className={`inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-0.5 rounded border ${
+                            product.status === "active"
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+                              : "bg-gray-50 text-gray-500 border-gray-200"
+                          }`}
+                        >
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${product.status === "active" ? "bg-emerald-500" : "bg-gray-400"}`}
+                          />
                           {product.status === "active" ? "Hoạt động" : "Đã ẩn"}
                         </span>
                       </td>
@@ -256,21 +333,30 @@ const SellerProductManager = () => {
                       <td className="px-5 py-4 text-right">
                         <div className="flex items-center justify-end gap-1">
                           <button
-                            onClick={() => navigate(`/seller/designs/${product.id}`)}
+                            onClick={() =>
+                              navigate(`/seller/designs/${product.id}`)
+                            }
                             className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
                             title="Thiết kế"
                           >
                             <PaletteIcon size={15} />
                           </button>
                           <button
-                            onClick={() => navigate(`/seller/products/edit/${product.id}`)}
+                            onClick={() =>
+                              navigate(`/seller/products/edit/${product.id}`)
+                            }
                             className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
                             title="Sửa"
                           >
                             <Edit size={15} />
                           </button>
                           <button
-                            onClick={() => handleDeleteProduct(product.id, product.productName)}
+                            onClick={() =>
+                              handleDeleteProduct(
+                                product.id,
+                                product.productName,
+                              )
+                            }
                             disabled={deletingId === product.id}
                             className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors"
                             title="Xóa"
@@ -295,7 +381,11 @@ const SellerProductManager = () => {
         {!loading && filtered.length > 0 && (
           <div className="px-5 py-3 border-t border-gray-100 bg-gray-50/30">
             <p className="text-xs text-gray-400">
-              Hiển thị <span className="font-medium text-gray-600">{filtered.length}</span> / {products.length} sản phẩm
+              Hiển thị{" "}
+              <span className="font-medium text-gray-600">
+                {filtered.length}
+              </span>{" "}
+              / {products.length} sản phẩm
             </p>
           </div>
         )}

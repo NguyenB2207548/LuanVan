@@ -12,7 +12,7 @@ import {
   Image as ImageIcon,
   Box,
   Bell,
-  TrendingUp
+  TrendingUp,
 } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
 import NotificationBell from "@/components/common/NotificationBell";
@@ -43,7 +43,11 @@ const SellerLayout = () => {
     name ? name.charAt(0).toUpperCase() : "S";
 
   const navItems = [
-    { to: "/seller/dashboard", icon: LayoutDashboard, label: "Bảng điều khiển" },
+    {
+      to: "/seller/dashboard",
+      icon: LayoutDashboard,
+      label: "Bảng điều khiển",
+    },
     { to: "/seller/products", icon: Box, label: "Sản phẩm" },
     { to: "/seller/artworks", icon: ImageIcon, label: "Thư viện Artwork" },
     { to: "/seller/designs", icon: Palette, label: "Thiết kế" },
@@ -119,7 +123,7 @@ const SellerLayout = () => {
       <div className="flex-1 flex flex-col pl-56">
         {/* Header */}
         <header className="h-11 bg-white border-b border-gray-200 shadow-sm sticky top-0 z-30 flex items-center justify-end px-6 gap-2">
-          <NotificationBell />  {/* ← thay thế button Bell cũ */}
+          <NotificationBell /> {/* ← thay thế button Bell cũ */}
           <button
             onClick={handleLogout}
             className="w-8 h-8 flex items-center justify-center rounded-md text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"

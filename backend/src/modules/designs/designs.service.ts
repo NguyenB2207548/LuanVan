@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ForbiddenException,
   InternalServerErrorException,
+  BadRequestException,
 } from '@nestjs/common';
 import { DataSource, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -18,6 +19,7 @@ import { CreatePrintAreaDto } from './dto/create-print-area.dto';
 import { User, UserRole } from '../users/entities/user.entity';
 import { CreateArtworkDto } from './dto/create-artwork.dto';
 import { UpdateArtworkDto } from './dto/update-artwork.dto';
+import { UpdateDesignDto } from './dto/update-design.dto';
 
 @Injectable()
 export class DesignService {
@@ -27,7 +29,7 @@ export class DesignService {
     @InjectRepository(Variant) private variantRepo: Repository<Variant>,
     @InjectRepository(Design) private designRepo: Repository<Design>,
     @InjectRepository(Artwork) private artworkRepo: Repository<Artwork>, // thêm dòng này
-  ) { }
+  ) {}
 
   // ======================= MOCKUP =========================
   async updateVariantMockup(
@@ -230,7 +232,7 @@ export class DesignService {
     const artwork = await this.artworkRepo.findOne({
       where: {
         id: id,
-        seller: { id: sellerId } // Khớp với @JoinColumn({ name: 'seller_id' })
+        seller: { id: sellerId }, // Khớp với @JoinColumn({ name: 'seller_id' })
       },
       // Nếu thiết kế của ông yêu cầu load cả Mockup/PrintArea từ bảng khác:
       // relations: ['designs', 'designs.product', 'designs.product.mockup', 'designs.product.mockup.printArea']
@@ -238,12 +240,12 @@ export class DesignService {
 
     if (!artwork) {
       throw new NotFoundException(
-        `Không tìm thấy Artwork ID ${id} hoặc bạn không có quyền chỉnh sửa thiết kế này.`
+        `Không tìm thấy Artwork ID ${id} hoặc bạn không có quyền chỉnh sửa thiết kế này.`,
       );
     }
 
     // 2. Format lại dữ liệu trả về cho Frontend
-    // Vì layersJson trong Entity Artwork của ông là kiểu 'json', 
+    // Vì layersJson trong Entity Artwork của ông là kiểu 'json',
     // TypeORM sẽ tự động parse thành Object/Array, không cần JSON.parse nữa.
 
     return {
@@ -256,22 +258,28 @@ export class DesignService {
         y: 0,
         width: 0,
         height: 0,
-        visible: false
+        visible: false,
       },
-      updatedAt: artwork.updatedAt
+      updatedAt: artwork.updatedAt,
     };
   }
 
-  async updateArtwork(id: number, sellerId: number, updateDto: UpdateArtworkDto) {
+  async updateArtwork(
+    id: number,
+    sellerId: number,
+    updateDto: UpdateArtworkDto,
+  ) {
     const artwork = await this.artworkRepo.findOne({
       where: {
         id: id,
-        seller: { id: sellerId }
+        seller: { id: sellerId },
       },
     });
 
     if (!artwork) {
-      throw new NotFoundException(`Không tìm thấy Artwork ID ${id} hoặc bạn không có quyền sửa.`);
+      throw new NotFoundException(
+        `Không tìm thấy Artwork ID ${id} hoặc bạn không có quyền sửa.`,
+      );
     }
 
     if (updateDto.artworkName) {
@@ -287,23 +295,24 @@ export class DesignService {
     return {
       message: 'Cập nhật thiết kế thành công',
       id: updatedArtwork.id,
-      artworkName: updatedArtwork.artworkName
+      artworkName: updatedArtwork.artworkName,
     };
   }
 
   async getSellerArtworkStats(sellerId: number) {
     const [total, usedInDesign] = await Promise.all([
-      this.artworkRepo.createQueryBuilder('artwork')
+      this.artworkRepo
+        .createQueryBuilder('artwork')
         .where('artwork.seller = :sellerId', { sellerId })
         .getCount(),
 
-      this.artworkRepo.createQueryBuilder('artwork')
+      this.artworkRepo
+        .createQueryBuilder('artwork')
         .innerJoin('artwork.designs', 'design')
         .where('artwork.seller = :sellerId', { sellerId })
         .distinct(true)
         .getCount(),
     ]);
-
 
     const unused = total - usedInDesign;
 
@@ -312,6 +321,27 @@ export class DesignService {
       usedInDesign,
       unused,
     };
+  }
+
+  async deleteArtwork(id: number, sellerId: number) {
+    // 1. Tìm artwork xem có tồn tại và đúng là của seller này tạo không
+    const artwork = await this.artworkRepo.findOne({
+      where: {
+        id: id,
+        seller: { id: sellerId },
+      },
+    });
+
+    if (!artwork) {
+      throw new NotFoundException(
+        'Không tìm thấy Artwork hoặc bạn không có quyền xóa.',
+      );
+    }
+
+    // 2. Thực hiện xóa khỏi database
+    await this.artworkRepo.remove(artwork);
+
+    return { message: 'Xóa artwork thành công' };
   }
 
   // ======================= DESIGN =========================
@@ -453,18 +483,21 @@ export class DesignService {
 
   async getSellerDesignStats(sellerId: number) {
     const [total, linkedToArtwork, attachedToProduct] = await Promise.all([
-      this.designRepo.createQueryBuilder('design')
+      this.designRepo
+        .createQueryBuilder('design')
         .innerJoin('design.product', 'product')
         .where('product.seller = :sellerId', { sellerId })
         .getCount(),
 
-      this.designRepo.createQueryBuilder('design')
+      this.designRepo
+        .createQueryBuilder('design')
         .innerJoin('design.product', 'product')
         .where('product.seller = :sellerId', { sellerId })
         .andWhere('design.artwork IS NOT NULL')
         .getCount(),
 
-      this.designRepo.createQueryBuilder('design')
+      this.designRepo
+        .createQueryBuilder('design')
         .innerJoin('design.product', 'product')
         .where('product.seller = :sellerId', { sellerId })
         .select('DISTINCT(design.product_id)')
@@ -475,7 +508,7 @@ export class DesignService {
       total,
       activeDesigns: linkedToArtwork,
       pendingDesigns: total - linkedToArtwork,
-      designedProducts: attachedToProduct
+      designedProducts: attachedToProduct,
     };
   }
 
@@ -491,12 +524,14 @@ export class DesignService {
         'product.variants.mockup',
         'product.variants.mockup.printArea',
         'product.images',
-        'artwork'
+        'artwork',
       ],
     });
-    console.log(design)
+    console.log(design);
     if (!design || design.product?.seller?.id !== sellerId) {
-      throw new NotFoundException(`Không tìm thấy thiết kế hoặc bạn không có quyền truy cập.`);
+      throw new NotFoundException(
+        `Không tìm thấy thiết kế hoặc bạn không có quyền truy cập.`,
+      );
     }
 
     return {
@@ -515,6 +550,26 @@ export class DesignService {
         artworkName: design.artwork.artworkName,
         layersJson: design.artwork.layersJson,
       },
+    };
+  }
+
+  async updateDesign(id: number, dto: UpdateDesignDto) {
+    const design = await this.designRepo.findOne({ where: { id } });
+
+    if (!design) {
+      throw new NotFoundException(`Không tìm thấy thiết kế ID ${id}`);
+    }
+
+    // Cập nhật các trường nếu có truyền lên từ client
+    if (dto.designName) design.designName = dto.designName;
+    if (dto.productId) design.product = { id: dto.productId } as Product;
+    if (dto.artworkId) design.artwork = { id: dto.artworkId } as Artwork;
+
+    await this.designRepo.save(design);
+
+    return {
+      message: 'Cập nhật thiết kế thành công',
+      id: design.id,
     };
   }
 }

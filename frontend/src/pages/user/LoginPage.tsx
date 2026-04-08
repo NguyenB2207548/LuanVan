@@ -4,7 +4,10 @@ import axiosClient from "../../api/axiosClient";
 import { useAuthStore } from "../../store/useAuthStore";
 import { Mail, Lock, Loader2, LogIn } from "lucide-react";
 import { Toaster } from "react-hot-toast"; // Bỏ import toast mặc định
-import { showSuccessToast, showErrorToast } from "../../components/common/toast"; // Import toast tùy chỉnh
+import {
+  showSuccessToast,
+  showErrorToast,
+} from "../../components/common/toast"; // Import toast tùy chỉnh
 
 const LoginPage = () => {
   const [email, setEmail] = useState("");
@@ -28,17 +31,18 @@ const LoginPage = () => {
 
       loginStore(user, access_token);
 
-      // SỬ DỤNG TOAST MỚI
-      showSuccessToast("Đăng nhập thành công");
+      // // SỬ DỤNG TOAST MỚI
+      // showSuccessToast("Đăng nhập thành công");
 
-      setTimeout(() => {
-        if (user.role === "admin") {
-          navigate("/admin");
-        } else {
-          navigate("/");
-        }
-      }, 1000);
-
+      if (user.role === "admin") {
+        navigate("/admin");
+      } else if (user.role === "seller") {
+        navigate("/seller");
+      } else if (user.role === "shipper") {
+        navigate("/shipper");
+      } else {
+        navigate("/");
+      }
     } catch (err: any) {
       const errorMsg = err.response?.data?.message || "Đăng nhập thất bại";
 
@@ -51,7 +55,7 @@ const LoginPage = () => {
 
   return (
     <div className="min-h-screen flex items-start justify-center bg-gray-50 p-4 pt-20 lg:pt-20">
-      <Toaster position="top-right" />
+      {/* <Toaster position="top-right" /> */}
 
       <div className="w-full max-w-md bg-white border border-gray-200 rounded-lg shadow-sm">
         <div className="p-8 sm:p-12">
@@ -66,7 +70,9 @@ const LoginPage = () => {
           <form onSubmit={handleLogin} className="space-y-6">
             {/* Email Field */}
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-gray-700">Địa chỉ Email</label>
+              <label className="text-sm font-medium text-gray-700">
+                Địa chỉ Email
+              </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
                   <Mail size={18} />
@@ -85,7 +91,9 @@ const LoginPage = () => {
             {/* Password Field */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-gray-700">Mật khẩu</label>
+                <label className="text-sm font-medium text-gray-700">
+                  Mật khẩu
+                </label>
                 <button
                   type="button"
                   onClick={() => navigate("/forgot-password")}
@@ -135,7 +143,10 @@ const LoginPage = () => {
           <div className="mt-8 pt-6 border-t border-gray-100 text-center">
             <p className="text-sm text-gray-600">
               Bạn chưa có tài khoản?{" "}
-              <Link to="/register" className="text-blue-600 font-semibold hover:text-blue-700 transition-colors">
+              <Link
+                to="/register"
+                className="text-blue-600 font-semibold hover:text-blue-700 transition-colors"
+              >
                 Đăng ký tài khoản
               </Link>
             </p>

@@ -26,12 +26,13 @@ import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { CreateArtworkDto } from './dto/create-artwork.dto';
 import { UpdateArtworkDto } from './dto/update-artwork.dto';
+import { UpdateDesignDto } from './dto/update-design.dto';
 
 @Controller('designs')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.SELLER)
 export class DesignController {
-  constructor(private readonly designService: DesignService) { }
+  constructor(private readonly designService: DesignService) {}
 
   // ======================= MOCKUP =========================
 
@@ -113,9 +114,17 @@ export class DesignController {
     @Request() req,
   ) {
     // req.user.id lấy từ JWT Token
-    return await this.designService.updateArtwork(id, req.user.id, updateArtworkDto);
+    return await this.designService.updateArtwork(
+      id,
+      req.user.id,
+      updateArtworkDto,
+    );
   }
 
+  @Delete('seller/artworks/:id')
+  async deleteArtwork(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+    return this.designService.deleteArtwork(id, req.user.id);
+  }
 
   // ======================= DESIGN =========================
 
@@ -146,6 +155,13 @@ export class DesignController {
     }
 
     return await this.designService.getDesignByIdForEdit(designId, req.user.id);
+  }
+  @Patch(':id')
+  async updateDesign(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateDesignDto,
+  ) {
+    return this.designService.updateDesign(id, dto);
   }
 
   @Get('admin/all')
