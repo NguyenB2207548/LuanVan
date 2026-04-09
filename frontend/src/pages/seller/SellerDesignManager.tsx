@@ -57,7 +57,7 @@ interface DesignStats {
 const FILTER_TABS = [
   { value: "all", label: "Tất cả" },
   { value: "active", label: "Đã hoàn tất" },
-  { value: "pending", label: "Chờ Artwork" },
+  { value: "pending", label: "Chờ thiết kế" },
 ];
 
 const SellerDesignManager = () => {
@@ -147,7 +147,7 @@ const SellerDesignManager = () => {
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold text-gray-900">
-            Quản lý thiết kế
+            Quản lý kết nối
           </h1>
         </div>
         <div className="flex items-center gap-2">
@@ -165,7 +165,7 @@ const SellerDesignManager = () => {
             onClick={() => navigate("add")}
             className="flex items-center gap-1.5 px-3 py-2 text-sm text-white bg-gray-900 rounded-lg hover:bg-black transition-colors shadow-sm"
           >
-            <Plus size={16} /> Tạo thiết kế
+            <Plus size={16} /> Tạo kết nối
           </button>
         </div>
       </div>
@@ -173,7 +173,7 @@ const SellerDesignManager = () => {
       {/* STATS SECTION */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <StatCard
-          label="Tổng thiết kế"
+          label="Tổng kết nối thiết kế"
           value={stats?.total || 0}
           icon={<Layers />}
           loading={loadingStats}
@@ -185,7 +185,7 @@ const SellerDesignManager = () => {
           loading={loadingStats}
         />
         <StatCard
-          label="Chờ Artwork"
+          label="Chờ thiết kế"
           value={stats?.pendingDesigns || 0}
           icon={<AlertCircle />}
           loading={loadingStats}
@@ -241,11 +241,11 @@ const SellerDesignManager = () => {
             ))}
           </div>
 
-          <div className="sm:ml-auto">
+          {/* <div className="sm:ml-auto">
             <button className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-emerald-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
               <FileDown size={14} /> Xuất Excel
             </button>
-          </div>
+          </div> */}
         </div>
 
         {/* Table */}
@@ -254,7 +254,7 @@ const SellerDesignManager = () => {
             <thead>
               <tr className="border-t border-b border-gray-100 bg-gray-50/60">
                 <th className="px-5 py-3 text-left text-xs font-semibold text-gray-700">
-                  Thông tin thiết kế
+                  Thông tin bản thiết kế
                 </th>
                 <th className="px-5 py-3 text-left text-xs font-semibold text-gray-700">
                   Thông số in

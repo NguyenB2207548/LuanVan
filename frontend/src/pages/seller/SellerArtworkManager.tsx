@@ -57,7 +57,7 @@ const SellerArtworkManager = () => {
       const res = await axiosClient.get("designs/seller/artworks");
       setArtworks(res.data || []);
     } catch (err) {
-      showErrorToast("Không thể tải danh sách artwork");
+      showErrorToast("Không thể tải danh sách thiết kế");
     } finally {
       setLoading(false);
     }
@@ -83,7 +83,7 @@ const SellerArtworkManager = () => {
   const handleDelete = async (id: number, name: string) => {
     if (
       !window.confirm(
-        `Bạn có chắc chắn muốn xóa bản vẽ "${name || "không tên"}"?`,
+        `Bạn có chắc chắn muốn xóa thiết kế "${name || "không tên"}"?`,
       )
     )
       return;
@@ -120,7 +120,7 @@ const SellerArtworkManager = () => {
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold text-gray-900">
-            Thư viện Artwork
+            Quản lý thiết kế
           </h1>
         </div>
 
@@ -139,7 +139,7 @@ const SellerArtworkManager = () => {
             onClick={() => navigate("/seller/artworks/add")}
             className="flex items-center gap-1.5 px-3 py-2 text-sm text-white bg-gray-900 rounded-lg hover:bg-black transition-colors shadow-sm"
           >
-            <Plus size={16} /> Tạo artwork
+            <Plus size={16} /> Tạo thiết kế
           </button>
         </div>
       </div>
@@ -147,7 +147,7 @@ const SellerArtworkManager = () => {
       {/* STATS SECTION */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <StatCard
-          label="Tổng Artwork"
+          label="Tổng thiết kế"
           value={stats?.total || 0}
           icon={<Palette />}
           loading={loadingStats}
@@ -178,7 +178,7 @@ const SellerArtworkManager = () => {
             />
             <input
               type="text"
-              placeholder="Tìm tên bản vẽ..."
+              placeholder="Tìm tên thiết kế..."
               className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg outline-none focus:border-gray-400 transition-colors bg-gray-50"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -202,11 +202,11 @@ const SellerArtworkManager = () => {
             ))}
           </div>
 
-          <div className="sm:ml-auto">
+          {/* <div className="sm:ml-auto">
             <button className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-emerald-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
               <FileDown size={15} /> Xuất Excel
             </button>
-          </div>
+          </div> */}
         </div>
 
         {/* Table */}
@@ -215,7 +215,7 @@ const SellerArtworkManager = () => {
             <thead>
               <tr className="border-t border-b border-gray-100 bg-gray-50/60">
                 <th className="px-5 py-3 text-left text-xs font-semibold text-gray-700">
-                  Tên bản vẽ
+                  Tên thiết kế
                 </th>
                 <th className="px-5 py-3 text-left text-xs font-semibold text-gray-700">
                   Ngày tạo
@@ -246,7 +246,7 @@ const SellerArtworkManager = () => {
                       size={36}
                     />
                     <p className="text-sm text-gray-400">
-                      Không tìm thấy bản vẽ nào
+                      Không tìm thấy thiết kế nào
                     </p>
                   </td>
                 </tr>
@@ -323,7 +323,7 @@ const SellerArtworkManager = () => {
               <span className="font-medium text-gray-600">
                 {filtered.length}
               </span>{" "}
-              / {artworks.length} bản vẽ
+              / {artworks.length} thiết kế
             </p>
           </div>
         )}

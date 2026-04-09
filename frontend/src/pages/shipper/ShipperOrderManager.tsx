@@ -1,6 +1,13 @@
 import { useState, useEffect } from "react";
 import {
-  Package, MapPin, Clock, ChevronRight, Store, Phone, RefreshCw, ArrowRight,
+  Package,
+  MapPin,
+  Clock,
+  ChevronRight,
+  Store,
+  Phone,
+  RefreshCw,
+  ArrowRight,
 } from "lucide-react";
 import axiosClient from "@/api/axiosClient";
 import { format } from "date-fns";
@@ -28,7 +35,9 @@ const ShipperOrderManager = () => {
   const [availableOrders, setAvailableOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => { fetchOrders(); }, []);
+  useEffect(() => {
+    fetchOrders();
+  }, []);
 
   const fetchOrders = async () => {
     try {
@@ -61,12 +70,16 @@ const ShipperOrderManager = () => {
       {/* Page header */}
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">Đơn hàng sẵn sàng giao</h1>
-
+          <h1 className="text-xl font-semibold text-gray-900">
+            Đơn hàng sẵn sàng giao
+          </h1>
         </div>
         <div className="flex items-center gap-3">
           <span className="text-sm text-gray-500">
-            <span className="font-semibold text-gray-900">{availableOrders.length}</span> đơn khả dụng
+            <span className="font-semibold text-gray-900">
+              {availableOrders.length}
+            </span>{" "}
+            đơn khả dụng
           </span>
           <button
             onClick={fetchOrders}
@@ -86,23 +99,34 @@ const ShipperOrderManager = () => {
       ) : availableOrders.length === 0 ? (
         <div className="bg-white border border-gray-200 rounded-xl py-24 text-center">
           <Package size={36} className="mx-auto text-gray-200 mb-3" />
-          <p className="text-sm text-gray-400">Hiện không có đơn hàng nào khả dụng</p>
+          <p className="text-sm text-gray-400">
+            Hiện không có đơn hàng nào khả dụng
+          </p>
         </div>
       ) : (
         <div className="space-y-3">
-          {availableOrders.map(order => {
-            const shopName = order.seller?.sellerProfile?.shopName || order.seller?.fullName || "—";
-            const shopAddress = order.seller?.sellerProfile?.shopAddress || "Chưa cập nhật địa chỉ";
+          {availableOrders.map((order) => {
+            const shopName =
+              order.seller?.sellerProfile?.shopName ||
+              order.seller?.fullName ||
+              "—";
+            const shopAddress =
+              order.seller?.sellerProfile?.shopAddress ||
+              "Chưa cập nhật địa chỉ";
             const sellerPhone = order.seller?.phoneNumber || "—";
             const isCOD = order.paymentMethod === "COD";
 
             return (
-              <div key={order.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:border-gray-300 transition-colors">
-
+              <div
+                key={order.id}
+                className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:border-gray-300 transition-colors"
+              >
                 {/* Header */}
                 <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <span className="text-sm font-semibold text-gray-900 font-mono">{order.orderNumber}</span>
+                    <span className="text-sm font-semibold text-gray-900 font-mono">
+                      {order.orderNumber}
+                    </span>
                     <span className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded">
                       <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
                       Chờ nhận hàng
@@ -110,25 +134,32 @@ const ShipperOrderManager = () => {
                   </div>
                   <div className="flex items-center gap-1.5 text-xs text-gray-400">
                     <Clock size={13} />
-                    {format(new Date(order.createdAt), "HH:mm · dd/MM/yyyy", { locale: vi })}
+                    {format(new Date(order.createdAt), "HH:mm · dd/MM/yyyy", {
+                      locale: vi,
+                    })}
                   </div>
                 </div>
 
                 {/* Route — inline, không box riêng */}
                 <div className="px-5 py-5">
                   <div className="flex items-start gap-4">
-
                     {/* Pickup */}
                     <div className="flex-1 min-w-0">
                       <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1 mb-2.5">
                         <Store size={11} /> Lấy hàng
                       </p>
-                      <p className="text-sm font-semibold text-gray-900">{shopName}</p>
+                      <p className="text-sm font-semibold text-gray-900">
+                        {shopName}
+                      </p>
                       <p className="text-sm text-gray-500 mt-1 flex items-center gap-1.5">
-                        <Phone size={12} className="text-gray-400 shrink-0" />{sellerPhone}
+                        <Phone size={12} className="text-gray-400 shrink-0" />
+                        {sellerPhone}
                       </p>
                       <p className="text-sm text-gray-500 mt-1 flex items-start gap-1.5">
-                        <MapPin size={12} className="text-gray-400 shrink-0 mt-0.5" />
+                        <MapPin
+                          size={12}
+                          className="text-gray-400 shrink-0 mt-0.5"
+                        />
                         <span className="leading-relaxed">{shopAddress}</span>
                       </p>
                     </div>
@@ -143,13 +174,21 @@ const ShipperOrderManager = () => {
                       <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1 mb-2.5">
                         <MapPin size={11} /> Giao hàng
                       </p>
-                      <p className="text-sm font-semibold text-gray-900">{order.recipientName}</p>
+                      <p className="text-sm font-semibold text-gray-900">
+                        {order.recipientName}
+                      </p>
                       <p className="text-sm text-gray-500 mt-1 flex items-center gap-1.5">
-                        <Phone size={12} className="text-gray-400 shrink-0" />{order.phoneNumber}
+                        <Phone size={12} className="text-gray-400 shrink-0" />
+                        {order.phoneNumber}
                       </p>
                       <p className="text-sm text-gray-500 mt-1 flex items-start gap-1.5">
-                        <MapPin size={12} className="text-gray-400 shrink-0 mt-0.5" />
-                        <span className="leading-relaxed">{order.shippingAddress}</span>
+                        <MapPin
+                          size={12}
+                          className="text-gray-400 shrink-0 mt-0.5"
+                        />
+                        <span className="leading-relaxed">
+                          {order.shippingAddress}
+                        </span>
                       </p>
                     </div>
                   </div>

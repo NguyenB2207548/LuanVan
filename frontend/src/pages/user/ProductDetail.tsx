@@ -181,6 +181,7 @@ const ProductDetail = () => {
       if (!showPreview) {
         const variantImg =
           variant.mockup?.url ||
+          product.mockup?.url ||
           (variant.images?.length > 0 ? variant.images[0].url : activeImage);
         setActiveImage(variantImg);
       }
@@ -273,8 +274,7 @@ const ProductDetail = () => {
                   </div>
                   <DesignerCanvas
                     backgroundUrl={
-                      selectedVariant?.mockup?.url ||
-                      product.design.artwork.layersJson.mockup
+                      selectedVariant?.mockup?.url || product.mockup?.url || ""
                     }
                     layers={product.design.artwork.layersJson.details.map(
                       (layer: any) => {
@@ -318,7 +318,8 @@ const ProductDetail = () => {
                     canvasSize={product.design.artwork.layersJson.canvasSize}
                     virtualPrintArea={{
                       ...(selectedVariant?.mockup?.printArea ||
-                        product.design.artwork.layersJson.printArea),
+                        product.mockup?.printArea ||
+                        {}),
                       visible: true,
                     }}
                     selectedId={null}
@@ -443,11 +444,18 @@ const ProductDetail = () => {
               onSelect={handleVariantSelect}
               options={product.variants.map((v: any) => ({
                 id: v.id,
+                // image: v.mockup?.url
+                //   ? `${BASE_URL}${v.mockup.url}`
+                //   : product.images?.[0]?.url
+                //     ? `${BASE_URL}${product.images[0].url}`
+                //     : null,
                 image: v.mockup?.url
                   ? `${BASE_URL}${v.mockup.url}`
-                  : product.images?.[0]?.url
-                    ? `${BASE_URL}${product.images[0].url}`
-                    : null,
+                  : product.mockup?.url
+                    ? `${BASE_URL}${product.mockup.url}`
+                    : product.images?.[0]?.url
+                      ? `${BASE_URL}${product.images[0].url}`
+                      : null,
                 title: v.attributeValues
                   ?.map((av: any) => av.valueName)
                   .join(" / "),

@@ -219,9 +219,9 @@ const SellerProductManager = () => {
           </div>
 
           <div className="sm:ml-auto">
-            <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+            {/* <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
               <FileDown size={14} /> Xuất Excel
-            </button>
+            </button> */}
           </div>
         </div>
 
@@ -332,7 +332,7 @@ const SellerProductManager = () => {
                       {/* Hành động */}
                       <td className="px-5 py-4 text-right">
                         <div className="flex items-center justify-end gap-1">
-                          <button
+                          {/* <button
                             onClick={() =>
                               navigate(`/seller/designs/${product.id}`)
                             }
@@ -340,7 +340,7 @@ const SellerProductManager = () => {
                             title="Thiết kế"
                           >
                             <PaletteIcon size={15} />
-                          </button>
+                          </button> */}
                           <button
                             onClick={() =>
                               navigate(`/seller/products/edit/${product.id}`)

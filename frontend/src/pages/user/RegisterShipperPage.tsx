@@ -33,8 +33,14 @@ const RegisterShipperPage = () => {
 
   const handleRegister = async () => {
     // Validate
-    if (!formData.vehiclePlate.trim()) return toast.error("Vui lòng nhập biển số xe");
-    if (!formData.province || !formData.district || !formData.ward || !formData.addressDetail) {
+    if (!formData.vehiclePlate.trim())
+      return toast.error("Vui lòng nhập biển số xe");
+    if (
+      !formData.province ||
+      !formData.district ||
+      !formData.ward ||
+      !formData.addressDetail
+    ) {
       return toast.error("Vui lòng cung cấp địa chỉ hoạt động đầy đủ");
     }
 
@@ -50,7 +56,9 @@ const RegisterShipperPage = () => {
       }, 1500);
     } catch (error: any) {
       const serverMessage = error.response?.data?.message;
-      const errorMsg = Array.isArray(serverMessage) ? serverMessage[0] : serverMessage;
+      const errorMsg = Array.isArray(serverMessage)
+        ? serverMessage[0]
+        : serverMessage;
       toast.error(errorMsg || "Đăng ký thất bại");
     } finally {
       setLoading(false);
@@ -69,13 +77,17 @@ const RegisterShipperPage = () => {
         <CardContent className="p-8 sm:p-10 space-y-6">
           <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
             <Truck size={20} className="text-emerald-600" />
-            <h2 className="text-lg font-semibold text-gray-900">Thông tin Shipper</h2>
+            <h2 className="text-lg font-semibold text-gray-900">
+              Thông tin Shipper
+            </h2>
           </div>
 
           <div className="space-y-6">
             {/* Biển số xe */}
             <div className="space-y-1.5">
-              <Label className="text-sm font-medium text-gray-700">Biển số xe</Label>
+              <Label className="text-sm font-medium text-gray-700">
+                Biển số xe
+              </Label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
                   <CreditCard size={18} />
@@ -83,7 +95,9 @@ const RegisterShipperPage = () => {
                 <Input
                   placeholder="Ví dụ: 59-A1 123.45"
                   value={formData.vehiclePlate}
-                  onChange={(e) => setFormData({ ...formData, vehiclePlate: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, vehiclePlate: e.target.value })
+                  }
                   className="pl-10 h-11 rounded-md border-gray-300 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 transition-all"
                 />
               </div>
@@ -108,9 +122,6 @@ const RegisterShipperPage = () => {
                 "Gửi yêu cầu đăng ký"
               )}
             </Button>
-            <p className="text-center text-xs text-gray-500 mt-4 italic">
-              * Hồ sơ của bạn sẽ được xem xét và phản hồi qua email/số điện thoại sớm nhất.
-            </p>
           </div>
         </CardContent>
       </Card>

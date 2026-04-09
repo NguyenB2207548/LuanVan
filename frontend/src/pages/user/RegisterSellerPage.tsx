@@ -33,8 +33,14 @@ const RegisterSellerPage = () => {
 
   const handleRegister = async () => {
     // Validate
-    if (!formData.shopName.trim()) return toast.error("Vui lòng nhập tên cửa hàng");
-    if (!formData.province || !formData.district || !formData.ward || !formData.addressDetail) {
+    if (!formData.shopName.trim())
+      return toast.error("Vui lòng nhập tên cửa hàng");
+    if (
+      !formData.province ||
+      !formData.district ||
+      !formData.ward ||
+      !formData.addressDetail
+    ) {
       return toast.error("Vui lòng nhập đầy đủ địa chỉ lấy hàng");
     }
 
@@ -69,13 +75,17 @@ const RegisterSellerPage = () => {
         <CardContent className="p-8 sm:p-10 space-y-6">
           <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
             <Store size={20} className="text-blue-600" />
-            <h2 className="text-lg font-semibold text-gray-900">Thông tin cửa hàng</h2>
+            <h2 className="text-lg font-semibold text-gray-900">
+              Thông tin cửa hàng
+            </h2>
           </div>
 
           <div className="space-y-6">
             {/* Tên Shop */}
             <div className="space-y-1.5">
-              <Label className="text-sm font-medium text-gray-700">Tên cửa hàng</Label>
+              <Label className="text-sm font-medium text-gray-700">
+                Tên cửa hàng
+              </Label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
                   <Store size={18} />
@@ -83,7 +93,9 @@ const RegisterSellerPage = () => {
                 <Input
                   placeholder="Ví dụ: Tiệm Quà Handmade"
                   value={formData.shopName}
-                  onChange={(e) => setFormData({ ...formData, shopName: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, shopName: e.target.value })
+                  }
                   className="pl-10 h-11 rounded-md border-gray-300 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all"
                 />
               </div>
@@ -108,9 +120,6 @@ const RegisterSellerPage = () => {
                 "Gửi yêu cầu đăng ký"
               )}
             </Button>
-            <p className="text-center text-xs text-gray-500 mt-4 italic">
-              * Thông tin của bạn sẽ được quản trị viên xem xét và phê duyệt trong vòng 24h.
-            </p>
           </div>
         </CardContent>
       </Card>

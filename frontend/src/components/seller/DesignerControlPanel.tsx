@@ -369,7 +369,7 @@ const DesignerControlPanel: React.FC<DesignerControlPanelProps> = ({
             </>
           ) : (
             <>
-              <Save size={16} className="inline mr-2" /> Lưu Artwork
+              <Save size={16} className="inline mr-2" /> Lưu thiết kế
             </>
           )}
         </button>

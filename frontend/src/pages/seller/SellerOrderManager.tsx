@@ -1,8 +1,17 @@
 import { useState, useEffect } from "react";
 import {
-  Search, Package, Eye, Check, X, FileDown,
-  Clock, Truck, CircleCheck, CircleX, RefreshCw,
-  DollarSign
+  Search,
+  Package,
+  Eye,
+  Check,
+  X,
+  FileDown,
+  Clock,
+  Truck,
+  CircleCheck,
+  CircleX,
+  RefreshCw,
+  DollarSign,
 } from "lucide-react";
 import axiosClient from "@/api/axiosClient";
 import { format } from "date-fns";
@@ -37,7 +46,13 @@ interface Order {
   id: number;
   orderNumber: string;
   totalAmount: string;
-  status: "pending" | "confirmed" | "shipped" | "success" | "failed" | "cancelled";
+  status:
+    | "pending"
+    | "confirmed"
+    | "shipped"
+    | "success"
+    | "failed"
+    | "cancelled";
   recipientName: string;
   phoneNumber: string;
   shippingAddress: string;
@@ -61,19 +76,53 @@ interface OrderStats {
   revenue: number;
 }
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
-  pending: { label: "Chờ xác nhận", color: "text-amber-700", bg: "bg-amber-50", border: "border-amber-200" },
-  confirmed: { label: "Đã xác nhận", color: "text-blue-700", bg: "bg-blue-50", border: "border-blue-200" },
-  shipped: { label: "Đang giao", color: "text-violet-700", bg: "bg-violet-50", border: "border-violet-200" },
-  success: { label: "Hoàn thành", color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-200" },
-  failed: { label: "Thất bại", color: "text-orange-700", bg: "bg-orange-50", border: "border-orange-200" },
-  cancelled: { label: "Đã hủy", color: "text-rose-700", bg: "bg-rose-50", border: "border-rose-200" },
+const STATUS_CONFIG: Record<
+  string,
+  { label: string; color: string; bg: string; border: string }
+> = {
+  pending: {
+    label: "Chờ xác nhận",
+    color: "text-amber-700",
+    bg: "bg-amber-50",
+    border: "border-amber-200",
+  },
+  confirmed: {
+    label: "Đã xác nhận",
+    color: "text-blue-700",
+    bg: "bg-blue-50",
+    border: "border-blue-200",
+  },
+  shipped: {
+    label: "Đang giao",
+    color: "text-violet-700",
+    bg: "bg-violet-50",
+    border: "border-violet-200",
+  },
+  success: {
+    label: "Hoàn thành",
+    color: "text-emerald-700",
+    bg: "bg-emerald-50",
+    border: "border-emerald-200",
+  },
+  failed: {
+    label: "Thất bại",
+    color: "text-orange-700",
+    bg: "bg-orange-50",
+    border: "border-orange-200",
+  },
+  cancelled: {
+    label: "Đã hủy",
+    color: "text-rose-700",
+    bg: "bg-rose-50",
+    border: "border-rose-200",
+  },
 };
 
-const PAYMENT_STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-  paid: { label: "Đã thanh toán", color: "text-emerald-600" },
-  pending: { label: "Chưa thanh toán", color: "text-gray-400" },
-};
+const PAYMENT_STATUS_CONFIG: Record<string, { label: string; color: string }> =
+  {
+    paid: { label: "Đã thanh toán", color: "text-emerald-600" },
+    pending: { label: "Chưa thanh toán", color: "text-gray-400" },
+  };
 
 const FILTER_TABS = [
   { value: "all", label: "Tất cả" },
@@ -88,16 +137,23 @@ const getFirstItemImage = (order: Order): string | null => {
   const item = order.items[0];
   if (!item) return null;
   return (
-    item.variant?.images?.find(i => i.isPrimary)?.url ||
-    item.variant?.product?.images?.find(i => i.isPrimary)?.url ||
+    item.variant?.images?.find((i) => i.isPrimary)?.url ||
+    item.variant?.product?.images?.find((i) => i.isPrimary)?.url ||
     null
   );
 };
 
 const StatusBadge = ({ status }: { status: string }) => {
-  const cfg = STATUS_CONFIG[status] || { label: status, color: "text-gray-600", bg: "bg-gray-50", border: "border-gray-200" };
+  const cfg = STATUS_CONFIG[status] || {
+    label: status,
+    color: "text-gray-600",
+    bg: "bg-gray-50",
+    border: "border-gray-200",
+  };
   return (
-    <span className={`inline-flex items-center text-xs font-medium px-2 py-0.5 rounded border ${cfg.bg} ${cfg.color} ${cfg.border}`}>
+    <span
+      className={`inline-flex items-center text-xs font-medium px-2 py-0.5 rounded border ${cfg.bg} ${cfg.color} ${cfg.border}`}
+    >
       {cfg.label}
     </span>
   );
@@ -152,7 +208,9 @@ const SellerOrderManager = () => {
       fetchOrders();
       fetchStats(); // Cập nhật lại stats
     } catch (err: any) {
-      toast.error(err.response?.data?.message || "Xác nhận thất bại", { id: t });
+      toast.error(err.response?.data?.message || "Xác nhận thất bại", {
+        id: t,
+      });
     }
   };
 
@@ -170,7 +228,7 @@ const SellerOrderManager = () => {
     }
   };
 
-  const filtered = orders.filter(o => {
+  const filtered = orders.filter((o) => {
     const matchSearch =
       o.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
       o.recipientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -180,7 +238,7 @@ const SellerOrderManager = () => {
   });
 
   const countByStatus = (s: string) =>
-    s === "all" ? orders.length : orders.filter(o => o.status === s).length;
+    s === "all" ? orders.length : orders.filter((o) => o.status === s).length;
 
   return (
     <div className="w-full min-h-screen pb-16">
@@ -194,19 +252,24 @@ const SellerOrderManager = () => {
       {/* Page header */}
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">Quản lý đơn hàng</h1>
+          <h1 className="text-xl font-semibold text-gray-900">
+            Quản lý đơn hàng
+          </h1>
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => { fetchOrders(); fetchStats(); }}
+            onClick={() => {
+              fetchOrders();
+              fetchStats();
+            }}
             className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
             title="Làm mới"
           >
             <RefreshCw size={16} />
           </button>
-          <button className="flex items-center gap-1.5 px-3 py-2 text-sm text-emerald-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+          {/* <button className="flex items-center gap-1.5 px-3 py-2 text-sm text-emerald-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
             <FileDown size={15} /> Xuất Excel
-          </button>
+          </button> */}
         </div>
       </div>
 
@@ -240,35 +303,43 @@ const SellerOrderManager = () => {
 
       {/* Card chứa cả toolbar + table */}
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-
         {/* Toolbar */}
         <div className="px-5 py-3 flex flex-col sm:flex-row items-start sm:items-center gap-3">
           {/* Search */}
           <div className="relative w-full sm:w-56">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+            <Search
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+              size={14}
+            />
             <input
               type="text"
               placeholder="Tìm mã đơn, tên khách..."
               className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg outline-none focus:border-gray-400 transition-colors bg-gray-50"
               value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
+              onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
 
           {/* Status filter */}
           <div className="flex items-center gap-1 flex-wrap">
-            {FILTER_TABS.map(tab => (
+            {FILTER_TABS.map((tab) => (
               <button
                 key={tab.value}
                 onClick={() => setStatusFilter(tab.value)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border font-medium transition-colors ${statusFilter === tab.value
-                  ? "bg-gray-900 text-white border-gray-900"
-                  : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
-                  }`}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border font-medium transition-colors ${
+                  statusFilter === tab.value
+                    ? "bg-gray-900 text-white border-gray-900"
+                    : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
+                }`}
               >
                 {tab.label}
-                <span className={`text-[10px] min-w-[16px] text-center rounded ${statusFilter === tab.value ? "text-white/70" : "text-gray-400"
-                  }`}>
+                <span
+                  className={`text-[10px] min-w-[16px] text-center rounded ${
+                    statusFilter === tab.value
+                      ? "text-white/70"
+                      : "text-gray-400"
+                  }`}
+                >
                   {countByStatus(tab.value)}
                 </span>
               </button>
@@ -285,14 +356,30 @@ const SellerOrderManager = () => {
           <table className="min-w-full">
             <thead>
               <tr className="border-t border-b border-gray-100 bg-gray-50/60">
-                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-700">Mã đơn</th>
-                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-700">Khách hàng</th>
-                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-700">Sản phẩm</th>
-                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-700">Trạng thái</th>
-                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-700">Thanh toán</th>
-                <th className="px-5 py-3 text-right text-xs font-semibold text-gray-700">Tổng tiền</th>
-                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-700">Ngày đặt</th>
-                <th className="px-5 py-3 text-right text-xs font-semibold text-gray-700">Hành động</th>
+                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-700">
+                  Mã đơn
+                </th>
+                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-700">
+                  Khách hàng
+                </th>
+                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-700">
+                  Sản phẩm
+                </th>
+                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-700">
+                  Trạng thái
+                </th>
+                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-700">
+                  Thanh toán
+                </th>
+                <th className="px-5 py-3 text-right text-xs font-semibold text-gray-700">
+                  Tổng tiền
+                </th>
+                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-700">
+                  Ngày đặt
+                </th>
+                <th className="px-5 py-3 text-right text-xs font-semibold text-gray-700">
+                  Hành động
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -309,20 +396,30 @@ const SellerOrderManager = () => {
                 <tr>
                   <td colSpan={8} className="px-5 py-16 text-center">
                     <Package className="mx-auto text-gray-200 mb-3" size={36} />
-                    <p className="text-sm text-gray-400">Không tìm thấy đơn hàng nào</p>
+                    <p className="text-sm text-gray-400">
+                      Không tìm thấy đơn hàng nào
+                    </p>
                   </td>
                 </tr>
               ) : (
-                filtered.map(order => {
+                filtered.map((order) => {
                   const img = getFirstItemImage(order);
-                  const totalItems = order.items.reduce((s, i) => s + i.quantity, 0);
-                  const paymentCfg = PAYMENT_STATUS_CONFIG[order.paymentStatus] || { label: order.paymentStatus, color: "text-gray-500" };
+                  const totalItems = order.items.reduce(
+                    (s, i) => s + i.quantity,
+                    0,
+                  );
+                  const paymentCfg = PAYMENT_STATUS_CONFIG[
+                    order.paymentStatus
+                  ] || { label: order.paymentStatus, color: "text-gray-500" };
 
                   return (
                     <tr
                       key={order.id}
                       className="hover:bg-gray-50/70 transition-colors cursor-pointer"
-                      onClick={() => { setSelectedOrder(order); setIsModalOpen(true); }}
+                      onClick={() => {
+                        setSelectedOrder(order);
+                        setIsModalOpen(true);
+                      }}
                     >
                       <td className="px-5 py-4">
                         <span className="text-sm font-medium text-gray-900 font-mono">
@@ -331,24 +428,39 @@ const SellerOrderManager = () => {
                       </td>
 
                       <td className="px-5 py-4">
-                        <p className="text-sm text-gray-900">{order.recipientName}</p>
-                        <p className="text-xs text-gray-400 mt-0.5">{order.phoneNumber}</p>
+                        <p className="text-sm text-gray-900">
+                          {order.recipientName}
+                        </p>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          {order.phoneNumber}
+                        </p>
                       </td>
 
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-2.5">
                           <div className="w-9 h-9 rounded-lg border border-gray-100 bg-gray-50 overflow-hidden shrink-0">
-                            {img
-                              ? <img src={`${BASE_URL}${img}`} className="w-full h-full object-cover" alt="" />
-                              : <div className="w-full h-full flex items-center justify-center"><Package size={14} className="text-gray-300" /></div>
-                            }
+                            {img ? (
+                              <img
+                                src={`${BASE_URL}${img}`}
+                                className="w-full h-full object-cover"
+                                alt=""
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <Package size={14} className="text-gray-300" />
+                              </div>
+                            )}
                           </div>
                           <div className="min-w-0">
                             <p className="text-sm text-gray-800 truncate max-w-[180px]">
-                              {order.items[0]?.variant?.product?.productName || order.items[0]?.variantNameSnapshot || "—"}
+                              {order.items[0]?.variant?.product?.productName ||
+                                order.items[0]?.variantNameSnapshot ||
+                                "—"}
                             </p>
                             {totalItems > 1 && (
-                              <p className="text-xs text-gray-400 mt-0.5">+{totalItems - 1} sản phẩm khác</p>
+                              <p className="text-xs text-gray-400 mt-0.5">
+                                +{totalItems - 1} sản phẩm khác
+                              </p>
                             )}
                           </div>
                         </div>
@@ -359,8 +471,14 @@ const SellerOrderManager = () => {
                       </td>
 
                       <td className="px-5 py-4">
-                        <p className={`text-xs font-medium ${paymentCfg.color}`}>{paymentCfg.label}</p>
-                        <p className="text-xs text-gray-400 mt-0.5">{order.paymentMethod}</p>
+                        <p
+                          className={`text-xs font-medium ${paymentCfg.color}`}
+                        >
+                          {paymentCfg.label}
+                        </p>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          {order.paymentMethod}
+                        </p>
                       </td>
 
                       <td className="px-5 py-4 text-right">
@@ -371,26 +489,33 @@ const SellerOrderManager = () => {
 
                       <td className="px-5 py-4">
                         <p className="text-sm text-gray-600">
-                          {format(new Date(order.createdAt), "dd/MM/yyyy", { locale: vi })}
+                          {format(new Date(order.createdAt), "dd/MM/yyyy", {
+                            locale: vi,
+                          })}
                         </p>
                         <p className="text-xs text-gray-400 mt-0.5">
-                          {format(new Date(order.createdAt), "HH:mm", { locale: vi })}
+                          {format(new Date(order.createdAt), "HH:mm", {
+                            locale: vi,
+                          })}
                         </p>
                       </td>
 
                       <td className="px-5 py-4">
-                        <div className="flex items-center justify-end gap-1" onClick={e => e.stopPropagation()}>
+                        <div
+                          className="flex items-center justify-end gap-1"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           {order.status === "pending" && (
                             <>
                               <button
-                                onClick={e => handleConfirmOrder(order.id, e)}
+                                onClick={(e) => handleConfirmOrder(order.id, e)}
                                 className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                                 title="Xác nhận"
                               >
                                 <Check size={15} />
                               </button>
                               <button
-                                onClick={e => handleCancelOrder(order.id, e)}
+                                onClick={(e) => handleCancelOrder(order.id, e)}
                                 className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"
                                 title="Hủy đơn"
                               >
@@ -399,7 +524,11 @@ const SellerOrderManager = () => {
                             </>
                           )}
                           <button
-                            onClick={e => { e.stopPropagation(); setSelectedOrder(order); setIsModalOpen(true); }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedOrder(order);
+                              setIsModalOpen(true);
+                            }}
                             className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                             title="Xem chi tiết"
                           >
@@ -418,7 +547,11 @@ const SellerOrderManager = () => {
         {!loading && filtered.length > 0 && (
           <div className="px-5 py-3 border-t border-gray-100">
             <p className="text-xs text-gray-400">
-              Hiển thị <span className="font-medium text-gray-600">{filtered.length}</span> / {orders.length} đơn hàng
+              Hiển thị{" "}
+              <span className="font-medium text-gray-600">
+                {filtered.length}
+              </span>{" "}
+              / {orders.length} đơn hàng
             </p>
           </div>
         )}

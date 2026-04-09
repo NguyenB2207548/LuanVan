@@ -113,44 +113,42 @@ const AddLayerButtons: React.FC<AddLayerButtonsProps> = ({
       <div className="grid grid-cols-2 gap-2">
         <button
           onClick={handleAddText}
-          className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 text-sm bg-white"
+          className="flex items-center justify-start gap-2 px-3 h-10 border border-gray-300 rounded-md hover:bg-gray-50 text-[13px] font-medium bg-white transition-colors"
         >
-          <Type size={16} className="text-gray-500" /> Text
-        </button>
-
-        <button
-          onClick={handleAddDynamicText}
-          className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 text-sm bg-white"
-        >
-          <TextCursorInput size={16} /> Dynamic Text
+          <Type size={16} className="text-gray-500 shrink-0" />
+          <span className="whitespace-nowrap truncate">Text</span>
         </button>
 
         <button
           onClick={handleAddUpload}
-          className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 text-sm bg-white"
+          className="flex items-center justify-start gap-2 px-3 h-10 border border-gray-300 rounded-md hover:bg-gray-50 text-[13px] font-medium bg-white transition-colors"
         >
-          <Upload size={16} className="text-gray-500" /> Upload
+          <Upload size={16} className="text-gray-500 shrink-0" />
+          <span className="whitespace-nowrap truncate">Upload</span>
         </button>
 
         <button
           onClick={handleAddStaticImage}
-          className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 text-sm bg-white"
+          className="flex items-center justify-start gap-2 px-3 h-10 border border-gray-300 rounded-md hover:bg-gray-50 text-[13px] font-medium bg-white transition-colors"
         >
-          <ImageIcon size={16} /> Static Image
+          <ImageIcon size={16} className="text-gray-500 shrink-0" />
+          <span className="whitespace-nowrap truncate">Static Image</span>
         </button>
 
         <button
           onClick={handleAddDynamicImage}
-          className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 text-sm bg-white"
+          className="flex items-center justify-start gap-2 px-3 h-10 border border-gray-300 rounded-md hover:bg-gray-50 text-[13px] font-medium bg-white transition-colors"
         >
-          <List size={16} className="text-gray-500" /> Dynamic Image
+          <List size={16} className="text-gray-500 shrink-0" />
+          <span className="whitespace-nowrap truncate">Dynamic Image</span>
         </button>
 
         <button
           onClick={handleAddGroup}
-          className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 text-sm bg-white"
+          className="flex items-center justify-start gap-2 px-3 h-10 border border-gray-300 rounded-md hover:bg-gray-50 text-[13px] font-medium bg-white transition-colors"
         >
-          <FolderTree size={16} /> Group
+          <FolderTree size={16} className="text-gray-500 shrink-0" />
+          <span className="whitespace-nowrap truncate">Group</span>
         </button>
       </div>
     </section>

@@ -556,7 +556,7 @@ const AddProductPage = () => {
                           >
                             <Upload size={20} className="text-gray-300 mb-1" />
                             <span className="text-[9px] text-gray-400 font-bold uppercase">
-                              Mockup
+                              Phôi biến thể
                             </span>
                           </button>
                         )}
@@ -678,7 +678,7 @@ const AddProductPage = () => {
         <div className="space-y-6">
           <section className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
             <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">
-              Mockup chính
+              Phôi sản phẩm
             </h2>
             <div className="relative aspect-square bg-gray-50 border-2 border-dashed rounded-xl flex items-center justify-center overflow-hidden group">
               {productMockup ? (
@@ -710,7 +710,7 @@ const AddProductPage = () => {
                 >
                   <ImageIcon size={32} className="text-gray-300 mb-2" />
                   <span className="text-xs text-gray-400 font-bold uppercase">
-                    Tải Mockup Gốc
+                    Tải phôi sản phẩm
                   </span>
                 </button>
               )}

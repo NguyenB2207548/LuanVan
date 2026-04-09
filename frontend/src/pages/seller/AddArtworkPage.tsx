@@ -25,7 +25,7 @@ const AddArtworkPage = () => {
   const handleSaveArtwork = async (payload: any) => {
     try {
       await axiosClient.post(`designs/seller/artworks`, payload);
-      alert("Lưu Artwork thành công!");
+      alert("Lưu thiêt kế thành công!");
       navigate("/seller/artworks");
     } catch (err) {
       alert("Lỗi khi lưu!");
@@ -49,7 +49,7 @@ const AddArtworkPage = () => {
         selectedId={selectedId}
         setSelectedId={setSelectedId}
         activeFilter={activeFilter}
-        mode="artwork" // Mode này bên trong Canvas sẽ chỉ hiển thị nền trắng/caro
+        mode="artwork"
         maxWidth={650}
       />
       <DesignerControlPanel

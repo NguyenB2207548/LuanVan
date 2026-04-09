@@ -172,7 +172,7 @@ const AddDesignPage = () => {
             Lưu thiết kế
           </h1>
           <p className="text-xs text-gray-400 mt-0.5">
-            Gắn artwork vào sản phẩm phôi
+            Gắn thiết kế vào sản phẩm phôi
           </p>
         </div>
 
@@ -309,11 +309,11 @@ const AddDesignPage = () => {
           {/* ── STEP 3: Artwork ── */}
           <div className="px-5 py-4">
             <p className="text-sm font-medium text-gray-700 flex items-center gap-1.5 mb-3">
-              <Palette size={14} /> Chọn artwork
+              <Palette size={14} /> Chọn thiết kế
             </p>
             {artworks.length === 0 ? (
               <p className="text-xs text-gray-400 italic">
-                Chưa có artwork nào
+                Chưa có thiết kế nào
               </p>
             ) : (
               <div className="space-y-1.5">
@@ -394,7 +394,7 @@ const AddDesignPage = () => {
           </button>
           {!canSave && (
             <p className="text-[11px] text-gray-400 text-center mt-2">
-              Vui lòng chọn sản phẩm và artwork
+              Vui lòng chọn sản phẩm và thiết kế
             </p>
           )}
         </div>
@@ -434,7 +434,7 @@ const AddDesignPage = () => {
             )}
             {!selectedProduct && !selectedArtwork && (
               <span className="text-gray-400">
-                Chọn sản phẩm và artwork để bắt đầu
+                Chọn sản phẩm và thiết kế để bắt đầu
               </span>
             )}
           </div>
@@ -469,9 +469,7 @@ const AddDesignPage = () => {
                   <Layers size={24} className="text-gray-300" />
                 </div>
                 <p className="text-sm font-medium text-gray-500">
-                  {!selectedProduct
-                    ? "Chọn sản phẩm phôi"
-                    : "Chọn artwork thiết kế"}
+                  {!selectedProduct ? "Chọn sản phẩm phôi" : "Chọn thiết kế"}
                 </p>
                 <p className="text-xs text-gray-400 mt-1">từ thanh bên trái</p>
               </div>

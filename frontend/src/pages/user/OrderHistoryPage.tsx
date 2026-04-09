@@ -68,7 +68,13 @@ interface Order {
   id: number;
   orderNumber: string;
   totalAmount: string;
-  status: "pending" | "confirmed" | "shipping" | "success" | "failed" | "cancelled";
+  status:
+    | "pending"
+    | "confirmed"
+    | "shipping"
+    | "success"
+    | "failed"
+    | "cancelled";
   recipientName: string;
   phoneNumber: string;
   shippingAddress: string;
@@ -113,20 +119,30 @@ const ReviewModal = ({ isOpen, onClose, productInfo, onSuccess }: any) => {
       <div className="bg-white w-full max-w-md rounded-lg shadow-xl overflow-hidden font-sans text-black">
         <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
           <h3 className="font-bold text-lg">Viết đánh giá</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-black"><X size={20} /></button>
+          <button onClick={onClose} className="text-gray-400 hover:text-black">
+            <X size={20} />
+          </button>
         </div>
         <div className="p-6 space-y-6">
           <div className="flex gap-4 items-center bg-gray-50 p-3 rounded">
-            <img src={productInfo.image} className="w-12 h-12 object-cover rounded border" alt="" />
+            <img
+              src={productInfo.image}
+              className="w-12 h-12 object-cover rounded border"
+              alt=""
+            />
             <div className="min-w-0 text-sm">
               <p className="font-bold truncate">{productInfo.name}</p>
-              <p className="text-gray-500">{productInfo.variantName}</p>
+              {/* <p className="text-gray-500">{productInfo.variantName}</p> */}
             </div>
           </div>
           <div className="flex justify-center gap-2">
             {[1, 2, 3, 4, 5].map((s) => (
               <button key={s} onClick={() => setRating(s)}>
-                <Star size={32} fill={rating >= s ? "#EAB308" : "none"} className={rating >= s ? "text-yellow-500" : "text-gray-200"} />
+                <Star
+                  size={32}
+                  fill={rating >= s ? "#EAB308" : "none"}
+                  className={rating >= s ? "text-yellow-500" : "text-gray-200"}
+                />
               </button>
             ))}
           </div>
@@ -141,7 +157,8 @@ const ReviewModal = ({ isOpen, onClose, productInfo, onSuccess }: any) => {
             disabled={submitting}
             className="w-full py-3 bg-black text-white font-bold rounded hover:bg-gray-800 disabled:bg-gray-400 flex items-center justify-center gap-2"
           >
-            {submitting && <Loader2 size={16} className="animate-spin" />} Gửi đánh giá
+            {submitting && <Loader2 size={16} className="animate-spin" />} Gửi
+            đánh giá
           </button>
         </div>
       </div>
@@ -149,7 +166,10 @@ const ReviewModal = ({ isOpen, onClose, productInfo, onSuccess }: any) => {
   );
 };
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
+const STATUS_CONFIG: Record<
+  string,
+  { label: string; color: string; icon: React.ReactNode }
+> = {
   pending: {
     label: "Chờ xác nhận",
     color: "text-amber-700 bg-amber-50 border border-amber-200",
@@ -184,7 +204,9 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.
 
 const getItemImage = (item: OrderItem): string => {
   const variantImg = item.variant?.images?.find((i) => i.isPrimary)?.url;
-  const productImg = item.variant?.product?.images?.find((i) => i.isPrimary)?.url;
+  const productImg = item.variant?.product?.images?.find(
+    (i) => i.isPrimary,
+  )?.url;
   const url = variantImg || productImg;
   return url ? `${BASE_URL}${url}` : "";
 };
@@ -213,7 +235,7 @@ const OrderHistoryPage = () => {
       id: item.variant?.product?.id,
       name: item.variant?.product?.productName,
       image: getItemImage(item),
-      variantName: item.variantNameSnapshot
+      variantName: item.variantNameSnapshot,
     });
     setIsReviewModalOpen(true);
   };
@@ -235,7 +257,8 @@ const OrderHistoryPage = () => {
   };
 
   const handleCancelOrder = async (orderId: number) => {
-    if (!window.confirm("Bạn có chắc chắn muốn hủy đơn hàng này không?")) return;
+    if (!window.confirm("Bạn có chắc chắn muốn hủy đơn hàng này không?"))
+      return;
     try {
       await axiosClient.patch(`/orders/${orderId}/cancel`);
       toast.success("Hủy đơn hàng thành công");
@@ -265,7 +288,6 @@ const OrderHistoryPage = () => {
   return (
     <div className="min-h-screen bg-gray-100">
       <div className="max-w-5xl mx-auto px-6 py-10">
-
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Lịch sử đơn hàng</h1>
@@ -274,7 +296,10 @@ const OrderHistoryPage = () => {
         {/* Search + Filter */}
         <div className="bg-white border border-gray-200 rounded-xl p-5 mb-5">
           <div className="relative mb-4">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+            <Search
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+              size={16}
+            />
             <input
               type="text"
               placeholder="Tìm theo mã đơn hàng, tên người nhận..."
@@ -289,10 +314,11 @@ const OrderHistoryPage = () => {
               <button
                 key={tab.key}
                 onClick={() => setActiveStatus(tab.key)}
-                className={`px-3.5 py-1.5 text-xs font-medium rounded-md transition-colors border ${activeStatus === tab.key
-                  ? "bg-gray-900 text-white border-gray-900"
-                  : "bg-white text-gray-600 border-gray-200 hover:border-gray-400 hover:text-gray-800"
-                  }`}
+                className={`px-3.5 py-1.5 text-xs font-medium rounded-md transition-colors border ${
+                  activeStatus === tab.key
+                    ? "bg-gray-900 text-white border-gray-900"
+                    : "bg-white text-gray-600 border-gray-200 hover:border-gray-400 hover:text-gray-800"
+                }`}
               >
                 {tab.label}
                 {tab.key !== "all" && (
@@ -331,13 +357,16 @@ const OrderHistoryPage = () => {
         ) : (
           <div className="space-y-4">
             {filteredOrders.map((order) => {
-              const statusCfg = STATUS_CONFIG[order.status] || STATUS_CONFIG.pending;
+              const statusCfg =
+                STATUS_CONFIG[order.status] || STATUS_CONFIG.pending;
               const firstItem = order.items[0];
               const extraCount = order.items.length - 1;
 
               return (
-                <div key={order.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-
+                <div
+                  key={order.id}
+                  className="bg-white border border-gray-200 rounded-xl overflow-hidden"
+                >
                   {/* Top bar */}
                   <div className="px-6 py-3.5 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -345,10 +374,14 @@ const OrderHistoryPage = () => {
                         {order.orderNumber}
                       </span>
                       <span className="text-xs text-gray-400">
-                        {format(new Date(order.createdAt), "dd/MM/yyyy HH:mm", { locale: vi })}
+                        {format(new Date(order.createdAt), "dd/MM/yyyy HH:mm", {
+                          locale: vi,
+                        })}
                       </span>
                     </div>
-                    <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full ${statusCfg.color}`}>
+                    <span
+                      className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full ${statusCfg.color}`}
+                    >
                       {statusCfg.icon}
                       {statusCfg.label}
                     </span>
@@ -372,14 +405,18 @@ const OrderHistoryPage = () => {
                       </div>
                       <div className="flex-1 min-w-0 pt-1">
                         <p className="text-base font-semibold text-gray-900 line-clamp-1">
-                          {firstItem.variant?.product?.productName || firstItem.variantNameSnapshot}
+                          {firstItem.variant?.product?.productName ||
+                            firstItem.variantNameSnapshot}
                         </p>
                         <p className="text-sm text-gray-500 mt-0.5 line-clamp-1">
                           {firstItem.variantNameSnapshot}
                         </p>
                         <p className="text-sm text-gray-500 mt-1">
                           x{firstItem.quantity} &nbsp;·&nbsp;
-                          {Number(firstItem.priceAtPurchase).toLocaleString("vi-VN")}đ/sp
+                          {Number(firstItem.priceAtPurchase).toLocaleString(
+                            "vi-VN",
+                          )}
+                          đ/sp
                         </p>
                         {extraCount > 0 && (
                           <p className="text-xs text-gray-400 mt-1">
@@ -391,7 +428,6 @@ const OrderHistoryPage = () => {
 
                     {/* 4 ô thông tin */}
                     <div className="grid grid-cols-2 gap-5 py-5 border-t border-b border-gray-100 mb-5">
-
                       {/* Giao hàng */}
                       <div>
                         <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2.5">
@@ -399,15 +435,26 @@ const OrderHistoryPage = () => {
                         </p>
                         <div className="space-y-2">
                           <div className="flex items-start gap-2 text-sm text-gray-700">
-                            <User size={14} className="shrink-0 text-gray-400 mt-0.5" />
-                            <span className="font-medium">{order.recipientName}</span>
+                            <User
+                              size={14}
+                              className="shrink-0 text-gray-400 mt-0.5"
+                            />
+                            <span className="font-medium">
+                              {order.recipientName}
+                            </span>
                           </div>
                           <div className="flex items-start gap-2 text-sm text-gray-600">
-                            <Phone size={14} className="shrink-0 text-gray-400 mt-0.5" />
+                            <Phone
+                              size={14}
+                              className="shrink-0 text-gray-400 mt-0.5"
+                            />
                             <span>{order.phoneNumber}</span>
                           </div>
                           <div className="flex items-start gap-2 text-sm text-gray-600">
-                            <MapPin size={14} className="shrink-0 text-gray-400 mt-0.5" />
+                            <MapPin
+                              size={14}
+                              className="shrink-0 text-gray-400 mt-0.5"
+                            />
                             <span>{order.shippingAddress}</span>
                           </div>
                         </div>
@@ -420,7 +467,10 @@ const OrderHistoryPage = () => {
                         </p>
                         <div className="space-y-2">
                           <div className="flex items-start gap-2 text-sm text-gray-600">
-                            <CreditCard size={14} className="shrink-0 text-gray-400 mt-0.5" />
+                            <CreditCard
+                              size={14}
+                              className="shrink-0 text-gray-400 mt-0.5"
+                            />
                             <span>
                               {order.paymentMethod === "COD"
                                 ? "Thanh toán khi nhận hàng (COD)"
@@ -429,12 +479,16 @@ const OrderHistoryPage = () => {
                           </div>
                           <div className="flex items-start gap-2 text-sm">
                             <span className="w-3.5 shrink-0" />
-                            <span className={
-                              order.paymentStatus === "paid"
-                                ? "text-emerald-600 font-medium"
-                                : "text-amber-600 font-medium"
-                            }>
-                              {order.paymentStatus === "paid" ? "Đã thanh toán" : "Chưa thanh toán"}
+                            <span
+                              className={
+                                order.paymentStatus === "paid"
+                                  ? "text-emerald-600 font-medium"
+                                  : "text-amber-600 font-medium"
+                              }
+                            >
+                              {order.paymentStatus === "paid"
+                                ? "Đã thanh toán"
+                                : "Chưa thanh toán"}
                             </span>
                           </div>
                         </div>
@@ -447,21 +501,34 @@ const OrderHistoryPage = () => {
                         </p>
                         <div className="space-y-2">
                           <div className="flex items-start gap-2 text-sm text-gray-700">
-                            <Store size={14} className="shrink-0 text-gray-400 mt-0.5" />
+                            <Store
+                              size={14}
+                              className="shrink-0 text-gray-400 mt-0.5"
+                            />
                             <span className="font-medium">
-                              {order.seller?.sellerProfile?.shopName || order.seller?.fullName || "—"}
+                              {order.seller?.sellerProfile?.shopName ||
+                                order.seller?.fullName ||
+                                "—"}
                             </span>
                           </div>
                           {order.seller?.phoneNumber && (
                             <div className="flex items-start gap-2 text-sm text-gray-600">
-                              <Phone size={14} className="shrink-0 text-gray-400 mt-0.5" />
+                              <Phone
+                                size={14}
+                                className="shrink-0 text-gray-400 mt-0.5"
+                              />
                               <span>{order.seller.phoneNumber}</span>
                             </div>
                           )}
                           {order.seller?.sellerProfile?.shopAddress && (
                             <div className="flex items-start gap-2 text-sm text-gray-600">
-                              <MapPin size={14} className="shrink-0 text-gray-400 mt-0.5" />
-                              <span>{order.seller.sellerProfile.shopAddress}</span>
+                              <MapPin
+                                size={14}
+                                className="shrink-0 text-gray-400 mt-0.5"
+                              />
+                              <span>
+                                {order.seller.sellerProfile.shopAddress}
+                              </span>
                             </div>
                           )}
                         </div>
@@ -475,17 +542,28 @@ const OrderHistoryPage = () => {
                           </p>
                           <div className="space-y-2">
                             <div className="flex items-start gap-2 text-sm text-gray-700">
-                              <Truck size={14} className="shrink-0 text-gray-400 mt-0.5" />
-                              <span className="font-medium">{order.shipper.fullName}</span>
+                              <Truck
+                                size={14}
+                                className="shrink-0 text-gray-400 mt-0.5"
+                              />
+                              <span className="font-medium">
+                                {order.shipper.fullName}
+                              </span>
                             </div>
                             <div className="flex items-start gap-2 text-sm text-gray-600">
-                              <Phone size={14} className="shrink-0 text-gray-400 mt-0.5" />
+                              <Phone
+                                size={14}
+                                className="shrink-0 text-gray-400 mt-0.5"
+                              />
                               <span>{order.shipper.phoneNumber}</span>
                             </div>
                             {order.shipper.shipperProfile?.vehiclePlate && (
                               <div className="flex items-start gap-2 text-sm text-gray-500">
                                 <span className="w-3.5 shrink-0" />
-                                <span>Biển số: {order.shipper.shipperProfile.vehiclePlate}</span>
+                                <span>
+                                  Biển số:{" "}
+                                  {order.shipper.shipperProfile.vehiclePlate}
+                                </span>
                               </div>
                             )}
                           </div>
@@ -495,7 +573,9 @@ const OrderHistoryPage = () => {
                           <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2.5">
                             Shipper
                           </p>
-                          <p className="text-sm text-gray-400 italic">Chưa có shipper</p>
+                          <p className="text-sm text-gray-400 italic">
+                            Chưa có shipper
+                          </p>
                         </div>
                       )}
                     </div>
@@ -503,7 +583,9 @@ const OrderHistoryPage = () => {
                     {/* Footer */}
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-xs text-gray-400 uppercase tracking-wide mb-0.5">Tổng tiền</p>
+                        <p className="text-xs text-gray-400 uppercase tracking-wide mb-0.5">
+                          Tổng tiền
+                        </p>
                         <p className="text-xl font-bold text-gray-900">
                           {Number(order.totalAmount).toLocaleString("vi-VN")}đ
                         </p>
