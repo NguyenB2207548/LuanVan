@@ -15,10 +15,11 @@ import Konva from "konva";
 const BASE_URL = "http://localhost:3000";
 
 interface DesignerCanvasProps {
-  backgroundUrl: string;
+  backgroundUrl?: string;
   layers: any[];
   setLayers?: (layers: any[]) => void;
-  virtualPrintArea: {
+  canvasSize?: { width: number; height: number };
+  virtualPrintArea?: {
     x: number;
     y: number;
     width: number;
@@ -26,6 +27,9 @@ interface DesignerCanvasProps {
     visible: boolean;
   };
   setVirtualPrintArea?: (area: any) => void;
+  designOffset?: { x: number; y: number };
+  setDesignOffset?: (offset: { x: number; y: number }) => void;
+
   selectedId: string | null;
   setSelectedId: (id: string | null) => void;
   mode: "print-area" | "artwork" | "design" | "client";
@@ -39,8 +43,11 @@ const DesignerCanvas: React.FC<DesignerCanvasProps> = ({
   backgroundUrl,
   layers,
   setLayers,
+  canvasSize = { width: 800, height: 800 },
   virtualPrintArea,
   setVirtualPrintArea,
+  designOffset = { x: 0, y: 0 },
+  setDesignOffset,
   selectedId,
   setSelectedId,
   mode,
@@ -61,8 +68,46 @@ const DesignerCanvas: React.FC<DesignerCanvasProps> = ({
   const trRef = useRef<Konva.Transformer>(null);
   const printAreaRef = useRef<Konva.Rect>(null);
 
-  const stageWidth = maxWidth * scale;
-  const stageHeight = maxWidth * scale;
+  const isArtworkMode = mode === "artwork";
+
+  const WORKSPACE_SIZE = maxWidth;
+  const PADDING = 60;
+
+  const artworkScale = Math.min(
+    (WORKSPACE_SIZE - PADDING) / canvasSize.width,
+    (WORKSPACE_SIZE - PADDING) / canvasSize.height,
+  );
+
+  const displayScale = isArtworkMode ? artworkScale : scale;
+
+  const stageWidth = isArtworkMode ? WORKSPACE_SIZE : maxWidth * displayScale;
+  const stageHeight = isArtworkMode ? WORKSPACE_SIZE : maxWidth * displayScale;
+
+  const paperWidth = canvasSize.width * displayScale;
+  const paperHeight = canvasSize.height * displayScale;
+  const paperX = isArtworkMode ? (stageWidth - paperWidth) / 2 : 0;
+  const paperY = isArtworkMode ? (stageHeight - paperHeight) / 2 : 0;
+
+  // ==================================================
+  // BỘ ÁO GIÁP AN TOÀN
+  // ==================================================
+  const safePrintArea = {
+    x: virtualPrintArea?.x || 0,
+    y: virtualPrintArea?.y || 0,
+    width: virtualPrintArea?.width || canvasSize.width,
+    height: virtualPrintArea?.height || canvasSize.height,
+    visible: virtualPrintArea?.visible ?? true,
+  };
+
+  const mappingScale = isArtworkMode
+    ? 1
+    : Math.min(
+        safePrintArea.width / canvasSize.width,
+        safePrintArea.height / canvasSize.height,
+      );
+
+  const centerX = safePrintArea.width / 2;
+  const centerY = safePrintArea.height / 2;
 
   useEffect(() => {
     if (!trRef.current) return;
@@ -79,8 +124,8 @@ const DesignerCanvas: React.FC<DesignerCanvasProps> = ({
     const node = e.target;
     setVirtualPrintArea({
       ...virtualPrintArea,
-      x: Math.round(node.x() / scale),
-      y: Math.round(node.y() / scale),
+      x: Math.round(node.x() / displayScale),
+      y: Math.round(node.y() / displayScale),
     });
   };
 
@@ -95,8 +140,8 @@ const DesignerCanvas: React.FC<DesignerCanvasProps> = ({
 
     setVirtualPrintArea({
       ...virtualPrintArea,
-      width: Math.round((node.width() * scaleX) / scale),
-      height: Math.round((node.height() * scaleY) / scale),
+      width: Math.round((node.width() * scaleX) / displayScale),
+      height: Math.round((node.height() * scaleY) / displayScale),
     });
   };
 
@@ -106,7 +151,9 @@ const DesignerCanvas: React.FC<DesignerCanvasProps> = ({
   };
 
   return (
-    <div className="flex-1 relative flex items-center justify-center bg-transparent p-0 overflow-hidden">
+    <div
+      className={`flex-1 relative flex items-center justify-center p-0 overflow-hidden ${isArtworkMode ? "bg-gray-100" : "bg-transparent"}`}
+    >
       {isUploading && (
         <div className="absolute inset-0 bg-white/60 z-50 flex items-center justify-center font-bold">
           Processing...
@@ -114,8 +161,12 @@ const DesignerCanvas: React.FC<DesignerCanvasProps> = ({
       )}
 
       <div
-        className="bg-white shadow-2xl relative"
-        style={{ width: stageWidth, height: stageHeight }}
+        className="shadow-2xl relative"
+        style={{
+          width: stageWidth,
+          height: stageHeight,
+          backgroundColor: isArtworkMode ? "#f3f4f6" : "transparent",
+        }}
       >
         <Stage
           width={stageWidth}
@@ -123,14 +174,37 @@ const DesignerCanvas: React.FC<DesignerCanvasProps> = ({
           onPointerDown={(e) => {
             if (
               e.target === e.target.getStage() ||
-              e.target.name() === "background"
+              e.target.name() === "background" ||
+              e.target.name() === "artwork_canvas_bg" ||
+              e.target.name() === "workspace_bg"
             )
               setSelectedId(null);
           }}
         >
           <Layer>
-            {/* 1. BACKGROUND LAYER (MOCKUP) */}
-            {bgImg ? (
+            {isArtworkMode && (
+              <Rect
+                width={stageWidth}
+                height={stageHeight}
+                name="workspace_bg"
+                fill="#f3f4f6"
+              />
+            )}
+
+            {/* --- LỚP 1: NỀN --- */}
+            {isArtworkMode ? (
+              <Rect
+                name="artwork_canvas_bg"
+                x={paperX}
+                y={paperY}
+                width={paperWidth}
+                height={paperHeight}
+                fill="#ffffff"
+                stroke="#3b82f6"
+                strokeWidth={2}
+                dash={[10, 5]}
+              />
+            ) : bgImg ? (
               <KonvaImage
                 image={bgImg}
                 name="background"
@@ -138,131 +212,171 @@ const DesignerCanvas: React.FC<DesignerCanvasProps> = ({
                 height={stageHeight}
               />
             ) : (
-              <Rect width={stageWidth} height={stageHeight} fill="#ffffff" />
+              <Rect width={stageWidth} height={stageHeight} fill="#f3f4f6" />
             )}
 
-            {/* 2. DESIGN LAYERS */}
-            {mode !== "print-area" &&
-              layers.map((l) => {
-                if (
-                  activeFilter !== "ALL" &&
-                  l.show_condition &&
-                  l.show_condition !== activeFilter
-                )
-                  return null;
-
-                // Tách riêng key (id) ra khỏi các props còn lại
-                const { id, ...otherData } = l;
-
-                const commonProps = {
-                  x: (l.x || 0) * scale,
-                  y: (l.y || 0) * scale,
-                  draggable: mode === "artwork",
-                  onClick: (e: any) => {
-                    e.cancelBubble = true;
-                    setSelectedId(l.id);
-                  },
-
-                  onDblClick: (e: any) => {
-                    e.cancelBubble = true;
-                    setSelectedId(l.id);
-
+            {/* --- LỚP 2: MAPPING --- */}
+            {mode !== "print-area" && (
+              <Group
+                x={isArtworkMode ? paperX : safePrintArea.x * displayScale}
+                y={isArtworkMode ? paperY : safePrintArea.y * displayScale}
+                clipX={0}
+                clipY={0}
+                clipWidth={
+                  isArtworkMode
+                    ? paperWidth
+                    : safePrintArea.width * displayScale
+                }
+                clipHeight={
+                  isArtworkMode
+                    ? paperHeight
+                    : safePrintArea.height * displayScale
+                }
+              >
+                <Group
+                  x={
+                    isArtworkMode
+                      ? 0
+                      : (centerX + (designOffset?.x || 0)) * displayScale
+                  }
+                  y={
+                    isArtworkMode
+                      ? 0
+                      : (centerY + (designOffset?.y || 0)) * displayScale
+                  }
+                  offsetX={
+                    isArtworkMode ? 0 : (canvasSize.width / 2) * displayScale
+                  }
+                  offsetY={
+                    isArtworkMode ? 0 : (canvasSize.height / 2) * displayScale
+                  }
+                  scaleX={mappingScale}
+                  scaleY={mappingScale}
+                  draggable={mode === "design"}
+                  onDragEnd={(e) => {
+                    if (setDesignOffset && e.target === e.currentTarget) {
+                      setDesignOffset({
+                        x: Math.round(e.target.x() / displayScale - centerX),
+                        y: Math.round(e.target.y() / displayScale - centerY),
+                      });
+                    }
+                  }}
+                >
+                  {layers?.map((l) => {
                     if (
-                      l.type === "static_image" ||
-                      l.type === "dynamic_image"
-                    ) {
-                      window.dispatchEvent(
-                        new CustomEvent("OPEN_ASSET_MODAL", {
-                          detail: { type: l.type },
-                        }),
+                      activeFilter !== "ALL" &&
+                      l.show_condition &&
+                      l.show_condition !== activeFilter
+                    )
+                      return null;
+
+                    const { id, ...otherData } = l;
+                    const isLayerDraggable = mode === "artwork";
+
+                    const commonProps = {
+                      x: (l.x || 0) * displayScale,
+                      y: (l.y || 0) * displayScale,
+                      draggable: isLayerDraggable,
+                      onClick: (e: any) => {
+                        e.cancelBubble = true;
+                        if (isArtworkMode) setSelectedId(l.id);
+                      },
+                      onDblClick: (e: any) => {
+                        e.cancelBubble = true;
+                        if (isArtworkMode) setSelectedId(l.id);
+
+                        if (
+                          l.type === "static_image" ||
+                          l.type === "dynamic_image"
+                        ) {
+                          window.dispatchEvent(
+                            new CustomEvent("OPEN_ASSET_MODAL", {
+                              detail: { type: l.type },
+                            }),
+                          );
+                        }
+                      },
+                    };
+
+                    if (l.type.includes("text")) {
+                      return (
+                        <Text
+                          key={l.id}
+                          {...commonProps}
+                          text={l.text}
+                          fontSize={(l.fontSize || 20) * displayScale}
+                          fill={l.color || "#000"}
+                          fontFamily={l.fontFamily}
+                          align="center"
+                          width={(l.width || 200) * displayScale}
+                          offsetX={((l.width || 200) * displayScale) / 2}
+                          onDragEnd={(e) => {
+                            e.cancelBubble = true;
+                            handleLayerChange(l.id, {
+                              x: Math.round(e.target.x() / displayScale),
+                              y: Math.round(e.target.y() / displayScale),
+                            });
+                          }}
+                        />
                       );
                     }
-                  },
-                };
 
-                if (l.type.includes("text")) {
-                  return (
-                    <Text
-                      key={l.id}
-                      {...commonProps}
-                      text={l.text}
-                      fontSize={(l.fontSize || 20) * scale}
-                      fill={l.color || "#000"}
-                      fontFamily={l.fontFamily}
-                      align="center"
-                      width={(l.width || 200) * scale}
-                      offsetX={((l.width || 200) * scale) / 2}
-                      onDragEnd={(e) => {
-                        e.cancelBubble = true;
-                        handleLayerChange(l.id, {
-                          x: Math.round(e.target.x() / scale),
-                          y: Math.round(e.target.y() / scale),
-                        });
-                      }}
-                    />
-                  );
-                }
+                    return (
+                      <URLImage
+                        key={l.id}
+                        {...commonProps}
+                        l={{
+                          ...l,
+                          x: (l.x || 0) * displayScale,
+                          y: (l.y || 0) * displayScale,
+                          width: (l.width || 100) * displayScale,
+                          height: (l.height || 100) * displayScale,
+                          url: l.image_url || l.url,
+                        }}
+                        isSelected={selectedId === l.id && isArtworkMode}
+                        onSelect={() => isArtworkMode && setSelectedId(l.id)}
+                        draggable={isLayerDraggable}
+                        onChange={(newP: any) =>
+                          handleLayerChange(l.id, {
+                            x: Math.round(newP.x / displayScale),
+                            y: Math.round(newP.y / displayScale),
+                            width: Math.round(newP.width / displayScale),
+                            height: Math.round(newP.height / displayScale),
+                          })
+                        }
+                      />
+                    );
+                  })}
+                </Group>
+              </Group>
+            )}
 
-                return (
-                  <URLImage
-                    key={l.id} // Truyền TRỰC TIẾP ở đây
-                    {...commonProps}
-                    l={{
-                      ...l,
-                      x: (l.x || 0) * scale,
-                      y: (l.y || 0) * scale,
-                      width: (l.width || 100) * scale,
-                      height: (l.height || 100) * scale,
-                      url: l.image_url || l.url,
-                    }}
-                    isSelected={selectedId === l.id}
-                    onSelect={() => setSelectedId(l.id)}
-                    draggable={mode === "artwork"}
-                    onChange={(newP: any) =>
-                      handleLayerChange(l.id, {
-                        x: Math.round(newP.x / scale),
-                        y: Math.round(newP.y / scale),
-                        width: Math.round(newP.width / scale),
-                        height: Math.round(newP.height / scale),
-                      })
-                    }
-                  />
-                );
-              })}
-
-            {/* 3. VIRTUAL PRINT AREA */}
-            {(virtualPrintArea.visible ?? true) && (
+            {/* --- LỚP 3: VIRTUAL PRINT AREA --- */}
+            {/* 👇 ĐÃ SỬA LẠI ĐỂ FIX LỖI TYPESCRIPT 👇 */}
+            {!isArtworkMode && safePrintArea.visible && mode !== "client" && (
               <Rect
                 ref={printAreaRef}
-                x={virtualPrintArea.x * scale}
-                y={virtualPrintArea.y * scale}
-                width={virtualPrintArea.width * scale}
-                height={virtualPrintArea.height * scale}
-                stroke={
-                  mode === "client"
-                    ? undefined
-                    : selectedId === "print_area"
-                      ? "#2563eb"
-                      : "#3b82f6"
-                }
-                strokeWidth={mode === "client" ? 0 : 2}
+                x={safePrintArea.x * displayScale}
+                y={safePrintArea.y * displayScale}
+                width={safePrintArea.width * displayScale}
+                height={safePrintArea.height * displayScale}
+                stroke={selectedId === "print_area" ? "#2563eb" : "#3b82f6"}
+                strokeWidth={2}
                 dash={[10, 5]}
-                // 1. THÊM DÒNG NÀY: Biến khung thành "Bóng ma", chuột sẽ xuyên thẳng qua khung để chạm vào Layer bên dưới
                 listening={mode === "print-area"}
                 name="print_area_rect"
-                // 2. SỬA DÒNG NÀY: Chỉ cho phép kéo thả ở đúng trang Cài đặt Print Area
                 draggable={mode === "print-area"}
                 onDragEnd={handlePrintAreaDragEnd}
                 onTransformEnd={handlePrintAreaTransformEnd}
                 onClick={(e) => {
                   e.cancelBubble = true;
-                  mode !== "client" && setSelectedId("print_area");
+                  setSelectedId("print_area");
                 }}
               />
             )}
 
-            {/* 4. TRANSFORMER CHO PRINT AREA */}
-            {selectedId === "print_area" && (
+            {/* --- LỚP 4: TRANSFORMER (Dành riêng cho Print Area) --- */}
+            {selectedId === "print_area" && !isArtworkMode && (
               <Transformer
                 ref={trRef}
                 rotateEnabled={false}

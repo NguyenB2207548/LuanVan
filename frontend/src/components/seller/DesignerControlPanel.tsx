@@ -2,13 +2,11 @@ import React, { useState, useMemo, useEffect } from "react";
 import {
   Save,
   Layers,
-  ImageIcon,
-  Eye,
-  EyeOff,
-  Move,
   FileCode,
   Sparkles,
   RefreshCw,
+  Frame,
+  Download, // Dùng icon Frame cho Canvas
 } from "lucide-react";
 import AssetManagerModal from "../admin/AssetManagerModal";
 import AddLayerButtons from "./AddLayerButtons";
@@ -18,13 +16,9 @@ import type { DesignLayer, ModalTarget } from "../../types/designer";
 import axiosClient from "../../api/axiosClient";
 import AiLayerModal from "../../modals/AiLayerModal";
 
-const BASE_URL = "http://localhost:3000";
-
 interface DesignerControlPanelProps {
   artworkName: string;
   setArtworkName: (name: string) => void;
-  backgroundUrl: string;
-  setBackgroundUrl: (url: string) => void;
   layers: DesignLayer[];
   setLayers: React.Dispatch<React.SetStateAction<DesignLayer[]>>;
   selectedId: string | null;
@@ -35,17 +29,15 @@ interface DesignerControlPanelProps {
   onSave: (layersData: any) => Promise<void>;
   isExtractingPsd: boolean;
   setIsExtractingPsd: (loading: boolean) => void;
-  virtualPrintArea: any;
-  setVirtualPrintArea: (area: any) => void;
-  onOpenBgSelect: () => void;
-  isEditMode?: boolean; // Thêm prop xác định chế độ chỉnh sửa
+  // MỚI: Nhận props canvasSize thay vì background & printArea
+  canvasSize: { width: number; height: number };
+  setCanvasSize: (size: { width: number; height: number }) => void;
+  isEditMode?: boolean;
 }
 
 const DesignerControlPanel: React.FC<DesignerControlPanelProps> = ({
   artworkName,
   setArtworkName,
-  backgroundUrl,
-  setBackgroundUrl,
   layers,
   setLayers,
   selectedId,
@@ -56,17 +48,16 @@ const DesignerControlPanel: React.FC<DesignerControlPanelProps> = ({
   onSave,
   isExtractingPsd,
   setIsExtractingPsd,
-  virtualPrintArea,
-  setVirtualPrintArea,
-  onOpenBgSelect,
-  isEditMode = false, // Mặc định là false
+  canvasSize,
+  setCanvasSize,
+  isEditMode = false,
 }) => {
   const selectedLayer = layers.find((l) => l.id === selectedId);
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
 
-  const updatePrintArea = (field: string, value: any) => {
-    setVirtualPrintArea({ ...virtualPrintArea, [field]: value });
-  };
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [importProducts, setImportProducts] = useState<any[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(false);
 
   const [modalConfig, setModalConfig] = useState<{
     isOpen: boolean;
@@ -90,6 +81,34 @@ const DesignerControlPanel: React.FC<DesignerControlPanelProps> = ({
     };
   }, []);
 
+  const handleOpenImportPrintArea = async () => {
+    setIsImportModalOpen(true);
+    setLoadingProducts(true);
+    try {
+      const res = await axiosClient.get("/products/seller");
+      setImportProducts(res.data.data || []);
+    } catch (err) {
+      console.error("Lỗi fetch products", err);
+      alert("Không thể tải danh sách sản phẩm.");
+    } finally {
+      setLoadingProducts(false);
+    }
+  };
+
+  // Hàm áp dụng Print Area vào Canvas Size
+  const applyProductPrintArea = (product: any) => {
+    const printArea = product.mockup?.printArea;
+    if (printArea && printArea.width && printArea.height) {
+      setCanvasSize({
+        width: Math.round(Number(printArea.width)),
+        height: Math.round(Number(printArea.height)),
+      });
+      setIsImportModalOpen(false);
+    } else {
+      alert("Sản phẩm này chưa được cấu hình Print Area!");
+    }
+  };
+
   // --- IMPORT PSD ---
   const handlePsdUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -104,15 +123,22 @@ const DesignerControlPanel: React.FC<DesignerControlPanelProps> = ({
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      const { mockup, details, printArea: psdPrintArea } = response.data;
+      // Lấy đúng canvasSize và details từ Backend trả về
+      const { details, canvasSize: psdCanvasSize } = response.data;
 
-      if (mockup) setBackgroundUrl(mockup);
-      if (psdPrintArea) setVirtualPrintArea(psdPrintArea);
+      // Cập nhật lại kích thước tờ giấy
+      if (psdCanvasSize) {
+        setCanvasSize({
+          width: psdCanvasSize.width,
+          height: psdCanvasSize.height,
+        });
+      }
+
+      // Đổ layer vào màn hình
       if (details && details.length > 0) {
         setLayers(details);
         setSelectedId(details[details.length - 1].id);
       }
-
       alert("Bóc tách PSD thành công!");
     } catch (error) {
       console.error("PSD Error:", error);
@@ -134,13 +160,7 @@ const DesignerControlPanel: React.FC<DesignerControlPanelProps> = ({
     if (!modalConfig.target || urls.length === 0) return;
     const { type, index } = modalConfig.target;
 
-    if (type === "background") {
-      setBackgroundUrl(urls[0]);
-    } else if (
-      type === "group_option" &&
-      index !== undefined &&
-      selectedLayer
-    ) {
+    if (type === "group_option" && index !== undefined && selectedLayer) {
       const newOptions = [...(selectedLayer.options || [])];
       newOptions[index].image_url = urls[0];
       updateSelectedLayer("options", newOptions);
@@ -154,8 +174,6 @@ const DesignerControlPanel: React.FC<DesignerControlPanelProps> = ({
         ...(selectedLayer.options || []),
         ...newOptions,
       ]);
-      // if (!selectedLayer.image_url && urls.length > 0)
-      //   updateSelectedLayer("image_url", urls[0]);
       if (urls.length > 0) {
         updateSelectedLayer("image_url", urls[0]);
       }
@@ -165,12 +183,13 @@ const DesignerControlPanel: React.FC<DesignerControlPanelProps> = ({
     setModalConfig({ isOpen: false, multiple: false, target: null });
   };
 
+  // --- LƯU ARTWORK ---
   const handleSaveDesign = async () => {
     if (!artworkName) return alert("Vui lòng nhập tên thiết kế.");
+    // Cấu trúc mới: Chỉ lưu canvasSize và layers
     const layersData = {
+      canvasSize: canvasSize,
       details: layers,
-      mockup: backgroundUrl || "",
-      printArea: virtualPrintArea,
     };
     await onSave({ artworkName, layersJson: layersData });
   };
@@ -198,6 +217,7 @@ const DesignerControlPanel: React.FC<DesignerControlPanelProps> = ({
 
       <div className="flex-1 overflow-y-auto p-3 space-y-5 custom-scrollbar pb-20">
         <section className="space-y-4">
+          {/* Tên Thiết Kế */}
           <div className="space-y-1">
             <label className="text-[11px] font-bold text-gray-600 uppercase">
               Tên thiết kế
@@ -238,95 +258,59 @@ const DesignerControlPanel: React.FC<DesignerControlPanelProps> = ({
 
             <button
               onClick={() => setIsAiModalOpen(true)}
-              className="flex-1 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-[10px] font-bold uppercase rounded-sm hover:from-purple-700 hover:to-indigo-700 transition-all flex items-center justify-center gap-2 shadow-sm"
+              className="flex-1 py-2 bg-linear-to-r from-purple-600 to-indigo-600 text-white text-[10px] font-bold uppercase rounded-sm hover:from-purple-700 hover:to-indigo-700 transition-all flex items-center justify-center gap-2 shadow-sm"
             >
               <Sparkles size={14} /> AI Tool
             </button>
           </div>
 
-          <div className="space-y-1">
-            <label className="text-[11px] font-bold text-gray-600 uppercase">
-              Mockup
-            </label>
-            <div
-              onClick={onOpenBgSelect}
-              className="relative aspect-video bg-gray-100 border border-gray-300 rounded-sm flex flex-col items-center justify-center cursor-pointer hover:bg-gray-200 overflow-hidden"
-            >
-              {backgroundUrl ? (
-                <img
-                  src={`${BASE_URL}${backgroundUrl}`}
-                  className="w-full h-full object-contain"
-                  alt="mockup"
-                />
-              ) : (
-                <div className="flex flex-col items-center">
-                  <ImageIcon size={20} className="text-gray-400 mb-1" />
-                  <span className="text-[10px] text-gray-500">
-                    Click to upload
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-
+          {/* MỚI: BẢNG CHỈNH KÍCH THƯỚC CANVAS */}
           <div className="p-3 border border-gray-300 bg-white space-y-3">
             <div className="flex justify-between items-center border-b border-gray-100 pb-2">
-              <label className="text-[11px] font-bold uppercase flex items-center gap-2">
-                <Move size={12} /> Print Area
+              <label className="text-[11px] font-bold uppercase flex items-center gap-2 text-gray-700">
+                <Frame size={12} /> Canvas Size (px)
               </label>
+              {/* 👇 NÚT IMPORT MỚI ĐƯỢC THÊM VÀO ĐÂY 👇 */}
               <button
-                onClick={() =>
-                  updatePrintArea("visible", !virtualPrintArea.visible)
-                }
-                className="text-gray-500 hover:text-blue-600"
+                onClick={handleOpenImportPrintArea}
+                className="text-[10px] font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 px-2 py-1 bg-blue-50 rounded transition-colors"
+                title="Lấy kích thước từ Print Area của Sản phẩm phôi"
               >
-                {virtualPrintArea.visible ? (
-                  <Eye size={16} />
-                ) : (
-                  <EyeOff size={16} />
-                )}
+                <Download size={10} /> Get Print Area
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1">
-                <span className="text-[10px] text-gray-500">Width (px)</span>
+                <span className="text-[10px] text-gray-500 font-semibold">
+                  Width
+                </span>
                 <input
                   type="number"
-                  className="w-full p-1 border border-gray-200 text-sm font-mono"
-                  value={Math.round(virtualPrintArea.width)}
+                  className="w-full p-1.5 border border-gray-200 text-sm font-mono focus:border-blue-400 outline-none rounded-sm"
+                  value={Math.round(canvasSize.width)}
                   onChange={(e) =>
-                    updatePrintArea("width", Number(e.target.value))
+                    setCanvasSize({
+                      ...canvasSize,
+                      width: Number(e.target.value) || 0,
+                    })
                   }
                 />
               </div>
               <div className="flex flex-col gap-1">
-                <span className="text-[10px] text-gray-500">Height (px)</span>
+                <span className="text-[10px] text-gray-500 font-semibold">
+                  Height
+                </span>
                 <input
                   type="number"
-                  className="w-full p-1 border border-gray-200 text-sm font-mono"
-                  value={Math.round(virtualPrintArea.height)}
+                  className="w-full p-1.5 border border-gray-200 text-sm font-mono focus:border-blue-400 outline-none rounded-sm"
+                  value={Math.round(canvasSize.height)}
                   onChange={(e) =>
-                    updatePrintArea("height", Number(e.target.value))
+                    setCanvasSize({
+                      ...canvasSize,
+                      height: Number(e.target.value) || 0,
+                    })
                   }
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="text-[10px] text-gray-500">X Position</span>
-                <input
-                  type="number"
-                  className="w-full p-1 border border-gray-200 text-sm font-mono"
-                  value={Math.round(virtualPrintArea.x)}
-                  onChange={(e) => updatePrintArea("x", Number(e.target.value))}
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="text-[10px] text-gray-500">Y Position</span>
-                <input
-                  type="number"
-                  className="w-full p-1 border border-gray-200 text-sm font-mono"
-                  value={Math.round(virtualPrintArea.y)}
-                  onChange={(e) => updatePrintArea("y", Number(e.target.value))}
                 />
               </div>
             </div>
@@ -381,7 +365,7 @@ const DesignerControlPanel: React.FC<DesignerControlPanelProps> = ({
         >
           {isEditMode ? (
             <>
-              <RefreshCw size={16} className="inline mr-2" /> Update Design
+              <RefreshCw size={16} className="inline mr-2" /> Update Artwork
             </>
           ) : (
             <>
@@ -405,6 +389,86 @@ const DesignerControlPanel: React.FC<DesignerControlPanelProps> = ({
         onClose={() => setIsAiModalOpen(false)}
         onApply={handleApplyAiLayers}
       />
+
+      {/* MODAL IMPORT PRINT AREA */}
+      {isImportModalOpen && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-2xl w-100 max-h-[80vh] flex flex-col overflow-hidden">
+            <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+              <h3 className="font-bold text-sm text-gray-800">
+                Lấy kích thước từ Sản phẩm
+              </h3>
+              <button
+                onClick={() => setIsImportModalOpen(false)}
+                className="text-gray-400 hover:text-red-500"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-2 overflow-y-auto flex-1 custom-scrollbar">
+              {loadingProducts ? (
+                <div className="flex justify-center py-10">
+                  <RefreshCw className="animate-spin text-blue-500" size={24} />
+                </div>
+              ) : importProducts.length === 0 ? (
+                <div className="text-center py-8 text-sm text-gray-500 italic">
+                  Chưa có sản phẩm nào
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {importProducts.map((p) => {
+                    const thumb =
+                      p.images?.find((i: any) => i.isPrimary)?.url ||
+                      p.mockup?.url;
+
+                    const printArea = p.mockup?.printArea;
+                    const hasPrintArea = !!printArea;
+
+                    return (
+                      <button
+                        key={p.id}
+                        onClick={() => applyProductPrintArea(p)}
+                        className="w-full flex items-center gap-3 p-2 hover:bg-blue-50 rounded-lg transition-colors border border-transparent hover:border-blue-100 text-left group"
+                      >
+                        <div className="w-10 h-10 rounded border border-gray-200 bg-white overflow-hidden shrink-0 flex items-center justify-center">
+                          {thumb ? (
+                            <img
+                              src={`http://localhost:3000${thumb}`}
+                              className="w-full h-full object-contain"
+                              alt=""
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-gray-100" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-gray-700 truncate group-hover:text-blue-700">
+                            {p.productName}
+                          </p>
+                          {hasPrintArea ? (
+                            <p className="text-[10px] text-gray-500">
+                              Print Area:{" "}
+                              <span className="font-mono text-blue-600">
+                                {Math.round(printArea.width)} x{" "}
+                                {Math.round(printArea.height)}
+                              </span>
+                            </p>
+                          ) : (
+                            <p className="text-[10px] text-red-500 italic">
+                              Chưa cấu hình Print Area
+                            </p>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

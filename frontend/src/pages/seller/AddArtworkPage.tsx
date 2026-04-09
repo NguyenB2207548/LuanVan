@@ -3,7 +3,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import axiosClient from "../../api/axiosClient";
 import DesignerCanvas from "../../components/common/DesignerCanvas";
 import DesignerControlPanel from "../../components/seller/DesignerControlPanel";
-import AssetManagerModal from "../../components/admin/AssetManagerModal";
 import { Loader2 } from "lucide-react";
 
 const AddArtworkPage = () => {
@@ -12,31 +11,16 @@ const AddArtworkPage = () => {
 
   const [loading, setLoading] = useState(!!id);
   const [artworkName, setArtworkName] = useState("");
-  const [backgroundUrl, setBackgroundUrl] = useState("");
   const [layers, setLayers] = useState<any[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
 
   const [activeFilter, setActiveFilter] = useState("ALL");
-
-  // Thêm state này để quản lý trạng thái bóc tách PSD
   const [isExtractingPsd, setIsExtractingPsd] = useState(false);
 
-  const [virtualPrintArea, setVirtualPrintArea] = useState({
-    x: 200,
-    y: 200,
-    width: 250,
-    height: 250,
-    visible: false,
+  const [canvasSize, setCanvasSize] = useState({
+    width: 800,
+    height: 800,
   });
-
-  // Xử lý background
-  const handleAssetsSelected = (urls: string[]) => {
-    if (urls.length > 0) {
-      setBackgroundUrl(urls[0]);
-    }
-    setIsAssetModalOpen(false);
-  };
 
   const handleSaveArtwork = async (payload: any) => {
     try {
@@ -58,22 +42,19 @@ const AddArtworkPage = () => {
   return (
     <div className="flex h-screen bg-[#F3F4F6] font-sans flex-row overflow-hidden">
       <DesignerCanvas
-        backgroundUrl={backgroundUrl}
+        // Truyền canvasSize vào để vẽ khung trắng caro
+        canvasSize={canvasSize}
         layers={layers}
         setLayers={setLayers}
-        virtualPrintArea={virtualPrintArea}
-        setVirtualPrintArea={setVirtualPrintArea}
         selectedId={selectedId}
         setSelectedId={setSelectedId}
         activeFilter={activeFilter}
-        mode="artwork"
+        mode="artwork" // Mode này bên trong Canvas sẽ chỉ hiển thị nền trắng/caro
         maxWidth={650}
       />
       <DesignerControlPanel
         artworkName={artworkName}
         setArtworkName={setArtworkName}
-        backgroundUrl={backgroundUrl}
-        setBackgroundUrl={setBackgroundUrl}
         layers={layers}
         setLayers={setLayers}
         selectedId={selectedId}
@@ -83,23 +64,14 @@ const AddArtworkPage = () => {
             prev.map((l) => (l.id === selectedId ? { ...l, [f]: v } : l)),
           )
         }
-        // activeFilter="ALL"
-        // setActiveFilter={() => {}}
         onSave={handleSaveArtwork}
-        // Truyền đầy đủ props cho chức năng Import PSD
         isExtractingPsd={isExtractingPsd}
         setIsExtractingPsd={setIsExtractingPsd}
-        virtualPrintArea={virtualPrintArea}
-        setVirtualPrintArea={setVirtualPrintArea}
-        onOpenBgSelect={() => setIsAssetModalOpen(true)}
+        // Truyền state mới vào Panel
+        canvasSize={canvasSize}
+        setCanvasSize={setCanvasSize}
         activeFilter={activeFilter}
         setActiveFilter={setActiveFilter}
-      />
-      <AssetManagerModal
-        isOpen={isAssetModalOpen}
-        multiple={false}
-        onClose={() => setIsAssetModalOpen(false)}
-        onSelect={handleAssetsSelected}
       />
     </div>
   );

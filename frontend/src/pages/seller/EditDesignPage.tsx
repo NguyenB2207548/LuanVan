@@ -32,6 +32,10 @@ const EditDesignPage = () => {
   const [designName, setDesignName] = useState("");
 
   const [layers, setLayers] = useState<any[]>([]);
+  const [artworkCanvasSize, setArtworkCanvasSize] = useState({
+    width: 800,
+    height: 800,
+  });
   const [virtualPrintArea, setVirtualPrintArea] = useState({
     x: 0,
     y: 0,
@@ -71,9 +75,28 @@ const EditDesignPage = () => {
         );
 
         if (foundProduct) setSelectedProduct(foundProduct);
+        // if (foundArtwork) {
+        //   setSelectedArtwork(foundArtwork);
+        //   setLayers(foundArtwork.layersJson?.details || []);
+        // }
         if (foundArtwork) {
-          setSelectedArtwork(foundArtwork);
-          setLayers(foundArtwork.layersJson?.details || []);
+          // 1. Ép kiểu an toàn (đề phòng JSON đang là dạng chuỗi)
+          let parsedLayersJson = foundArtwork.layersJson;
+          if (typeof parsedLayersJson === "string") {
+            try {
+              parsedLayersJson = JSON.parse(parsedLayersJson);
+            } catch (e) {
+              console.error("Lỗi parse JSON");
+            }
+          }
+
+          // 2. Ép hệ thống lấy ĐÚNG canvasSize đã lưu
+          const finalCanvasSize = parsedLayersJson?.canvasSize ||
+            foundArtwork.canvasSize || { width: 800, height: 800 };
+
+          // 3. Set vào state
+          setArtworkCanvasSize(finalCanvasSize);
+          setLayers(parsedLayersJson?.details || []);
         }
 
         // Apply Print Area từ mockup của product/variant cũ
@@ -323,6 +346,7 @@ const EditDesignPage = () => {
             setVirtualPrintArea={setVirtualPrintArea}
             mode="design"
             maxWidth={650}
+            canvasSize={artworkCanvasSize}
           />
         </div>
       </div>

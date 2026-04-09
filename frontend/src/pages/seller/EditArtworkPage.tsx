@@ -3,9 +3,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import axiosClient from "../../api/axiosClient";
 import DesignerCanvas from "../../components/common/DesignerCanvas";
 import DesignerControlPanel from "../../components/seller/DesignerControlPanel";
-import AssetManagerModal from "../../components/admin/AssetManagerModal";
 import { Loader2 } from "lucide-react";
-import toast, { Toaster } from "react-hot-toast";
+import { Toaster } from "react-hot-toast";
 import { showErrorToast, showSuccessToast } from "@/components/common/toast";
 
 const EditArtworkPage = () => {
@@ -14,18 +13,16 @@ const EditArtworkPage = () => {
 
   const [loading, setLoading] = useState(true);
   const [artworkName, setArtworkName] = useState("");
-  const [backgroundUrl, setBackgroundUrl] = useState("");
   const [layers, setLayers] = useState<any[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
+
+  const [activeFilter, setActiveFilter] = useState("ALL");
   const [isExtractingPsd, setIsExtractingPsd] = useState(false);
 
-  const [virtualPrintArea, setVirtualPrintArea] = useState({
-    x: 200,
-    y: 200,
-    width: 250,
-    height: 250,
-    visible: false,
+  // MỚI: State quản lý kích thước Canvas
+  const [canvasSize, setCanvasSize] = useState({
+    width: 800,
+    height: 800,
   });
 
   // 1. Fetch dữ liệu Artwork cũ khi vào trang
@@ -36,19 +33,26 @@ const EditArtworkPage = () => {
         const res = await axiosClient.get(`designs/seller/artworks/${id}`);
         const data = res.data;
 
-        // --- CẬP NHẬT STATE KHỚP VỚI CẤU TRÚC JSON ---
         setArtworkName(data.artworkName || "");
 
-        setBackgroundUrl(data.mockupUrl || "");
-
+        // --- NẠP LẠI LAYERS ---
         if (data.layers) {
           setLayers(
             Array.isArray(data.layers) ? data.layers : JSON.parse(data.layers),
           );
         }
 
-        if (data.printArea) {
-          setVirtualPrintArea(data.printArea);
+        // --- NẠP LẠI KÍCH THƯỚC CANVAS ---
+        // Hỗ trợ tương thích ngược: Nạp từ format mới hoặc fallback về printArea cũ
+        if (data.canvasSize) {
+          setCanvasSize(data.canvasSize);
+        } else if (data.layersJson?.canvasSize) {
+          setCanvasSize(data.layersJson.canvasSize);
+        } else if (data.printArea) {
+          setCanvasSize({
+            width: data.printArea.width || 2000,
+            height: data.printArea.height || 2000,
+          });
         }
       } catch (err) {
         console.error("Lỗi khi tải Artwork:", err);
@@ -73,22 +77,12 @@ const EditArtworkPage = () => {
       setTimeout(() => navigate("/seller/artworks"), 1500);
     } catch (err) {
       console.error("Lỗi khi cập nhật:", err);
-
       showErrorToast("Lỗi khi cập nhật Artwork!");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAssetsSelected = (urls: string[]) => {
-    if (urls.length > 0) {
-      setBackgroundUrl(urls[0]);
-    }
-    setIsAssetModalOpen(false);
-  };
-
-  // Sửa lỗi Loading: Kiểm tra loading và kiểm tra ID có tồn tại không
-  // (Bỏ điều kiện !artworkName để tránh đứng màn hình loading khi dữ liệu chưa về kịp)
   if (loading && layers.length === 0)
     return (
       <div className="flex h-screen flex-col items-center justify-center bg-[#F8F9FA] gap-3">
@@ -105,23 +99,20 @@ const EditArtworkPage = () => {
 
       {/* Khu vực Canvas bên trái */}
       <DesignerCanvas
-        backgroundUrl={backgroundUrl}
+        canvasSize={canvasSize}
         layers={layers}
         setLayers={setLayers}
-        virtualPrintArea={virtualPrintArea}
-        setVirtualPrintArea={setVirtualPrintArea}
         selectedId={selectedId}
         setSelectedId={setSelectedId}
         mode="artwork"
         maxWidth={650}
+        activeFilter={activeFilter}
       />
 
       {/* Bảng điều khiển bên phải */}
       <DesignerControlPanel
         artworkName={artworkName}
         setArtworkName={setArtworkName}
-        backgroundUrl={backgroundUrl}
-        setBackgroundUrl={setBackgroundUrl}
         layers={layers}
         setLayers={setLayers}
         selectedId={selectedId}
@@ -131,22 +122,14 @@ const EditArtworkPage = () => {
             prev.map((l) => (l.id === selectedId ? { ...l, [f]: v } : l)),
           )
         }
-        activeFilter="ALL"
-        setActiveFilter={() => {}}
+        activeFilter={activeFilter}
+        setActiveFilter={setActiveFilter}
         onSave={handleUpdateArtwork}
         isExtractingPsd={isExtractingPsd}
         setIsExtractingPsd={setIsExtractingPsd}
-        virtualPrintArea={virtualPrintArea}
-        setVirtualPrintArea={setVirtualPrintArea}
-        onOpenBgSelect={() => setIsAssetModalOpen(true)}
+        canvasSize={canvasSize}
+        setCanvasSize={setCanvasSize}
         isEditMode={true}
-      />
-
-      <AssetManagerModal
-        isOpen={isAssetModalOpen}
-        multiple={false}
-        onClose={() => setIsAssetModalOpen(false)}
-        onSelect={handleAssetsSelected}
       />
     </div>
   );

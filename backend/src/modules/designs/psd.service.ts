@@ -8,11 +8,21 @@ initializeCanvas(createCanvas as any, createImageData as any);
 
 @Injectable()
 export class PsdService {
-  private readonly psdDir = path.join(process.cwd(), 'public', 'uploads', 'psd');
-  private readonly assetsDir = path.join(process.cwd(), 'public', 'uploads', 'assets');
+  private readonly psdDir = path.join(
+    process.cwd(),
+    'public',
+    'uploads',
+    'psd',
+  );
+  private readonly assetsDir = path.join(
+    process.cwd(),
+    'public',
+    'uploads',
+    'assets',
+  );
 
-  // Kích thước chuẩn của khung thiết kế trên Web (khớp với Frontend)
-  private readonly TARGET_CANVAS_WIDTH = 650;
+  // Đổi thành 800 để scale các tọa độ layer khớp với Canvas Size mới
+  private readonly TARGET_CANVAS_WIDTH = 800;
 
   constructor() {
     if (!fs.existsSync(this.assetsDir)) {
@@ -40,7 +50,9 @@ export class PsdService {
     const psdPath = path.join(this.psdDir, psdFileName);
 
     if (!fs.existsSync(psdPath)) {
-      throw new InternalServerErrorException(`Không tìm thấy file PSD: ${psdFileName}`);
+      throw new InternalServerErrorException(
+        `Không tìm thấy file PSD: ${psdFileName}`,
+      );
     }
 
     try {
@@ -48,24 +60,15 @@ export class PsdService {
       const psd = readPsd(buffer);
 
       const originalPsdWidth = psd.width;
-      console.log(originalPsdWidth)
-
       const ratio = this.TARGET_CANVAS_WIDTH / originalPsdWidth;
 
-      const printAreaScale = 0.8;
-      const pw = originalPsdWidth * printAreaScale;
-      const ph = psd.height * printAreaScale;
-
+      // Cấu trúc trả về mới: Chỉ chứa chi tiết layer và canvasSize
       const resultJson: any = {
-        mockup: "",
         details: [],
-        printArea: {
-          x: Math.round(((originalPsdWidth - pw) / 2) * ratio),
-          y: Math.round(((psd.height - ph) / 2) * ratio),
-          width: Math.round(pw * ratio),
-          height: Math.round(ph * ratio),
-          visible: true
-        }
+        canvasSize: {
+          width: 800,
+          height: 800,
+        },
       };
 
       const layers = psd.children ? [...psd.children].reverse() : [];
@@ -82,77 +85,95 @@ export class PsdService {
         const rawWidth = (layer.right || 0) - rawX;
         const rawHeight = (layer.bottom || 0) - rawY;
 
-        // --- ÁP DỤNG SCALE CHO TỪNG LAYER ---
+        // ÁP DỤNG SCALE CHO TỪNG LAYER
         const x = Math.round(rawX * ratio);
         const y = Math.round(rawY * ratio);
         const width = Math.round(rawWidth * ratio);
         const height = Math.round(rawHeight * ratio);
-        // --- XỬ LÝ MOCKUP ---
 
-        const isMockupLayer =
-          layerName === 'mockup' ||
-          layerName === 'background' ||
-          layerName.startsWith('background_') ||
-          layerName.startsWith('bg_');
-
-        if (isMockupLayer) {
-          const fullCanvas = createCanvas(psd.width, psd.height);
-          const ctx = fullCanvas.getContext('2d');
-
-          if (layer.canvas) {
-            ctx.drawImage(layer.canvas as any, layer.left || 0, layer.top || 0);
-            resultJson.mockup = await this.saveLayerAsPng(fullCanvas, 'mockup');
-          } else {
-            console.warn(`[PSD] Layer ${safeName} được đánh dấu là mockup nhưng không có dữ liệu hình ảnh.`);
-          }
-
-          continue;
-        }
-        // --- XỬ LÝ STATIC IMAGE ---
+        // --- 1. XỬ LÝ STATIC IMAGE ---
         if (layerName.startsWith('static_')) {
           const imageUrl = await this.saveLayerAsPng(layer.canvas, 'static');
           resultJson.details.push({
-            x, y, id,
+            id,
             type: 'static_image',
             label: safeName.replace('static_', ''),
-            width, height,
+            x,
+            y,
+            width,
+            height,
+            zIndex: zIndexCounter++,
+            image_url: imageUrl,
+            show_condition: '',
+          });
+          continue;
+        }
+
+        // --- 2. XỬ LÝ UPLOAD (ẢNH KHÁCH HÀNG TẢI LÊN) ---
+        if (layerName.startsWith('upload_')) {
+          const imageUrl = await this.saveLayerAsPng(layer.canvas, 'upload');
+          resultJson.details.push({
+            id,
+            type: 'upload',
+            label: safeName.replace('upload_', ''),
+            x,
+            y,
+            width,
+            height,
             zIndex: zIndexCounter++,
             image_url: imageUrl,
           });
           continue;
         }
 
-        // --- XỬ LÝ TEXT ---
-        if (layerName.startsWith('text_') && layer.text) {
+        // --- 3. XỬ LÝ TEXT VÀ DYNAMIC TEXT ---
+        if (
+          (layerName.startsWith('text_') ||
+            layerName.startsWith('dynamictext_')) &&
+          layer.text
+        ) {
           let color = '#000000';
           if (layer.text.style?.fillColor) {
             const fill = layer.text.style.fillColor as any;
-            if (fill.r !== undefined) color = this.rgbaToHex(fill.r, fill.g, fill.b);
+            if (fill.r !== undefined)
+              color = this.rgbaToHex(fill.r, fill.g, fill.b);
           }
 
+          const isDynamic = layerName.startsWith('dynamictext_');
+          const type = isDynamic ? 'dynamic_text' : 'text';
+          const labelPrefix = isDynamic ? 'dynamictext_' : 'text_';
+
           resultJson.details.push({
-            x, y, id,
-            type: 'text',
-            label: safeName.replace('text_', ''),
-            width, height,
+            id,
+            type: type,
+            label: safeName.replace(labelPrefix, ''),
+            x,
+            y,
+            width,
+            height,
             zIndex: zIndexCounter++,
             text: layer.text.text || 'Text',
-            // Font size cũng cần scale theo tỉ lệ
             fontSize: Math.round((layer.text.style?.fontSize || 24) * ratio),
             fontFamily: 'Arial',
             color: color,
+            show_condition: '',
           });
           continue;
         }
-        // --- XỬ LÝ GROUP (DYNAMIC IMAGE) ---
-        if ((layerName.startsWith('group_') || layerName === 'group') && layer.children) {
+
+        // --- 4. XỬ LÝ GROUP THÀNH DYNAMIC IMAGE ---
+        // Theo yêu cầu: PSD Group -> dynamic_image (Loại bỏ type group thuần túy)
+        if (
+          (layerName.startsWith('group_') || layerName === 'group') &&
+          layer.children
+        ) {
           const options: any[] = [];
 
-          // 1. Tìm bounding box chuẩn xác của tất cả layer con
-          let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-
-          // Lọc các layer con hợp lệ (không ẩn và có dữ liệu)
-          const validChildren = layer.children.filter(child => !child.hidden);
+          let minX = Infinity,
+            minY = Infinity,
+            maxX = -Infinity,
+            maxY = -Infinity;
+          const validChildren = layer.children.filter((child) => !child.hidden);
 
           for (const childLayer of validChildren) {
             minX = Math.min(minX, childLayer.left ?? 0);
@@ -161,14 +182,13 @@ export class PsdService {
             maxY = Math.max(maxY, childLayer.bottom ?? 0);
           }
 
-          // Nếu không có layer con hợp lệ, bỏ qua
           if (minX === Infinity) continue;
 
           for (const [index, childLayer] of validChildren.entries()) {
-            // Lưu ý: Chúng ta lưu layer con thành PNG. 
-            // Đảm bảo canvas được trích xuất đúng kích thước vùng chứa của nó.
-            const optionUrl = await this.saveLayerAsPng(childLayer.canvas, `opt_${index}`);
-
+            const optionUrl = await this.saveLayerAsPng(
+              childLayer.canvas,
+              `opt_${index}`,
+            );
             options.push({
               id: `opt_${Date.now()}_${index}`,
               name: childLayer.name || `Option ${index + 1}`,
@@ -176,17 +196,17 @@ export class PsdService {
             });
           }
 
-          // 2. Scale tọa độ Group theo tỉ lệ Canvas Web
           const groupWidth = (maxX - minX) * ratio;
           const groupHeight = (maxY - minY) * ratio;
 
           resultJson.details.push({
-            // Quan trọng: Phải dùng Math.floor hoặc Math.round đồng nhất
-            x: Math.round(minX * ratio),
-            y: Math.round(minY * ratio),
             id,
             type: 'dynamic_image',
-            label: safeName.startsWith('group_') ? safeName.replace('group_', '') : 'Choose Option',
+            label: safeName.startsWith('group_')
+              ? safeName.replace('group_', '')
+              : 'Choose Option',
+            x: Math.round(minX * ratio),
+            y: Math.round(minY * ratio),
             width: Math.round(groupWidth),
             height: Math.round(groupHeight),
             zIndex: zIndexCounter++,

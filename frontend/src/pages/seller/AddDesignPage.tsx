@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import axiosClient from "@/api/axiosClient";
 import DesignerCanvas from "../../components/common/DesignerCanvas";
 import {
@@ -27,6 +27,12 @@ const AddDesignPage = () => {
   const [selectedArtwork, setSelectedArtwork] = useState<any>(null);
 
   const [layers, setLayers] = useState<any[]>([]);
+  // 👇 THÊM STATE: Quản lý kích thước Canvas của Artwork được chọn
+  const [artworkCanvasSize, setArtworkCanvasSize] = useState({
+    width: 800,
+    height: 800,
+  });
+
   const [virtualPrintArea, setVirtualPrintArea] = useState({
     x: 0,
     y: 0,
@@ -95,15 +101,28 @@ const AddDesignPage = () => {
 
   const handleSelectVariant = (variant: any) => {
     setSelectedVariant(variant);
-    // Ưu tiên print area của variant, fallback về product
     const printArea =
-      variant.mockup?.printArea || selectedProduct?.mockup?.printArea;
+      variant?.mockup?.printArea || selectedProduct?.mockup?.printArea;
+
     applyPrintArea(printArea || null);
   };
 
   const handleSelectArtwork = (artwork: any) => {
     setSelectedArtwork(artwork);
-    setLayers(artwork.layersJson?.details || []);
+
+    let parsedLayersJson = artwork.layersJson;
+    if (typeof parsedLayersJson === "string") {
+      try {
+        parsedLayersJson = JSON.parse(parsedLayersJson);
+      } catch (e) {
+        console.error("Lỗi parse JSON");
+      }
+    }
+
+    const finalCanvasSize = parsedLayersJson?.canvasSize ||
+      artwork.canvasSize || { width: 800, height: 800 };
+    setArtworkCanvasSize(finalCanvasSize);
+    setLayers(parsedLayersJson?.details || []);
   };
 
   const handleSave = async () => {
@@ -431,6 +450,7 @@ const AddDesignPage = () => {
             backgroundUrl={activeMockup?.url || ""}
             layers={layers}
             setLayers={setLayers}
+            canvasSize={artworkCanvasSize}
             selectedId={null}
             setSelectedId={() => {}}
             isUploading={false}
@@ -443,7 +463,6 @@ const AddDesignPage = () => {
 
           {/* Empty state */}
           {(!selectedProduct || !selectedArtwork) && (
-            // Đã xóa bg-gray-100/80 và backdrop-blur-[2px]
             <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
               <div className="text-center">
                 <div className="w-14 h-14 bg-white border border-gray-200 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-sm">

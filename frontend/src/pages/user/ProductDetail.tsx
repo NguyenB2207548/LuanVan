@@ -315,6 +315,7 @@ const ProductDetail = () => {
                         return layer;
                       },
                     )}
+                    canvasSize={product.design.artwork.layersJson.canvasSize}
                     virtualPrintArea={{
                       ...(selectedVariant?.mockup?.printArea ||
                         product.design.artwork.layersJson.printArea),

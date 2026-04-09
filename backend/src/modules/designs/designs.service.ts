@@ -227,15 +227,11 @@ export class DesignService {
   }
 
   async getArtworkById(id: number, sellerId: number) {
-    // 1. Tìm Artwork và kiểm tra quyền sở hữu qua seller_id
-    // Sử dụng relations để lấy luôn thông tin Mockup và PrintArea nếu cần hiển thị trên Canvas
     const artwork = await this.artworkRepo.findOne({
       where: {
         id: id,
-        seller: { id: sellerId }, // Khớp với @JoinColumn({ name: 'seller_id' })
+        seller: { id: sellerId },
       },
-      // Nếu thiết kế của ông yêu cầu load cả Mockup/PrintArea từ bảng khác:
-      // relations: ['designs', 'designs.product', 'designs.product.mockup', 'designs.product.mockup.printArea']
     });
 
     if (!artwork) {
@@ -244,22 +240,19 @@ export class DesignService {
       );
     }
 
-    // 2. Format lại dữ liệu trả về cho Frontend
-    // Vì layersJson trong Entity Artwork của ông là kiểu 'json',
-    // TypeORM sẽ tự động parse thành Object/Array, không cần JSON.parse nữa.
-
     return {
       id: artwork.id,
       artworkName: artwork.artworkName,
-      layers: artwork.layersJson?.details || [], // Lấy mảng layers từ object chi tiết
-      mockupUrl: artwork.layersJson?.mockup || '', // URL ảnh nền mockup
-      printArea: artwork.layersJson?.printArea || {
-        x: 0,
-        y: 0,
-        width: 0,
-        height: 0,
-        visible: false,
-      },
+      layers: artwork.layersJson?.details || [],
+      canvasSize: artwork.layersJson?.canvasSize || { width: 800, height: 800 },
+      // mockupUrl: artwork.layersJson?.mockup || '',
+      // printArea: artwork.layersJson?.printArea || {
+      //   x: 0,
+      //   y: 0,
+      //   width: 0,
+      //   height: 0,
+      //   visible: false,
+      // },
       updatedAt: artwork.updatedAt,
     };
   }
