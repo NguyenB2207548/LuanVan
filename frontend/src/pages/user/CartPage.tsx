@@ -135,10 +135,12 @@ const CartPage = () => {
 
             <ul className="divide-y divide-gray-200">
               {cartItems.map((item) => {
-                // SỬA TẠI ĐÂY: Lấy giá từ item.variant.price
                 const price = item.variant?.price || 0;
-                const displayImage = getDisplayImage(item);
                 const isItemUpdating = updatingId === item.id;
+
+                // 👇 Lấy ảnh preview Base64 (nếu có), nếu không lấy ảnh mặc định của sản phẩm
+                const displayImage =
+                  item.previewDesign || getDisplayImage(item);
 
                 return (
                   <li
@@ -151,10 +153,10 @@ const CartPage = () => {
                           <img
                             src={displayImage}
                             alt="Product"
-                            className="w-full h-full object-cover object-center"
+                            className="w-full h-full object-cover object-center bg-white"
                           />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-gray-400">
+                          <div className="w-full h-full flex items-center justify-center text-gray-400 bg-white">
                             <ShoppingBag size={24} />
                           </div>
                         )}
@@ -175,15 +177,6 @@ const CartPage = () => {
                         <p className="text-sm font-semibold text-gray-900 mt-1">
                           {price.toLocaleString()}đ
                         </p>
-
-                        {item.customizedDesignJson &&
-                          Object.keys(item.customizedDesignJson).length > 0 && (
-                            <div className="mt-2 flex flex-wrap gap-1">
-                              <span className="text-[10px] bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded border border-indigo-100 font-bold uppercase italic">
-                                Có thiết kế riêng
-                              </span>
-                            </div>
-                          )}
                       </div>
                     </div>
 

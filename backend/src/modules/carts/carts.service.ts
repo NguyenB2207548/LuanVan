@@ -12,7 +12,7 @@ import { UpdateCartItemDto } from './dto/update-cart-item.dto';
 
 @Injectable()
 export class CartsService {
-  constructor(private readonly dataSource: DataSource) { }
+  constructor(private readonly dataSource: DataSource) {}
 
   // 1. Lấy giỏ hàng: Tận dụng quan hệ mới để lấy ảnh và giá cực nhanh
   async getCart(userId: number) {
@@ -59,12 +59,10 @@ export class CartsService {
     };
   }
 
-  // 2. Thêm vào giỏ hàng: Xử lý logic cá nhân hóa thiết kế AI
   async addToCart(userId: number, dto: AddToCartDto) {
-    const { variantId, quantity, customizedDesignJson } = dto;
+    const { variantId, quantity, customizedDesignJson, previewDesign } = dto;
 
     return await this.dataSource.transaction(async (manager) => {
-      // 1. Kiểm tra Variant & Stock
       const variant = await manager.findOne(Variant, {
         where: { id: variantId },
       });
@@ -75,7 +73,6 @@ export class CartsService {
         );
       }
 
-      // 2. Tìm hoặc tạo Cart
       let cart = await manager.findOne(Cart, {
         where: { user: { id: userId } },
       });
@@ -86,33 +83,42 @@ export class CartsService {
         );
       }
 
-      // 3. Logic tìm Item để gộp
-      // CHÚ Ý: Chỉ nên gộp nếu KHÔNG CÓ thiết kế cá nhân hóa (Sản phẩm bán sẵn)
-      // Nếu có thiết kế, mỗi lần thêm nên là 1 dòng mới để khách hàng dễ quản lý
+      const existingItems = await manager.find(CartItem, {
+        where: { cart: { id: cart.id }, variant: { id: variantId } },
+      });
+
       let cartItem: CartItem | null = null;
 
       if (!customizedDesignJson) {
-        cartItem = await manager.findOne(CartItem, {
-          where: {
-            cart: { id: cart.id },
-            variant: { id: variantId },
-            // customizedDesignJson: IsNull() // Sử dụng IsNull() từ TypeORM nếu muốn chính xác
-          },
-        });
+        cartItem =
+          existingItems.find((item) => !item.customizedDesignJson) || null;
+      } else {
+        cartItem =
+          existingItems.find((item) => {
+            if (!item.customizedDesignJson) return false;
+            return (
+              JSON.stringify(item.customizedDesignJson) ===
+              JSON.stringify(customizedDesignJson)
+            );
+          }) || null;
       }
 
       if (cartItem) {
-        // Kiểm tra lại tổng số lượng sau khi cộng dồn có vượt quá kho không
         if (variant.stock < cartItem.quantity + quantity) {
           throw new BadRequestException('Tổng số lượng vượt quá tồn kho');
         }
         cartItem.quantity += quantity;
+
+        if (previewDesign) {
+          cartItem.previewDesign = previewDesign;
+        }
       } else {
         cartItem = manager.create(CartItem, {
           cart,
           variant,
           quantity,
           customizedDesignJson,
+          previewDesign,
         });
       }
 
@@ -121,7 +127,6 @@ export class CartsService {
     });
   }
 
-  // 3. Cập nhật số lượng
   async updateQuantity(
     userId: number,
     cartItemId: number,

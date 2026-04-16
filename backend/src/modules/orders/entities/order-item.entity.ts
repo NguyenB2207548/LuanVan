@@ -41,4 +41,12 @@ export class OrderItem {
 
   @Column({ type: 'json', nullable: true })
   customizedDesignJson: any;
+
+  @Column({
+    name: 'preview_design',
+    type: 'longtext',
+    nullable: true,
+    default: null,
+  })
+  previewDesign: string | null;
 }

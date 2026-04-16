@@ -25,7 +25,6 @@ import OrderDetailModal from "@/modals/OrderDetailModalClient";
 
 const BASE_URL = "http://localhost:3000";
 
-// --- CẬP NHẬT INTERFACE ĐỂ HẾT LỖI ID ---
 interface OrderItem {
   id: number;
   quantity: number;
@@ -40,6 +39,7 @@ interface OrderItem {
     };
   };
   customizedDesignJson?: Record<string, string> | null;
+  previewDesign?: string | null;
 }
 
 interface SellerInfo {
@@ -231,12 +231,15 @@ const OrderHistoryPage = () => {
   };
 
   const openReview = (item: OrderItem) => {
+    const displayImg = item.previewDesign || getItemImage(item);
+
     setReviewProduct({
       id: item.variant?.product?.id,
       name: item.variant?.product?.productName,
-      image: getItemImage(item),
+      image: displayImg,
       variantName: item.variantNameSnapshot,
     });
+
     setIsReviewModalOpen(true);
   };
 
@@ -389,42 +392,50 @@ const OrderHistoryPage = () => {
 
                   <div className="px-6 py-5">
                     {/* Sản phẩm */}
-                    <div className="flex items-start gap-4 mb-5">
-                      <div className="shrink-0 w-20 h-20 rounded-lg border border-gray-100 overflow-hidden bg-gray-50">
-                        {getItemImage(firstItem) ? (
-                          <img
-                            src={getItemImage(firstItem)}
-                            alt={firstItem.variantNameSnapshot}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <Package size={24} className="text-gray-300" />
+                    {(() => {
+                      const displayImg =
+                        firstItem.previewDesign || getItemImage(firstItem);
+
+                      return (
+                        <div className="flex items-start gap-4 mb-5">
+                          {/* 👇 2. Đổi bg-gray-50 thành bg-white */}
+                          <div className="shrink-0 w-20 h-20 rounded-lg border border-gray-100 overflow-hidden bg-white">
+                            {displayImg ? (
+                              <img
+                                src={displayImg}
+                                alt={firstItem.variantNameSnapshot}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-gray-50">
+                                <Package size={24} className="text-gray-300" />
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0 pt-1">
-                        <p className="text-base font-semibold text-gray-900 line-clamp-1">
-                          {firstItem.variant?.product?.productName ||
-                            firstItem.variantNameSnapshot}
-                        </p>
-                        <p className="text-sm text-gray-500 mt-0.5 line-clamp-1">
-                          {firstItem.variantNameSnapshot}
-                        </p>
-                        <p className="text-sm text-gray-500 mt-1">
-                          x{firstItem.quantity} &nbsp;·&nbsp;
-                          {Number(firstItem.priceAtPurchase).toLocaleString(
-                            "vi-VN",
-                          )}
-                          đ/sp
-                        </p>
-                        {extraCount > 0 && (
-                          <p className="text-xs text-gray-400 mt-1">
-                            + {extraCount} sản phẩm khác
-                          </p>
-                        )}
-                      </div>
-                    </div>
+                          <div className="flex-1 min-w-0 pt-1">
+                            <p className="text-base font-semibold text-gray-900 line-clamp-1">
+                              {firstItem.variant?.product?.productName ||
+                                firstItem.variantNameSnapshot}
+                            </p>
+                            <p className="text-sm text-gray-500 mt-0.5 line-clamp-1">
+                              {firstItem.variantNameSnapshot}
+                            </p>
+                            <p className="text-sm text-gray-500 mt-1">
+                              x{firstItem.quantity} &nbsp;·&nbsp;
+                              {Number(firstItem.priceAtPurchase).toLocaleString(
+                                "vi-VN",
+                              )}
+                              đ/sp
+                            </p>
+                            {extraCount > 0 && (
+                              <p className="text-xs text-gray-400 mt-1">
+                                + {extraCount} sản phẩm khác
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })()}
 
                     {/* 4 ô thông tin */}
                     <div className="grid grid-cols-2 gap-5 py-5 border-t border-b border-gray-100 mb-5">

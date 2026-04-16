@@ -26,7 +26,7 @@ export class OrdersService {
     private readonly orderRepository: Repository<Order>,
     private readonly momoService: MomoService,
     private readonly notificationsService: NotificationsService,
-  ) { }
+  ) {}
 
   async getOrderItemWithDesign(orderItemId: number) {
     const orderItem = await this.dataSource.getRepository(OrderItem).findOne({
@@ -92,11 +92,7 @@ export class OrdersService {
         throw new BadRequestException('Giỏ hàng trống!');
       }
 
-      // --- LOGIC XỬ LÝ ĐỊA CHỈ MỚI ---
-      // Gộp địa chỉ từ các trường trong DTO thành chuỗi hoàn chỉnh
       const fullAddress = `${dto.addressDetail}, ${dto.ward}, ${dto.district}, ${dto.province}`;
-
-      // Nhóm CartItem theo Seller
       const itemsBySeller = new Map<number, CartItem[]>();
       for (const item of cart.items) {
         const sellerId = item.variant.product.seller?.id;
@@ -112,7 +108,6 @@ export class OrdersService {
       const createdOrders: Order[] = [];
       let grandTotal = 0;
 
-      // Tạo Đơn hàng cho từng Seller
       for (const [sellerId, items] of itemsBySeller) {
         let sellerOrderTotal = 0;
         const orderItems: OrderItem[] = [];
@@ -120,7 +115,6 @@ export class OrdersService {
         for (const cartItem of items) {
           const variant = cartItem.variant;
 
-          // Check & Update Stock
           if (variant.stock < cartItem.quantity) {
             throw new BadRequestException(
               `Sản phẩm "${variant.product.productName}" hết hàng.`,
@@ -132,13 +126,13 @@ export class OrdersService {
           const price = Number(variant.price);
           sellerOrderTotal += price * cartItem.quantity;
 
-          // Lưu OrderItem kèm Snapshot thông tin
           const orderItem = manager.create(OrderItem, {
             variant: { id: variant.id },
             quantity: cartItem.quantity,
             priceAtPurchase: price,
             variantNameSnapshot: `${variant.product.productName} - ${variant.sku}`,
             customizedDesignJson: cartItem.customizedDesignJson,
+            previewDesign: cartItem.previewDesign,
           });
           orderItems.push(orderItem);
         }
@@ -148,7 +142,7 @@ export class OrdersService {
           totalAmount: sellerOrderTotal,
           recipientName: dto.recipientName,
           phoneNumber: dto.phoneNumber,
-          shippingAddress: fullAddress, // Sử dụng địa chỉ đã gộp ở trên
+          shippingAddress: fullAddress,
           paymentMethod: dto.paymentMethod,
           status: 'pending',
           user: { id: userId },
@@ -161,7 +155,6 @@ export class OrdersService {
         grandTotal += sellerOrderTotal;
       }
 
-      // Dọn dẹp giỏ hàng
       await manager.delete(CartItem, { cart: { id: cart.id } });
 
       await Promise.all(
@@ -248,14 +241,12 @@ export class OrdersService {
         orderId: order.id,
       });
 
-
       return {
         message: 'Xác nhận đơn hàng thành công!',
         data: savedOrder,
       };
     });
   }
-
 
   async shipperFailOrder(orderId: number, shipperId: number, reason: string) {
     return await this.dataSource.transaction(async (manager) => {
@@ -270,12 +261,13 @@ export class OrdersService {
       });
 
       if (!order) {
-        throw new NotFoundException('Không tìm thấy đơn hàng đang giao của bạn');
+        throw new NotFoundException(
+          'Không tìm thấy đơn hàng đang giao của bạn',
+        );
       }
 
       for (const item of order.items) {
         if (item.variant) {
-
           item.variant.stock = Number(item.variant.stock) + item.quantity;
           await manager.save(Variant, item.variant);
         }
@@ -347,7 +339,6 @@ export class OrdersService {
       return await manager.save(Order, order);
     });
   }
-
 
   async getAvailableOrdersForShipper() {
     return await this.dataSource.manager.find(Order, {
@@ -453,15 +444,30 @@ export class OrdersService {
       .leftJoinAndSelect('order.items', 'items')
       .leftJoinAndSelect('items.variant', 'variant')
       .leftJoinAndSelect('variant.product', 'product')
-      .leftJoinAndSelect('variant.images', 'vImages', 'vImages.isPrimary = :isPrimary', { isPrimary: true })
-      .leftJoinAndSelect('product.images', 'pImages', 'pImages.isPrimary = :isPrimary', { isPrimary: true });
+      .leftJoinAndSelect(
+        'variant.images',
+        'vImages',
+        'vImages.isPrimary = :isPrimary',
+        { isPrimary: true },
+      )
+      .leftJoinAndSelect(
+        'product.images',
+        'pImages',
+        'pImages.isPrimary = :isPrimary',
+        { isPrimary: true },
+      );
 
     switch (role) {
       case 'user':
         query
           .where('order.user_id = :actorId', { actorId })
           .leftJoin('order.seller', 'seller')
-          .addSelect(['seller.id', 'seller.fullName', 'seller.phoneNumber', 'seller.email'])
+          .addSelect([
+            'seller.id',
+            'seller.fullName',
+            'seller.phoneNumber',
+            'seller.email',
+          ])
           .leftJoinAndSelect('seller.sellerProfile', 'sellerProfile')
           .leftJoin('order.shipper', 'shipper')
           .addSelect(['shipper.id', 'shipper.fullName', 'shipper.phoneNumber'])
@@ -501,9 +507,7 @@ export class OrdersService {
     }
 
     // Phân trang
-    query
-      .skip((page - 1) * limit)
-      .take(limit);
+    query.skip((page - 1) * limit).take(limit);
 
     const [items, total] = await query.getManyAndCount();
 
@@ -570,12 +574,24 @@ export class OrdersService {
       .leftJoinAndSelect('order.items', 'items')
       .leftJoinAndSelect('items.variant', 'variant')
       .leftJoinAndSelect('variant.product', 'product')
-      .leftJoinAndSelect('variant.images', 'vImages', 'vImages.isPrimary = :isPrimary', { isPrimary: true })
-      .leftJoinAndSelect('product.images', 'pImages', 'pImages.isPrimary = :isPrimary', { isPrimary: true })
+      .leftJoinAndSelect(
+        'variant.images',
+        'vImages',
+        'vImages.isPrimary = :isPrimary',
+        { isPrimary: true },
+      )
+      .leftJoinAndSelect(
+        'product.images',
+        'pImages',
+        'pImages.isPrimary = :isPrimary',
+        { isPrimary: true },
+      )
       .leftJoinAndSelect('order.seller', 'seller')
       .where('order.shipper_id = :shipperId', { shipperId })
       // Chỉ lấy đơn đã kết thúc (thành công hoặc thất bại)
-      .andWhere('order.status IN (:...statuses)', { statuses: ['success', 'failed'] })
+      .andWhere('order.status IN (:...statuses)', {
+        statuses: ['success', 'failed'],
+      })
       .orderBy('order.updatedAt', 'DESC')
       .skip((page - 1) * limit)
       .take(limit);
@@ -626,17 +642,23 @@ export class OrdersService {
       totalCompleted,
       totalFailed: Number(raw.totalFailed) || 0,
       // Tỷ lệ giao thành công (%), null nếu chưa có đơn nào
-      successRate: totalDone > 0
-        ? Math.round((totalCompleted / totalDone) * 100 * 10) / 10
-        : null,
+      successRate:
+        totalDone > 0
+          ? Math.round((totalCompleted / totalDone) * 100 * 10) / 10
+          : null,
     };
   }
 
-  async getSellerCustomers(sellerId: number, page: number = 1, limit: number = 10) {
+  async getSellerCustomers(
+    sellerId: number,
+    page: number = 1,
+    limit: number = 10,
+  ) {
     const skip = (page - 1) * limit;
 
     // Query lấy danh sách khách hàng và thống kê con số của họ tại Shop
-    const query = this.orderRepository.createQueryBuilder('order')
+    const query = this.orderRepository
+      .createQueryBuilder('order')
       .innerJoin('order.user', 'customer')
       .select([
         'customer.id AS id',
@@ -645,7 +667,7 @@ export class OrdersService {
         'customer.phoneNumber AS phoneNumber',
         'COUNT(order.id) AS totalOrders',
         'SUM(order.totalAmount) AS totalSpent',
-        'MAX(order.createdAt) AS lastOrderDate'
+        'MAX(order.createdAt) AS lastOrderDate',
       ])
       .where('order.seller_id = :sellerId', { sellerId })
       .groupBy('customer.id')
@@ -656,33 +678,36 @@ export class OrdersService {
     const customers = await query.getRawMany();
 
     // Đếm tổng số khách duy nhất để phân trang
-    const totalRaw = await this.orderRepository.createQueryBuilder('order')
+    const totalRaw = await this.orderRepository
+      .createQueryBuilder('order')
       .select('COUNT(DISTINCT(order.user))', 'count')
       .where('order.seller_id = :sellerId', { sellerId })
       .getRawOne();
 
     return {
-      data: customers.map(c => ({
+      data: customers.map((c) => ({
         ...c,
         totalSpent: parseFloat(c.totalSpent),
-        totalOrders: parseInt(c.totalOrders)
+        totalOrders: parseInt(c.totalOrders),
       })),
-      total: parseInt(totalRaw.count)
+      total: parseInt(totalRaw.count),
     };
   }
 
   async getSellerCustomerStats(sellerId: number) {
-    const rawStats = await this.orderRepository.createQueryBuilder('order')
+    const rawStats = await this.orderRepository
+      .createQueryBuilder('order')
       .select([
         'COUNT(DISTINCT(order.user)) AS totalCustomers',
-        'SUM(order.totalAmount) AS totalRevenue'
+        'SUM(order.totalAmount) AS totalRevenue',
       ])
       .where('order.seller_id = :sellerId', { sellerId })
       .andWhere('order.status = :status', { status: 'success' })
       .getRawOne();
 
     // Đếm khách hàng quay lại (mua > 1 đơn)
-    const returningRaw = await this.orderRepository.createQueryBuilder('order')
+    const returningRaw = await this.orderRepository
+      .createQueryBuilder('order')
       .select('order.user')
       .where('order.seller_id = :sellerId', { sellerId })
       .groupBy('order.user')
@@ -692,16 +717,24 @@ export class OrdersService {
     return {
       totalCustomers: parseInt(rawStats.totalCustomers || 0),
       returningCustomers: returningRaw.length,
-      avgCustomerValue: rawStats.totalCustomers > 0
-        ? parseFloat(rawStats.totalRevenue) / parseInt(rawStats.totalCustomers)
-        : 0
+      avgCustomerValue:
+        rawStats.totalCustomers > 0
+          ? parseFloat(rawStats.totalRevenue) /
+            parseInt(rawStats.totalCustomers)
+          : 0,
     };
   }
 
   // ADMIN
-  async findAllOrdersAdmin(page: number, limit: number, status?: string, search?: string) {
+  async findAllOrdersAdmin(
+    page: number,
+    limit: number,
+    status?: string,
+    search?: string,
+  ) {
     const skip = (page - 1) * limit;
-    const query = this.orderRepository.createQueryBuilder('order')
+    const query = this.orderRepository
+      .createQueryBuilder('order')
       .leftJoin('order.user', 'customer') // Sử dụng Join thay vì JoinAndSelect để tùy biến select
       .leftJoin('order.seller', 'seller')
       .leftJoin('order.shipper', 'shipper')
@@ -715,9 +748,9 @@ export class OrdersService {
         'order.createdAt',
         'customer.fullName', // Lấy từ alias customer
         'customer.email',
-        'seller.fullName',   // Lấy từ alias seller
+        'seller.fullName', // Lấy từ alias seller
         'seller.email',
-        'shipper.fullName',  // Lấy từ alias shipper
+        'shipper.fullName', // Lấy từ alias shipper
       ]);
 
     // Các logic andWhere giữ nguyên...
@@ -728,7 +761,7 @@ export class OrdersService {
     if (search) {
       query.andWhere(
         '(order.orderNumber LIKE :search OR customer.fullName LIKE :search OR seller.fullName LIKE :search)',
-        { search: `%${search}%` }
+        { search: `%${search}%` },
       );
     }
 
@@ -739,7 +772,7 @@ export class OrdersService {
       .getManyAndCount();
 
     // Mapping lại dữ liệu vì QueryBuilder khi dùng .select cụ thể đôi khi map customer vào trường 'user'
-    const mappedData = items.map(item => ({
+    const mappedData = items.map((item) => ({
       ...item,
       customer: (item as any).user || (item as any).customer, // Đảm bảo luôn có object customer
     }));
@@ -761,7 +794,14 @@ export class OrdersService {
     }
 
     // Danh sách status hợp lệ (ông có thể import từ Entity nếu dùng Enum)
-    const validStatuses = ['pending', 'confirmed', 'shipped', 'success', 'failed', 'cancelled'];
+    const validStatuses = [
+      'pending',
+      'confirmed',
+      'shipped',
+      'success',
+      'failed',
+      'cancelled',
+    ];
     if (!validStatuses.includes(status)) {
       throw new BadRequestException('Trạng thái không hợp lệ');
     }
@@ -776,40 +816,47 @@ export class OrdersService {
 
     return {
       message: `Admin đã cập nhật trạng thái đơn hàng #${id} thành ${status.toUpperCase()}`,
-      data: order
+      data: order,
     };
   }
 
   async getAdminGlobalStats() {
     const [statusStats, revenueData, generalCount] = await Promise.all([
       // 1. Đếm đơn hàng theo từng trạng thái trên toàn sàn
-      this.orderRepository.createQueryBuilder('order')
+      this.orderRepository
+        .createQueryBuilder('order')
         .select('order.status', 'status')
         .addSelect('COUNT(order.id)', 'count')
         .groupBy('order.status')
         .getRawMany(),
 
       // 2. Tổng doanh thu từ các đơn thành công toàn hệ thống
-      this.orderRepository.createQueryBuilder('order')
+      this.orderRepository
+        .createQueryBuilder('order')
         .select('SUM(order.totalAmount)', 'totalRevenue')
         .where('order.status = :status', { status: 'success' })
         .getRawOne(),
 
       // 3. Tổng số khách hàng đã từng đặt hàng
-      this.orderRepository.createQueryBuilder('order')
+      this.orderRepository
+        .createQueryBuilder('order')
         .select('COUNT(DISTINCT(order.user))', 'customerCount')
-        .getRawOne()
+        .getRawOne(),
     ]);
 
     const stats = {
-      pending: 0, confirmed: 0, shipping: 0, success: 0,
-      failed: 0, cancelled: 0,
+      pending: 0,
+      confirmed: 0,
+      shipping: 0,
+      success: 0,
+      failed: 0,
+      cancelled: 0,
       totalOrders: 0,
       totalRevenue: parseFloat(revenueData?.totalRevenue || 0),
-      totalCustomers: parseInt(generalCount?.customerCount || 0)
+      totalCustomers: parseInt(generalCount?.customerCount || 0),
     };
 
-    statusStats.forEach(item => {
+    statusStats.forEach((item) => {
       const count = parseInt(item.count);
       stats[item.status] = count;
       stats.totalOrders += count;
@@ -821,7 +868,11 @@ export class OrdersService {
   // NOTIFICATION FUNCTION
   // --- Khi USER đặt hàng → thông báo đến từng SELLER ---
   // Thêm vào cuối method createOrderFromCart()
-  async notifyOrderPlaced(orderNumber: string, sellerIds: number[], orderId: number) {
+  async notifyOrderPlaced(
+    orderNumber: string,
+    sellerIds: number[],
+    orderId: number,
+  ) {
     await this.notificationsService.createMany(
       sellerIds.map((sellerId) => ({
         recipientId: sellerId,
@@ -835,7 +886,11 @@ export class OrdersService {
 
   // --- Khi SELLER xác nhận đơn → thông báo đến USER ---
   // Thêm vào cuối method sellerConfirmOrder()
-  async notifyOrderConfirmed(orderNumber: string, userId: number, orderId: number) {
+  async notifyOrderConfirmed(
+    orderNumber: string,
+    userId: number,
+    orderId: number,
+  ) {
     await this.notificationsService.create({
       recipientId: userId,
       type: NotificationType.ORDER_CONFIRMED,
@@ -847,7 +902,11 @@ export class OrdersService {
 
   // --- Khi USER/SELLER hủy đơn → thông báo đến bên còn lại ---
   // Thêm vào cuối method cancelOrder()
-  async notifyCancelledByUser(orderNumber: string, sellerId: number, orderId: number) {
+  async notifyCancelledByUser(
+    orderNumber: string,
+    sellerId: number,
+    orderId: number,
+  ) {
     await this.notificationsService.create({
       recipientId: sellerId,
       type: NotificationType.ORDER_CANCELLED_BY_USER,
@@ -857,7 +916,11 @@ export class OrdersService {
     });
   }
 
-  async notifyCancelledBySeller(orderNumber: string, userId: number, orderId: number) {
+  async notifyCancelledBySeller(
+    orderNumber: string,
+    userId: number,
+    orderId: number,
+  ) {
     await this.notificationsService.create({
       recipientId: userId,
       type: NotificationType.ORDER_CANCELLED_BY_SELLER,
@@ -869,7 +932,12 @@ export class OrdersService {
 
   // --- Khi SHIPPER nhận đơn → thông báo đến SELLER ---
   // Thêm vào cuối method shipperPickUpOrder()
-  async notifyShipperPickedUp(orderNumber: string, shipperName: string, sellerId: number, orderId: number) {
+  async notifyShipperPickedUp(
+    orderNumber: string,
+    shipperName: string,
+    sellerId: number,
+    orderId: number,
+  ) {
     await this.notificationsService.create({
       recipientId: sellerId,
       type: NotificationType.SHIPPER_PICKED_UP,
@@ -881,7 +949,12 @@ export class OrdersService {
 
   // --- Khi SHIPPER giao thành công → thông báo đến SELLER + USER ---
   // Thêm vào cuối method shipperCompleteOrder()
-  async notifyOrderDelivered(orderNumber: string, sellerId: number, userId: number, orderId: number) {
+  async notifyOrderDelivered(
+    orderNumber: string,
+    sellerId: number,
+    userId: number,
+    orderId: number,
+  ) {
     await this.notificationsService.createMany([
       {
         recipientId: sellerId,
@@ -902,7 +975,12 @@ export class OrdersService {
 
   // --- Khi SHIPPER giao thất bại → thông báo đến SELLER + USER ---
   // Thêm vào cuối method shipperFailOrder()
-  async notifyOrderFailed(orderNumber: string, sellerId: number, userId: number, orderId: number) {
+  async notifyOrderFailed(
+    orderNumber: string,
+    sellerId: number,
+    userId: number,
+    orderId: number,
+  ) {
     await this.notificationsService.createMany([
       {
         recipientId: sellerId,

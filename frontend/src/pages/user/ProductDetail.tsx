@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import axiosClient from "../../api/axiosClient";
 import { Loader2, Star, MessageSquare, Check } from "lucide-react"; // Thêm Star, MessageSquare
@@ -14,6 +14,8 @@ const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+
+  const canvasStageRef = useRef<any>(null);
 
   const [product, setProduct] = useState<any>(null);
   const [selectedVariant, setSelectedVariant] = useState<any>(null);
@@ -94,11 +96,28 @@ const ProductDetail = () => {
 
     setIsAddingToCart(true);
     try {
+      // ==========================================
+      // 1. LOGIC CHỤP ẢNH MÀN HÌNH CANVAS (BASE64)
+      // ==========================================
+      let previewBase64 = null;
+
+      // Nếu khách đang xem Preview và Canvas đã render xong thì chụp ảnh
+      if (showPreview && canvasStageRef.current) {
+        previewBase64 = canvasStageRef.current.toDataURL({
+          pixelRatio: 2, // Tăng độ phân giải để ảnh lưu nét hơn
+          mimeType: "image/png",
+        });
+      }
+
+      // ==========================================
+      // 2. TẠO PAYLOAD ĐÚNG VỚI ENTITY BACKEND
+      // ==========================================
       const payload = {
         variantId: selectedVariant.id,
         quantity: quantity,
         customizedDesignJson:
           Object.keys(designChoices).length > 0 ? designChoices : null,
+        previewDesign: previewBase64, // Truyền thẳng chuỗi Base64 vào trường mới này
       };
 
       await axiosClient.post("/carts", payload);
@@ -269,10 +288,11 @@ const ProductDetail = () => {
               )}
               {showPreview && product.design?.artwork?.layersJson && (
                 <div className="absolute inset-0 flex items-center justify-center bg-white z-10">
-                  <div className="absolute top-3 left-3 bg-white/90 border border-red-200 px-2 py-1 text-[10px] text-red-500 font-bold uppercase z-20 rounded shadow-sm">
+                  {/* <div className="absolute top-3 left-3 bg-white/90 border border-red-200 px-2 py-1 text-[10px] text-red-500 font-bold uppercase z-20 rounded shadow-sm">
                     Personalized Preview
-                  </div>
+                  </div> */}
                   <DesignerCanvas
+                    stageRef={canvasStageRef}
                     backgroundUrl={
                       selectedVariant?.mockup?.url || product.mockup?.url || ""
                     }

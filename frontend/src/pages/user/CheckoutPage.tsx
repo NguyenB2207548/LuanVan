@@ -74,7 +74,12 @@ const CheckoutPage = () => {
     e.preventDefault();
 
     // Validate địa chỉ đơn giản
-    if (!formData.province || !formData.district || !formData.ward || !formData.addressDetail) {
+    if (
+      !formData.province ||
+      !formData.district ||
+      !formData.ward ||
+      !formData.addressDetail
+    ) {
       alert("Vui lòng nhập đầy đủ thông tin địa chỉ giao hàng.");
       return;
     }
@@ -85,7 +90,10 @@ const CheckoutPage = () => {
       const response = await axiosClient.post("/orders/checkout", formData);
       const { orders, payUrl } = response.data;
 
-      if (formData.paymentMethod === "MOMO" || formData.paymentMethod === "VNPAY") {
+      if (
+        formData.paymentMethod === "MOMO" ||
+        formData.paymentMethod === "VNPAY"
+      ) {
         if (payUrl) {
           window.location.href = payUrl;
         } else {
@@ -97,7 +105,9 @@ const CheckoutPage = () => {
         navigate(`/order-success?orderId=${firstOrderId}`);
       }
     } catch (error: any) {
-      alert(error.response?.data?.message || "Lỗi khi đặt hàng, vui lòng thử lại!");
+      alert(
+        error.response?.data?.message || "Lỗi khi đặt hàng, vui lòng thử lại!",
+      );
       setIsSubmitting(false);
     }
   };
@@ -121,7 +131,9 @@ const CheckoutPage = () => {
     <div className="min-h-screen bg-gray-50 font-sans pb-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-4">
         <nav className="flex text-sm text-gray-500 items-center gap-2">
-          <Link to="/cart" className="hover:text-blue-600 transition-colors">Giỏ hàng</Link>
+          <Link to="/cart" className="hover:text-blue-600 transition-colors">
+            Giỏ hàng
+          </Link>
           <ChevronRight size={14} />
           <span className="text-gray-900 font-medium">Thanh toán</span>
         </nav>
@@ -129,7 +141,11 @@ const CheckoutPage = () => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-2 flex flex-col lg:flex-row gap-10">
         <div className="lg:w-3/5 xl:w-2/3">
-          <form id="checkout-form" onSubmit={handlePlaceOrder} className="space-y-8">
+          <form
+            id="checkout-form"
+            onSubmit={handlePlaceOrder}
+            className="space-y-8"
+          >
             <div className="bg-white p-6 sm:p-8 rounded-lg border border-gray-200 shadow-sm">
               <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
                 <MapPin className="text-blue-600" size={24} />
@@ -138,7 +154,9 @@ const CheckoutPage = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div className="sm:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Họ và tên người nhận</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Họ và tên người nhận
+                  </label>
                   <input
                     type="text"
                     name="recipientName"
@@ -150,7 +168,9 @@ const CheckoutPage = () => {
                 </div>
 
                 <div className="sm:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Số điện thoại</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Số điện thoại
+                  </label>
                   <input
                     type="tel"
                     name="phoneNumber"
@@ -175,26 +195,58 @@ const CheckoutPage = () => {
               </h2>
 
               <div className="space-y-4">
-                <label className={`flex items-start p-4 border rounded-lg cursor-pointer transition-all ${formData.paymentMethod === "COD" ? "border-blue-600 bg-blue-50/50 ring-1 ring-blue-600" : "border-gray-200 hover:border-gray-300"}`}>
+                <label
+                  className={`flex items-start p-4 border rounded-lg cursor-pointer transition-all ${formData.paymentMethod === "COD" ? "border-blue-600 bg-blue-50/50 ring-1 ring-blue-600" : "border-gray-200 hover:border-gray-300"}`}
+                >
                   <div className="flex items-center h-5">
-                    <input type="radio" name="paymentMethod" value="COD" checked={formData.paymentMethod === "COD"} onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })} className="w-4 h-4 text-blue-600" />
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      value="COD"
+                      checked={formData.paymentMethod === "COD"}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          paymentMethod: e.target.value,
+                        })
+                      }
+                      className="w-4 h-4 text-blue-600"
+                    />
                   </div>
                   <div className="ml-3 flex-1">
                     <div className="flex items-center gap-2">
                       <Banknote size={20} className="text-gray-600" />
-                      <span className="block text-sm font-medium text-gray-900">Thanh toán khi nhận hàng (COD)</span>
+                      <span className="block text-sm font-medium text-gray-900">
+                        Thanh toán khi nhận hàng (COD)
+                      </span>
                     </div>
                   </div>
                 </label>
 
-                <label className={`flex items-start p-4 border rounded-lg cursor-pointer transition-all ${formData.paymentMethod === "VNPAY" ? "border-blue-600 bg-blue-50/50 ring-1 ring-blue-600" : "border-gray-200 hover:border-gray-300"}`}>
+                <label
+                  className={`flex items-start p-4 border rounded-lg cursor-pointer transition-all ${formData.paymentMethod === "VNPAY" ? "border-blue-600 bg-blue-50/50 ring-1 ring-blue-600" : "border-gray-200 hover:border-gray-300"}`}
+                >
                   <div className="flex items-center h-5">
-                    <input type="radio" name="paymentMethod" value="VNPAY" checked={formData.paymentMethod === "VNPAY"} onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })} className="w-4 h-4 text-blue-600" />
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      value="VNPAY"
+                      checked={formData.paymentMethod === "VNPAY"}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          paymentMethod: e.target.value,
+                        })
+                      }
+                      className="w-4 h-4 text-blue-600"
+                    />
                   </div>
                   <div className="ml-3 flex-1">
                     <div className="flex items-center gap-2">
                       <CreditCard size={20} className="text-gray-600" />
-                      <span className="block text-sm font-medium text-gray-900">Thanh toán online bằng Momo</span>
+                      <span className="block text-sm font-medium text-gray-900">
+                        Thanh toán online bằng Momo
+                      </span>
                     </div>
                   </div>
                 </label>
@@ -205,28 +257,49 @@ const CheckoutPage = () => {
 
         <div className="lg:w-2/5 xl:w-1/3 mt-8 lg:mt-0">
           <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 sticky top-24">
-            <h2 className="text-lg font-bold text-gray-900 mb-6 pb-4 border-b border-gray-100">Đơn hàng của bạn</h2>
+            <h2 className="text-lg font-bold text-gray-900 mb-6 pb-4 border-b border-gray-100">
+              Đơn hàng của bạn
+            </h2>
             <div className="space-y-4 mb-6 max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar">
-              {cartItems.map((item) => (
-                <div key={item.id} className="flex gap-4">
-                  <div className="w-16 h-16 rounded border border-gray-100 overflow-hidden shrink-0">
-                    <img src={getDisplayImage(item)} className="w-full h-full object-cover" alt="" />
+              {cartItems.map((item) => {
+                // 👇 Ưu tiên lấy ảnh thiết kế (Base64) trước, nếu không có mới lấy ảnh gốc
+                const displayImg = item.previewDesign || getDisplayImage(item);
+
+                return (
+                  <div key={item.id} className="flex gap-4">
+                    {/* 👇 Thêm bg-white để ảnh PNG trong suốt hiển thị đẹp hơn */}
+                    <div className="w-16 h-16 rounded border border-gray-100 overflow-hidden shrink-0 bg-white">
+                      <img
+                        src={displayImg}
+                        className="w-full h-full object-cover object-center"
+                        alt="Product"
+                      />
+                    </div>
+                    <div className="flex-1 flex flex-col justify-center text-sm">
+                      <p className="font-medium text-gray-900 line-clamp-2">
+                        {item.variant?.product?.productName}
+                      </p>
+                      <p className="text-[11px] text-gray-400 uppercase font-semibold">
+                        {item.variant?.attributeValues
+                          ?.map((v: any) => v.valueName)
+                          .join(" / ")}
+                      </p>
+                      <p className="text-gray-500 mt-1">
+                        {(item.variant?.price || 0).toLocaleString()}đ x{" "}
+                        {item.quantity}
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex-1 flex flex-col justify-center text-sm">
-                    <p className="font-medium text-gray-900 line-clamp-2">{item.variant?.product?.productName}</p>
-                    <p className="text-[11px] text-gray-400 uppercase font-semibold">
-                      {item.variant?.attributeValues?.map((v: any) => v.valueName).join(" / ")}
-                    </p>
-                    <p className="text-gray-500 mt-1">{(item.variant?.price || 0).toLocaleString()}đ x {item.quantity}</p>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             <div className="space-y-3 text-sm text-gray-600 mb-6 border-t border-gray-100 pt-4">
               <div className="flex justify-between">
                 <span>Tạm tính</span>
-                <span className="font-medium text-gray-900">{subtotal.toLocaleString()}đ</span>
+                <span className="font-medium text-gray-900">
+                  {subtotal.toLocaleString()}đ
+                </span>
               </div>
               <div className="flex justify-between">
                 <span>Phí vận chuyển</span>
@@ -235,8 +308,12 @@ const CheckoutPage = () => {
             </div>
 
             <div className="border-t border-gray-200 pt-4 mb-6 flex justify-between items-center">
-              <span className="text-base font-bold text-gray-900">Tổng thanh toán</span>
-              <span className="text-2xl font-bold text-blue-600">{subtotal.toLocaleString()}đ</span>
+              <span className="text-base font-bold text-gray-900">
+                Tổng thanh toán
+              </span>
+              <span className="text-2xl font-bold text-blue-600">
+                {subtotal.toLocaleString()}đ
+              </span>
             </div>
 
             <button
@@ -245,7 +322,13 @@ const CheckoutPage = () => {
               disabled={isSubmitting}
               className="w-full bg-blue-600 text-white py-4 rounded-md font-bold hover:bg-blue-700 transition-colors flex justify-center items-center gap-2 disabled:opacity-70"
             >
-              {isSubmitting ? <Loader2 className="animate-spin" size={20} /> : <>Đặt hàng ngay <ShieldCheck size={20} /></>}
+              {isSubmitting ? (
+                <Loader2 className="animate-spin" size={20} />
+              ) : (
+                <>
+                  Đặt hàng ngay <ShieldCheck size={20} />
+                </>
+              )}
             </button>
           </div>
         </div>

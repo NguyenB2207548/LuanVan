@@ -10,4 +10,7 @@ export class AddToCartDto {
 
   @IsOptional()
   customizedDesignJson?: any;
+
+  @IsOptional()
+  previewDesign?: any;
 }

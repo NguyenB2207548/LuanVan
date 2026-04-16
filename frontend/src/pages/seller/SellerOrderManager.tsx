@@ -28,6 +28,7 @@ interface OrderItem {
   priceAtPurchase: number;
   variantNameSnapshot: string;
   customizedDesignJson: Record<string, string> | null;
+  previewDesign: string | null;
   variant: {
     id: number;
     sku: string;
@@ -403,7 +404,15 @@ const SellerOrderManager = () => {
                 </tr>
               ) : (
                 filtered.map((order) => {
-                  const img = getFirstItemImage(order);
+                  // 👇 LẤY ẢNH ĐẠI DIỆN CHO ĐƠN HÀNG
+                  const firstItem = order.items?.[0];
+                  const fallbackImg = getFirstItemImage(order);
+
+                  // Ưu tiên ảnh Base64 của sản phẩm đầu tiên, nếu không có thì lấy ảnh gốc (kèm BASE_URL)
+                  const displayImg =
+                    firstItem?.previewDesign ||
+                    (fallbackImg ? `${BASE_URL}${fallbackImg}` : null);
+
                   const totalItems = order.items.reduce(
                     (s, i) => s + i.quantity,
                     0,
@@ -438,23 +447,24 @@ const SellerOrderManager = () => {
 
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-2.5">
-                          <div className="w-9 h-9 rounded-lg border border-gray-100 bg-gray-50 overflow-hidden shrink-0">
-                            {img ? (
+                          {/* 👇 Đổi bg-gray-50 thành bg-white để ảnh nền trong suốt đẹp hơn */}
+                          <div className="w-9 h-9 rounded-lg border border-gray-100 bg-white overflow-hidden shrink-0">
+                            {displayImg ? (
                               <img
-                                src={`${BASE_URL}${img}`}
+                                src={displayImg}
                                 className="w-full h-full object-cover"
                                 alt=""
                               />
                             ) : (
-                              <div className="w-full h-full flex items-center justify-center">
+                              <div className="w-full h-full flex items-center justify-center bg-gray-50">
                                 <Package size={14} className="text-gray-300" />
                               </div>
                             )}
                           </div>
                           <div className="min-w-0">
                             <p className="text-sm text-gray-800 truncate max-w-[180px]">
-                              {order.items[0]?.variant?.product?.productName ||
-                                order.items[0]?.variantNameSnapshot ||
+                              {firstItem?.variant?.product?.productName ||
+                                firstItem?.variantNameSnapshot ||
                                 "—"}
                             </p>
                             {totalItems > 1 && (

@@ -18,6 +18,14 @@ export class CartItem {
   @Column({ type: 'json', nullable: true, default: null })
   customizedDesignJson: any;
 
+  @Column({
+    name: 'preview_design',
+    type: 'longtext',
+    nullable: true,
+    default: null,
+  })
+  previewDesign: string | null;
+
   @ManyToOne(() => Cart, (cart) => cart.items, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'cart_id' })
   cart: Cart;

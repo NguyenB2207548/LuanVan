@@ -17,7 +17,7 @@ export class CreateOrderDto {
   @IsNotEmpty({ message: 'Vui lòng chọn phương thức thanh toán' })
   paymentMethod: string;
 
-  // --- CÁC TRƯỜNG ĐỊA CHỈ CẤU TRÚC MỚI ---
+  // ---  ĐỊA CHỈ ---
   @IsString()
   @IsNotEmpty({ message: 'Vui lòng chọn Tỉnh/Thành phố' })
   province: string;

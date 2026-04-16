@@ -37,6 +37,7 @@ interface DesignerCanvasProps {
   isUploading?: boolean;
   activeFilter?: string;
   scale?: number;
+  stageRef?: React.RefObject<any>;
 }
 
 const DesignerCanvas: React.FC<DesignerCanvasProps> = ({
@@ -55,6 +56,7 @@ const DesignerCanvas: React.FC<DesignerCanvasProps> = ({
   isUploading = false,
   activeFilter = "ALL",
   scale = 1,
+  stageRef,
 }) => {
   const [bgImg] = useImage(
     backgroundUrl
@@ -169,6 +171,7 @@ const DesignerCanvas: React.FC<DesignerCanvasProps> = ({
         }}
       >
         <Stage
+          ref={stageRef}
           width={stageWidth}
           height={stageHeight}
           onPointerDown={(e) => {
@@ -352,7 +355,6 @@ const DesignerCanvas: React.FC<DesignerCanvasProps> = ({
             )}
 
             {/* --- LỚP 3: VIRTUAL PRINT AREA --- */}
-            {/* 👇 ĐÃ SỬA LẠI ĐỂ FIX LỖI TYPESCRIPT 👇 */}
             {!isArtworkMode && safePrintArea.visible && mode !== "client" && (
               <Rect
                 ref={printAreaRef}

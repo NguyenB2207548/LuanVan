@@ -365,7 +365,7 @@ const DesignerControlPanel: React.FC<DesignerControlPanelProps> = ({
         >
           {isEditMode ? (
             <>
-              <RefreshCw size={16} className="inline mr-2" /> Update Artwork
+              <RefreshCw size={16} className="inline mr-2" /> Cập nhật thiết kế
             </>
           ) : (
             <>

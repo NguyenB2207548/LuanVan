@@ -126,12 +126,8 @@ export class PsdService {
           continue;
         }
 
-        // --- 3. XỬ LÝ TEXT VÀ DYNAMIC TEXT ---
-        if (
-          (layerName.startsWith('text_') ||
-            layerName.startsWith('dynamictext_')) &&
-          layer.text
-        ) {
+        // --- 3. XỬ LÝ TEXT (Đã loại bỏ dynamictext) ---
+        if (layerName.startsWith('text_') && layer.text) {
           let color = '#000000';
           if (layer.text.style?.fillColor) {
             const fill = layer.text.style.fillColor as any;
@@ -139,14 +135,10 @@ export class PsdService {
               color = this.rgbaToHex(fill.r, fill.g, fill.b);
           }
 
-          const isDynamic = layerName.startsWith('dynamictext_');
-          const type = isDynamic ? 'dynamic_text' : 'text';
-          const labelPrefix = isDynamic ? 'dynamictext_' : 'text_';
-
           resultJson.details.push({
             id,
-            type: type,
-            label: safeName.replace(labelPrefix, ''),
+            type: 'text',
+            label: safeName.replace('text_', ''),
             x,
             y,
             width,
@@ -162,7 +154,6 @@ export class PsdService {
         }
 
         // --- 4. XỬ LÝ GROUP THÀNH DYNAMIC IMAGE ---
-        // Theo yêu cầu: PSD Group -> dynamic_image (Loại bỏ type group thuần túy)
         if (
           (layerName.startsWith('group_') || layerName === 'group') &&
           layer.children
