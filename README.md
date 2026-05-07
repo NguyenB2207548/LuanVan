@@ -53,9 +53,6 @@ CREATE DATABASE giftshop;
 
 ```bash
 npm run start:dev
-
-Server chạy tại: `http://localhost:3000`
-
 ```
 
 ## Cài đặt Frontend (ReactJS)
@@ -77,6 +74,5 @@ npm install
 
 ```bash
 npm run dev
-
-Ứng dụng chạy tại: `http://localhost:5173`
+```
 
