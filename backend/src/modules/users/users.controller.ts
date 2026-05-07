@@ -11,6 +11,7 @@ import {
   HttpStatus,
   Request,
   NotFoundException,
+  Query,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -26,7 +27,14 @@ import { UpdateShipperProfileDto } from './dto/update-shipper-profile.dto';
 
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) { }
+  constructor(private readonly usersService: UsersService) {}
+
+  @Get('admin/recent')
+  @Roles(UserRole.ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  async getRecentUsers(@Query('limit') limit?: string) {
+    return this.usersService.getRecentUsers(limit ? +limit : 5);
+  }
 
   @UseGuards(JwtAuthGuard)
   @Get('me')
@@ -46,7 +54,7 @@ export class UsersController {
   @Patch('seller/profile')
   async updateProfile(
     @Request() req,
-    @Body() updateDto: UpdateSellerProfileDto
+    @Body() updateDto: UpdateSellerProfileDto,
   ) {
     return this.usersService.updateSellerProfile(req.user.id, updateDto);
   }
@@ -62,7 +70,7 @@ export class UsersController {
   @Patch('shipper/profile')
   async updateShipperProfile(
     @Request() req,
-    @Body() updateDto: UpdateShipperProfileDto
+    @Body() updateDto: UpdateShipperProfileDto,
   ) {
     return this.usersService.updateShipperProfile(req.user.id, updateDto);
   }
@@ -130,5 +138,4 @@ export class UsersController {
   async activate(@Param('id') id: string) {
     return await this.usersService.activate(+id);
   }
-
 }

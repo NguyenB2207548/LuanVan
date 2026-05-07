@@ -46,7 +46,7 @@ export class Order {
 
   @ManyToOne(() => User)
   @JoinColumn({ name: 'shipper_id' })
-  shipper: User;
+  shipper: User | null;
 
   // --- THÔNG TIN BỔ SUNG ---
   @Column({ name: 'recipient_name' })

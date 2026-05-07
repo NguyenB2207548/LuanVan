@@ -90,9 +90,6 @@ const DesignerCanvas: React.FC<DesignerCanvasProps> = ({
   const paperX = isArtworkMode ? (stageWidth - paperWidth) / 2 : 0;
   const paperY = isArtworkMode ? (stageHeight - paperHeight) / 2 : 0;
 
-  // ==================================================
-  // BỘ ÁO GIÁP AN TOÀN
-  // ==================================================
   const safePrintArea = {
     x: virtualPrintArea?.x || 0,
     y: virtualPrintArea?.y || 0,
@@ -237,6 +234,16 @@ const DesignerCanvas: React.FC<DesignerCanvasProps> = ({
                 }
               >
                 <Group
+                  // x={
+                  //   isArtworkMode
+                  //     ? 0
+                  //     : (centerX + (designOffset?.x || 0)) * displayScale
+                  // }
+                  // y={
+                  //   isArtworkMode
+                  //     ? 0
+                  //     : (centerY + (designOffset?.y || 0)) * displayScale
+                  // }
                   x={
                     isArtworkMode
                       ? 0
@@ -266,6 +273,7 @@ const DesignerCanvas: React.FC<DesignerCanvasProps> = ({
                   }}
                 >
                   {layers?.map((l) => {
+                    if (l.type === "group") return null;
                     if (
                       activeFilter !== "ALL" &&
                       l.show_condition &&
@@ -334,7 +342,18 @@ const DesignerCanvas: React.FC<DesignerCanvasProps> = ({
                           y: (l.y || 0) * displayScale,
                           width: (l.width || 100) * displayScale,
                           height: (l.height || 100) * displayScale,
-                          url: l.image_url || l.url,
+                          // url: l.image_url || l.url,
+                          url:
+                            l.type === "group"
+                              ? (l.selectedOptionId
+                                  ? l.options?.find(
+                                      (opt: any) =>
+                                        opt.id === l.selectedOptionId,
+                                    )?.image_url
+                                  : null) ||
+                                l.image_url ||
+                                l.options?.[0]?.image_url
+                              : l.image_url || l.url,
                         }}
                         isSelected={selectedId === l.id && isArtworkMode}
                         onSelect={() => isArtworkMode && setSelectedId(l.id)}

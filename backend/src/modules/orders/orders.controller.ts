@@ -21,12 +21,14 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/entities/user.entity';
+import { Order } from './entities/order.entity';
 
 @Controller('orders')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class OrdersController {
   exportService: any;
-  constructor(private readonly ordersService: OrdersService) { }
+  dataSource: any;
+  constructor(private readonly ordersService: OrdersService) {}
 
   // --- CUSTOMER ---
 
@@ -42,7 +44,12 @@ export class OrdersController {
   @Get('my-orders')
   @Roles(UserRole.USER)
   getMyOrders(@Request() req, @Query('limit') limit?: string) {
-    return this.ordersService.getOrdersByRole('user', req.user.id, 1, limit ? +limit : 10);
+    return this.ordersService.getOrdersByRole(
+      'user',
+      req.user.id,
+      1,
+      limit ? +limit : 10,
+    );
   }
 
   @Patch(':id/cancel')
@@ -55,13 +62,17 @@ export class OrdersController {
     return this.ordersService.cancelOrder(orderId, req.user.id, req.user.role);
   }
 
-
   // --- SELLER ---
 
   @Get('seller')
   @Roles(UserRole.SELLER)
   getSellerOrders(@Request() req, @Query('limit') limit?: string) {
-    return this.ordersService.getOrdersByRole('seller', req.user.userId, 1, limit ? +limit : 10);
+    return this.ordersService.getOrdersByRole(
+      'seller',
+      req.user.userId,
+      1,
+      limit ? +limit : 10,
+    );
   }
   @Patch(':id/seller-confirm')
   @Roles(UserRole.SELLER)
@@ -132,6 +143,12 @@ export class OrdersController {
     return this.ordersService.getShipperStats(req.user.id);
   }
 
+  @Get('admin/recent')
+  @Roles(UserRole.ADMIN)
+  getAdminRecentOrders(@Query('limit') limit?: string) {
+    return this.ordersService.getAdminRecentOrders(limit ? +limit : 5);
+  }
+
   @Get(':id')
   @UseGuards(JwtAuthGuard)
   async findOne(@Param('id') id: number, @Req() req: any) {
@@ -140,7 +157,6 @@ export class OrdersController {
       role: req.user.role,
     });
   }
-
 
   @Post('momo-ipn')
   async handleMoMoIPN(@Body() body: any, @Res() res: Response) {
@@ -162,11 +178,9 @@ export class OrdersController {
     @Param('id', ParseIntPipe) orderItemId: number,
     @Res() res: Response,
   ) {
-    // 1. Lấy dữ liệu (Lúc này orderItem sẽ có kiểu là OrderItem entity)
     const orderItem =
       await this.ordersService.getOrderItemWithDesign(orderItemId);
 
-    // 2. Kiểm tra dữ liệu cấu hình in
     const printArea = orderItem.variant?.mockup?.printArea;
 
     if (!printArea || !orderItem.customizedDesignJson) {
@@ -175,13 +189,11 @@ export class OrdersController {
       );
     }
 
-    // 3. Gọi service render
     const imageBuffer = await this.exportService.renderHighResImage(
       orderItem.customizedDesignJson,
       printArea,
     );
 
-    // 4. Trả về file
     res.setHeader('Content-Type', 'image/png');
     res.setHeader(
       'Content-Disposition',

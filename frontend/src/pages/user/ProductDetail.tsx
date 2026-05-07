@@ -179,7 +179,8 @@ const ProductDetail = () => {
                 layer.options.find(
                   (o: any) => o.image_url === layer.image_url,
                 ) || layer.options[0];
-              initialChoices[layer.id] = defaultOpt.id;
+              // initialChoices[layer.id] = defaultOpt.id;
+              initialChoices[layer.id] = layer.options[0].id;
             }
           });
           setDesignChoices(initialChoices);
@@ -296,6 +297,17 @@ const ProductDetail = () => {
                     backgroundUrl={
                       selectedVariant?.mockup?.url || product.mockup?.url || ""
                     }
+                    activeFilter={(() => {
+                      const groupLayer =
+                        product.design.artwork.layersJson.details.find(
+                          (l: any) => l.type === "group",
+                        );
+                      return groupLayer
+                        ? designChoices[groupLayer.id] ||
+                            groupLayer.options?.[0]?.id ||
+                            "ALL"
+                        : "ALL";
+                    })()}
                     layers={product.design.artwork.layersJson.details.map(
                       (layer: any) => {
                         if (layer.type === "text")
@@ -313,10 +325,7 @@ const ProductDetail = () => {
                             color:
                               designChoices[`${layer.id}_color`] || layer.color,
                           };
-                        if (
-                          layer.type === "dynamic_image" ||
-                          layer.type === "group"
-                        ) {
+                        if (layer.type === "dynamic_image") {
                           const selectedOptionId = designChoices[layer.id];
                           const selectedOpt = layer.options?.find(
                             (o: any) =>
@@ -324,14 +333,35 @@ const ProductDetail = () => {
                           );
                           return {
                             ...layer,
-                            image_url: selectedOpt
-                              ? selectedOpt.image_url
-                              : layer.image_url,
-                            url: selectedOpt
-                              ? selectedOpt.image_url
-                              : layer.image_url,
+                            x: layer.x ?? 0,
+                            y: layer.y ?? 0,
+                            width:
+                              layer.width ??
+                              product.design.artwork.layersJson.canvasSize
+                                .width,
+                            height:
+                              layer.height ??
+                              product.design.artwork.layersJson.canvasSize
+                                .height,
+                            image_url:
+                              selectedOpt?.image_url || layer.image_url,
+                            url: selectedOpt?.image_url || layer.image_url,
                           };
                         }
+
+                        // GROUP: không cần truyền image_url vì DesignerCanvas
+                        if (layer.type === "group") {
+                          return {
+                            ...layer,
+                            // Trả về layer nhưng không có image_url và url
+                            // để URLImage không render gì cả
+                            image_url: null,
+                            url: null,
+                            width: 0,
+                            height: 0,
+                          };
+                        }
+
                         return layer;
                       },
                     )}

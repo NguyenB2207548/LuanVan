@@ -76,10 +76,7 @@ export class MomoService {
       }
       return response.data.payUrl;
     } catch (error) {
-      console.error(
-        'Momo Payment Error:',
-        error.response?.data || error.message,
-      );
+      console.error('Momo Payment Error:');
       return null;
     }
   }

@@ -1,4 +1,11 @@
-import { Controller, Get, Query, UseGuards, Req, BadRequestException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Query,
+  UseGuards,
+  Req,
+  BadRequestException,
+} from '@nestjs/common';
 import { StatisticsService } from './statistics.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -8,7 +15,7 @@ import { UserRole } from '../users/entities/user.entity';
 @Controller('statistics')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class StatisticsController {
-  constructor(private readonly statisticsService: StatisticsService) { }
+  constructor(private readonly statisticsService: StatisticsService) {}
 
   // ----------------------------------------------------------------
   // GET /statistics/seller/revenue-overview
@@ -81,5 +88,38 @@ export class StatisticsController {
       : 'day';
 
     return this.statisticsService.getRevenueChart(sellerId, from, to, group);
+  }
+
+  @Get('admin/overview')
+  @Roles(UserRole.ADMIN)
+  async getAdminOverview() {
+    return this.statisticsService.getAdminOverview();
+  }
+
+  @Get('admin/revenue-chart')
+  @Roles(UserRole.ADMIN)
+  async getAdminRevenueChart(
+    @Query('from') fromStr?: string,
+    @Query('to') toStr?: string,
+    @Query('groupBy') groupBy?: string,
+  ) {
+    const now = new Date();
+    const from = fromStr
+      ? new Date(fromStr)
+      : new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
+    const to = toStr
+      ? new Date(new Date(toStr).setHours(23, 59, 59, 999))
+      : new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+    if (isNaN(from.getTime()) || isNaN(to.getTime())) {
+      throw new BadRequestException('Ngày không hợp lệ. Định dạng: YYYY-MM-DD');
+    }
+
+    const validGroupBy = ['day', 'week', 'month'];
+    const group = validGroupBy.includes(groupBy ?? '')
+      ? (groupBy as 'day' | 'week' | 'month')
+      : 'day';
+
+    return this.statisticsService.getAdminRevenueChart(from, to, group);
   }
 }

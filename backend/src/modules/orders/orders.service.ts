@@ -266,18 +266,9 @@ export class OrdersService {
         );
       }
 
-      for (const item of order.items) {
-        if (item.variant) {
-          item.variant.stock = Number(item.variant.stock) + item.quantity;
-          await manager.save(Variant, item.variant);
-        }
-      }
+      order.status = 'confirmed';
 
-      order.status = 'failed';
-
-      if (order.paymentStatus === 'paid') {
-        order.paymentStatus = 'refunded';
-      }
+      order.shipper = null;
 
       const savedOrder = await manager.save(Order, order);
 
@@ -285,25 +276,83 @@ export class OrdersService {
         this.notificationsService.createWithManager(manager, {
           recipientId: order.seller.id,
           type: NotificationType.ORDER_FAILED,
-          title: 'Giao hàng thất bại',
-          body: `Đơn hàng ${order.orderNumber} giao thất bại. Vui lòng liên hệ shipper để xử lý.`,
+          title: 'Giao hàng không thành công',
+          body: `Đơn ${order.orderNumber} giao thất bại vì: ${reason}. Đơn đã được đẩy lại vào danh sách chờ Shipper khác.`,
           orderId: order.id,
         }),
         this.notificationsService.createWithManager(manager, {
           recipientId: order.user.id,
           type: NotificationType.ORDER_FAILED,
-          title: 'Giao hàng thất bại',
-          body: `Đơn hàng ${order.orderNumber} không thể giao đến bạn. Chúng tôi sẽ liên hệ sớm.`,
+          title: 'Giao hàng tạm hoãn',
+          body: `Shipper không thể giao đơn ${order.orderNumber} đến bạn (Lý do: ${reason}). Chúng tôi sẽ sắp xếp giao lại sớm nhất.`,
           orderId: order.id,
         }),
       ]);
 
       return {
-        message: 'Đã xác nhận giao hàng thất bại và hoàn kho thành công.',
+        message:
+          'Đã báo cáo giao thất bại. Đơn hàng được trả về trạng thái chờ Shipper khác.',
         data: savedOrder,
       };
     });
   }
+
+  // async shipperFailOrder(orderId: number, shipperId: number, reason: string) {
+  //   return await this.dataSource.transaction(async (manager) => {
+  //     const order = await manager.findOne(Order, {
+  //       where: {
+  //         id: orderId,
+  //         shipper: { id: shipperId },
+  //         status: 'shipping',
+  //       },
+  //       relations: ['items', 'items.variant', 'seller', 'user'],
+  //       lock: { mode: 'pessimistic_write' },
+  //     });
+
+  //     if (!order) {
+  //       throw new NotFoundException(
+  //         'Không tìm thấy đơn hàng đang giao của bạn',
+  //       );
+  //     }
+
+  //     for (const item of order.items) {
+  //       if (item.variant) {
+  //         item.variant.stock = Number(item.variant.stock) + item.quantity;
+  //         await manager.save(Variant, item.variant);
+  //       }
+  //     }
+
+  //     order.status = 'failed';
+
+  //     if (order.paymentStatus === 'paid') {
+  //       order.paymentStatus = 'refunded';
+  //     }
+
+  //     const savedOrder = await manager.save(Order, order);
+
+  //     await Promise.all([
+  //       this.notificationsService.createWithManager(manager, {
+  //         recipientId: order.seller.id,
+  //         type: NotificationType.ORDER_FAILED,
+  //         title: 'Giao hàng thất bại',
+  //         body: `Đơn hàng ${order.orderNumber} giao thất bại. Vui lòng liên hệ shipper để xử lý.`,
+  //         orderId: order.id,
+  //       }),
+  //       this.notificationsService.createWithManager(manager, {
+  //         recipientId: order.user.id,
+  //         type: NotificationType.ORDER_FAILED,
+  //         title: 'Giao hàng thất bại',
+  //         body: `Đơn hàng ${order.orderNumber} không thể giao đến bạn. Chúng tôi sẽ liên hệ sớm.`,
+  //         orderId: order.id,
+  //       }),
+  //     ]);
+
+  //     return {
+  //       message: 'Đã xác nhận giao hàng thất bại và hoàn kho thành công.',
+  //       data: savedOrder,
+  //     };
+  //   });
+  // }
 
   async cancelOrder(orderId: number, userId: number, reason: string) {
     return await this.dataSource.transaction(async (manager) => {
@@ -997,5 +1046,34 @@ export class OrdersService {
         orderId,
       },
     ]);
+  }
+
+  async getAdminRecentOrders(limit: number = 5) {
+    const orders = await this.dataSource.manager
+      .createQueryBuilder(Order, 'order')
+      .leftJoinAndSelect('order.items', 'items')
+      .leftJoinAndSelect('items.variant', 'variant')
+      .leftJoinAndSelect('variant.product', 'product')
+      .leftJoinAndSelect(
+        'variant.images',
+        'vImages',
+        'vImages.isPrimary = :isPrimary',
+        { isPrimary: true },
+      )
+      .leftJoinAndSelect(
+        'product.images',
+        'pImages',
+        'pImages.isPrimary = :isPrimary',
+        { isPrimary: true },
+      )
+      .leftJoin('order.seller', 'seller')
+      .addSelect(['seller.id', 'seller.fullName'])
+      .leftJoin('order.user', 'customer')
+      .addSelect(['customer.id', 'customer.fullName', 'customer.email'])
+      .orderBy('order.createdAt', 'DESC')
+      .take(limit)
+      .getMany();
+
+    return { data: orders };
   }
 }

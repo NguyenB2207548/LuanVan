@@ -53,13 +53,13 @@ const AddLayerButtons: React.FC<AddLayerButtonsProps> = ({
     onAddLayer({
       id: generateLayerId(),
       type: "dynamic_image",
-      label: "Dynamic Image",
+      label: "Option Image",
       image_url: "http://localhost:3000/public/uploads/assets/upload.png",
       options: [],
       x: 150,
       y: 150,
-      width: 100,
-      height: 100,
+      width: 60,
+      height: 60,
       zIndex: currentLayerCount,
     });
   };
@@ -84,22 +84,6 @@ const AddLayerButtons: React.FC<AddLayerButtonsProps> = ({
       y: 150,
       width: 60,
       height: 60,
-      zIndex: currentLayerCount,
-      show_condition: "",
-    });
-  };
-
-  const handleAddDynamicText = () => {
-    onAddLayer({
-      id: generateLayerId(),
-      type: "dynamic_text",
-      label: "Dynamic Text",
-      text: "Text",
-      x: 50,
-      y: 100,
-      fontSize: 24,
-      fontFamily: "Roboto",
-      color: "#000000",
       zIndex: currentLayerCount,
       show_condition: "",
     });
@@ -140,7 +124,7 @@ const AddLayerButtons: React.FC<AddLayerButtonsProps> = ({
           className="flex items-center justify-start gap-2 px-3 h-10 border border-gray-300 rounded-md hover:bg-gray-50 text-[13px] font-medium bg-white transition-colors"
         >
           <List size={16} className="text-gray-500 shrink-0" />
-          <span className="whitespace-nowrap truncate">Dynamic Image</span>
+          <span className="whitespace-nowrap truncate">Option Image</span>
         </button>
 
         <button

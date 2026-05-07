@@ -25,7 +25,7 @@ export class UsersService {
     private readonly sellerRepository: Repository<SellerProfile>,
     @InjectRepository(ShipperProfile)
     private readonly shipperRepository: Repository<ShipperProfile>,
-  ) { }
+  ) {}
 
   async getMe(userId: number) {
     return this.userRepository.findOne({ where: { id: userId } });
@@ -71,7 +71,6 @@ export class UsersService {
     return await this.userRepository.findOne({ where: { email } });
   }
 
-
   async changePassword(id: number, dto: ChangePasswordDto) {
     const user = await this.userRepository.findOne({ where: { id } });
     if (!user) throw new NotFoundException('Người dùng không tồn tại');
@@ -91,7 +90,9 @@ export class UsersService {
   }
 
   async resetPassword(dto: ResetPasswordDto) {
-    const user = await this.userRepository.findOne({ where: { email: dto.email } });
+    const user = await this.userRepository.findOne({
+      where: { email: dto.email },
+    });
     if (!user) throw new NotFoundException('Email không tồn tại');
 
     const salt = await bcrypt.genSalt();
@@ -103,7 +104,10 @@ export class UsersService {
   }
 
   // SELLER
-  async updateSellerProfile(userId: number, updateDto: UpdateSellerProfileDto): Promise<SellerProfile> {
+  async updateSellerProfile(
+    userId: number,
+    updateDto: UpdateSellerProfileDto,
+  ): Promise<SellerProfile> {
     const profile = await this.sellerRepository.findOne({ where: { userId } });
 
     if (!profile) {
@@ -111,21 +115,27 @@ export class UsersService {
     }
 
     // BÓC TÁCH: Lấy hết các trường địa chỉ (bao gồm cả shopAddress) ra ngoài
-    const { province, district, ward, addressDetail, shopAddress, ...otherData } = updateDto;
+    const {
+      province,
+      district,
+      ward,
+      addressDetail,
+      shopAddress,
+      ...otherData
+    } = updateDto;
 
     // 1. Gộp địa chỉ mới
     if (province && district && ward && addressDetail) {
       profile.shopAddress = `${addressDetail}, ${ward}, ${district}, ${province}`;
     }
 
-    // 2. Lúc này otherData chỉ còn lại shopName, rating... 
+    // 2. Lúc này otherData chỉ còn lại shopName, rating...
     // shopAddress đã bị bóc ra ở trên nên Object.assign sẽ không ghi đè bậy bạ nữa
     Object.assign(profile, otherData);
 
     // 3. Lưu lại
     return await this.sellerRepository.save(profile);
   }
-
 
   async getSellerProfile(userId: number): Promise<SellerProfile> {
     const profile = await this.sellerRepository.findOne({ where: { userId } });
@@ -144,11 +154,16 @@ export class UsersService {
     return profile;
   }
 
-  async updateShipperProfile(userId: number, updateDto: UpdateShipperProfileDto) {
+  async updateShipperProfile(
+    userId: number,
+    updateDto: UpdateShipperProfileDto,
+  ) {
     const profile = await this.shipperRepository.findOne({ where: { userId } });
 
     if (!profile) {
-      throw new NotFoundException(`Không tìm thấy hồ sơ shipper cho User ID ${userId}`);
+      throw new NotFoundException(
+        `Không tìm thấy hồ sơ shipper cho User ID ${userId}`,
+      );
     }
 
     const { province, district, ward, addressDetail, ...otherData } = updateDto;
@@ -174,7 +189,7 @@ export class UsersService {
       this.userRepository.count({ where: { isActive: false } }),
 
       // 4. Thống kê số lượng theo vai trò (Role)
-      // Giả sử ông dùng trường role là số (0: user/admin, 1: seller, 2: shipper...) 
+      // Giả sử ông dùng trường role là số (0: user/admin, 1: seller, 2: shipper...)
       // hoặc string. Tui sẽ dùng query builder để group cho linh hoạt:
       this.userRepository
         .createQueryBuilder('user')
@@ -205,7 +220,7 @@ export class UsersService {
     await this.userRepository.update(id, { isActive: false });
     return {
       success: true,
-      message: `Đã khóa tài khoản ${user.email} thành công.`
+      message: `Đã khóa tài khoản ${user.email} thành công.`,
     };
   }
 
@@ -219,8 +234,15 @@ export class UsersService {
     await this.userRepository.update(id, { isActive: true });
     return {
       success: true,
-      message: `Tài khoản ${user.email} đã được mở khóa.`
+      message: `Tài khoản ${user.email} đã được mở khóa.`,
     };
   }
 
+  async getRecentUsers(limit: number = 5) {
+    return this.userRepository.find({
+      order: { createdAt: 'DESC' },
+      take: limit,
+      select: ['id', 'fullName', 'email', 'role', 'isActive', 'createdAt'],
+    });
+  }
 }

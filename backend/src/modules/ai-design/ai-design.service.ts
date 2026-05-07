@@ -52,7 +52,7 @@ export class AiDesignService {
         },
 
         pollInterval: 5000,
-        timeout: 300000,
+        timeout: 3000000,
         logs: true,
         onQueueUpdate: (update: any) => {
           if (update.status === 'IN_PROGRESS') {
