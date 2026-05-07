@@ -73,14 +73,10 @@ npm install
 ```
 
 
-### 4. Khởi động frontend
+### 3. Khởi động frontend
 
 ```bash
 npm run dev
 
 Ứng dụng chạy tại: `http://localhost:5173`
 
-
-## 📄 License
-
-MIT License — Dự án nghiên cứu khoa học, không dùng cho mục đích thương mại.
