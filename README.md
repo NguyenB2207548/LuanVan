@@ -49,14 +49,14 @@ FAL_KEY=your_fal_api_key
 CREATE DATABASE giftshop;
 ```
 
-### 6. Khởi động server
+### 5. Khởi động server
 
 ```bash
 npm run start:dev
 
 Server chạy tại: `http://localhost:3000`
 
----
+```
 
 ## Cài đặt Frontend (ReactJS)
 
